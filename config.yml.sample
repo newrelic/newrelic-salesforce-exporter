@@ -1,0 +1,23 @@
+integration_name: com.newrelic.labs.sfdc.eventlogfiles
+instances:
+  - name: sfdc-logs
+    arguments:
+      base_url: ""
+      token_url: "https://test.salesforce.com/services/oauth2/token"
+      auth: {
+        "grant_type": "password",
+        "client_id": "",
+        "client_secret": "",
+        "username": "",
+        "password": ""
+      }
+      cache_enabled: "false"
+      date_field: "LogDate"
+      generation_interval: "Hourly"
+      time_lag_minutes: 300
+    labels:
+      environment: production
+newrelic:
+  http_endpoint: "https://log-api.newrelic.com/log/v1"
+  license_key: ""
+

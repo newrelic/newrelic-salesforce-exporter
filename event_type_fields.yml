@@ -1,0 +1,18 @@
+mapping: {
+  'Login': [ "EVENT_TYPE", "TIMESTAMP", "REQUEST_ID", "ORGANIZATION_ID", "USER_ID", "RUN_TIME",
+             "CPU_TIME",
+             "URI",
+             "USER_TYPE",
+             "REQUEST_STATUS",
+             "BROWSER_TYPE",
+             "USER_NAME",
+             "TLS_PROTOCOL",
+             "CIPHER_SUITE",
+             "AUTHENTICATION_METHOD_REFERENCE",
+             "TIMESTAMP_DERIVED",
+             "USER_ID_DERIVED",
+             "CLIENT_IP",
+             "URI_ID_DERIVED",
+             "LOGIN_STATUS",
+             "SOURCE_IP" ],
+}
