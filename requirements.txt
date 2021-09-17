@@ -1,0 +1,11 @@
+APScheduler==3.7.0
+certifi==2021.5.30
+charset-normalizer==2.0.5
+idna==3.2
+pytz==2021.1
+PyYAML==5.4.1
+redis==3.5.3
+requests==2.26.0
+six==1.16.0
+tzlocal==2.1
+urllib3==1.26.6
