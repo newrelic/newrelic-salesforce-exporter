@@ -4,11 +4,11 @@ from .salesforce import SalesForce
 
 class Integration:
 
-    def __init__(self, config, event_type_fields_mapping):
+    def __init__(self, config, event_type_fields_mapping, initial_delay):
         self.instances = []
         for instance in config['instances']:
             labels = instance['labels']
-            client = SalesForce(instance['arguments'], event_type_fields_mapping)
+            client = SalesForce(instance['arguments'], event_type_fields_mapping, initial_delay)
             if not client.get_access_token():
                 print("could not connect to salesforce")
             self.instances.append({'labels': labels, 'client': client})

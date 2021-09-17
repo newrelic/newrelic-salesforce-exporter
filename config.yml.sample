@@ -1,4 +1,5 @@
 integration_name: com.newrelic.labs.sfdc.eventlogfiles
+run_as_service: True
 instances:
   - name: sfdc-logs
     arguments:
@@ -11,7 +12,7 @@ instances:
         "username": "",
         "password": ""
       }
-      cache_enabled: "false"
+      cache_enabled: False
       date_field: "LogDate"
       generation_interval: "Hourly"
       time_lag_minutes: 300

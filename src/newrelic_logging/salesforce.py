@@ -2,8 +2,8 @@ import csv
 from datetime import datetime, timedelta
 
 import pytz
-import requests
 import redis
+import requests
 
 
 class NotConnectedException(Exception):
@@ -25,7 +25,7 @@ class SalesForce:
     token_url = ''
     redis = False
 
-    def __init__(self, config, event_type_fields_mapping):
+    def __init__(self, config, event_type_fields_mapping, initial_delay):
         self.client_id = config['auth']['client_id']
         self.client_secret = config['auth']['client_secret']
         self.username = config['auth']['username']
@@ -33,14 +33,14 @@ class SalesForce:
         self.token_url = config['token_url']
         self.time_lag_minutes = config['time_lag_minutes']
         self.generation_interval = config['generation_interval']
-        self.last_to_timestamp = (datetime.utcnow() - timedelta(minutes=self.time_lag_minutes)).isoformat(
-            timespec='milliseconds') + "Z"
+        self.last_to_timestamp = (datetime.utcnow() - timedelta(
+            minutes=self.time_lag_minutes + initial_delay)).isoformat(timespec='milliseconds') + "Z"
         self.date_field = config['date_field']
         if config['date_field'].lower() == "logdate":
             self.query_template = SALESFORCE_LOG_DATE_QUERY
         else:
             self.query_template = SALESFORCE_CREATED_DATE_QUERY
-        if config['cache_enabled'].lower() == "true":
+        if config['cache_enabled']:
             redis_config = config['redis']
             r = redis.Redis(host=redis_config['host'], port=redis_config['port'], db=redis_config['db_number'],
                             password=redis_config['password'],
