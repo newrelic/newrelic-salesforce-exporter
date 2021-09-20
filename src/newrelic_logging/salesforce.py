@@ -108,9 +108,14 @@ class SalesForce:
             log_type = i['EventType']
             log_file_id = i['Id']
             cache_key = f'{log_file_id}'
-            cache_key_exists = self.redis.exists(cache_key)
-            if cache_key_exists:
-                cached_messages = self.redis.lrange(cache_key, 0, -1)
+            if self.redis:
+                cache_key_exists = self.redis.exists(cache_key)
+                if cache_key_exists:
+                    cached_messages = self.redis.lrange(cache_key, 0, -1)
+                else:
+                    cache_key_exists = False
+                    self.redis.rpush(cache_key, '')
+                    self.redis.expire(cache_key, timedelta(days=7))
 
             content = self.download(i['LogFile']).decode('utf-8')
             reader = csv.DictReader(content.splitlines())
@@ -118,11 +123,12 @@ class SalesForce:
             for row in reader:
                 row_id = row["REQUEST_ID"]
                 message = {}
-                if cache_key_exists:
-                    if row_id in cached_messages:
-                        continue
+                if self.redis:
+                    if cache_key_exists:
+                        if row_id in cached_messages:
+                            continue
+                    self.redis.rpush("cache_key", row_id)
 
-                self.redis.rpush("cache_key", row_id)
                 if log_type in self.event_type_fields_mapping:
                     for field in self.event_type_fields_mapping[log_type]:
                         message[field] = row[field]
