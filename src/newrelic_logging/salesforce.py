@@ -107,17 +107,20 @@ class SalesForce:
         for i in ret['records']:
             log_type = i['EventType']
             log_file_id = i['Id']
+            cache_key = f'{log_file_id}'
+            cached_messages = self.redis.lrange("cache_key", 0, -1)
+
             content = self.download(i['LogFile']).decode('utf-8')
             reader = csv.DictReader(content.splitlines())
             rows = []
             for row in reader:
+                row_id = row["REQUEST_ID"]
                 message = {}
-                key = f'{log_file_id}{row["REQUEST_ID"]}'
-                if self.redis:
-                    if self.redis.get(key):
+                if cached_messages:
+                    if row_id in cached_messages:
                         continue
-                    self.redis.set(key, 1, ex=172800)
 
+                self.redis.rpush("cache_key", row_id)
                 if log_type in self.event_type_fields_mapping:
                     for field in self.event_type_fields_mapping[log_type]:
                         message[field] = row[field]
