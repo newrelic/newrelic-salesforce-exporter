@@ -42,6 +42,6 @@ if __name__ == "__main__":
         }
         scheduler = BlockingScheduler(jobstores=jobstores, executors=executors, job_defaults=job_defaults, timezone=utc)
         # scheduler.add_job(integration.run, trigger='cron', hour="*", minute='5,15,25,35,45,55', second='30')
-        scheduler.add_job(integration.run, trigger='cron', hour="*", minute='*', second='30')
+        scheduler.add_job(integration.run, trigger='cron', hour="*", minute='30', second='30')
         scheduler.start()
         print('Press Ctrl+{0} to exit'.format('Break' if os.name == 'nt' else 'C'))

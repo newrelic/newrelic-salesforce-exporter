@@ -113,8 +113,7 @@ class SalesForce:
                 if cache_key_exists:
                     cached_messages = self.redis.lrange(cache_key, 0, -1)
                 else:
-                    cache_key_exists = False
-                    self.redis.rpush(cache_key, '')
+                    self.redis.rpush(cache_key, 'init')
                     self.redis.expire(cache_key, timedelta(days=7))
 
             content = self.download(i['LogFile']).decode('utf-8')
@@ -125,9 +124,13 @@ class SalesForce:
                 message = {}
                 if self.redis:
                     if cache_key_exists:
-                        if row_id in cached_messages:
+                        row_id_b = row_id.encode('utf-8')
+                        if row_id_b in cached_messages:
+                            # print(f'dropping row: cache{row_id}')
                             continue
-                    self.redis.rpush("cache_key", row_id)
+                        self.redis.rpush(cache_key, row_id)
+                    else:
+                        self.redis.rpush(cache_key, row_id)
 
                 if log_type in self.event_type_fields_mapping:
                     for field in self.event_type_fields_mapping[log_type]:
