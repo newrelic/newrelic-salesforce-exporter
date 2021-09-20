@@ -108,7 +108,9 @@ class SalesForce:
             log_type = i['EventType']
             log_file_id = i['Id']
             cache_key = f'{log_file_id}'
-            cached_messages = self.redis.lrange("cache_key", 0, -1)
+            cache_key_exists = self.redis.exists(cache_key)
+            if cache_key_exists:
+                cached_messages = self.redis.lrange(cache_key, 0, -1)
 
             content = self.download(i['LogFile']).decode('utf-8')
             reader = csv.DictReader(content.splitlines())
@@ -116,7 +118,7 @@ class SalesForce:
             for row in reader:
                 row_id = row["REQUEST_ID"]
                 message = {}
-                if cached_messages:
+                if cache_key_exists:
                     if row_id in cached_messages:
                         continue
 
