@@ -1,56 +1,51 @@
+
 [![New Relic Experimental header](https://github.com/newrelic/opensource-website/raw/master/src/images/categories/Experimental.png)](https://opensource.newrelic.com/oss-category/#new-relic-experimental)
 
-![GitHub forks](https://img.shields.io/github/forks/newrelic-experimental/newrelic-experimental-FIT-template?style=social)
-![GitHub stars](https://img.shields.io/github/stars/newrelic-experimental/newrelic-experimental-FIT-template?style=social)
-![GitHub watchers](https://img.shields.io/github/watchers/newrelic-experimental/newrelic-experimental-FIT-template?style=social)
+![GitHub forks](https://img.shields.io/github/forks/newrelic-experimental/newrelic-logs-salesforce-eventlogfile?style=social)
+![GitHub stars](https://img.shields.io/github/stars/newrelic-experimental/newrelic-logs-salesforce-eventlogfile?style=social)
+![GitHub watchers](https://img.shields.io/github/watchers/newrelic-experimental/newrelic-logs-salesforce-eventlogfile?style=social)
 
-![GitHub all releases](https://img.shields.io/github/downloads/newrelic-experimental/newrelic-experimental-FIT-template/total)
-![GitHub release (latest by date)](https://img.shields.io/github/v/release/newrelic-experimental/newrelic-experimental-FIT-template)
-![GitHub last commit](https://img.shields.io/github/last-commit/newrelic-experimental/newrelic-experimental-FIT-template)
-![GitHub Release Date](https://img.shields.io/github/release-date/newrelic-experimental/newrelic-experimental-FIT-template)
+![GitHub all releases](https://img.shields.io/github/downloads/newrelic-experimental/newrelic-logs-salesforce-eventlogfile/total)
+![GitHub release (latest by date)](https://img.shields.io/github/v/release/newrelic-experimental/newrelic-logs-salesforce-eventlogfile)
+![GitHub last commit](https://img.shields.io/github/last-commit/newrelic-experimental/newrelic-logs-salesforce-eventlogfile)
+![GitHub Release Date](https://img.shields.io/github/release-date/newrelic-experimental/newrelic-logs-salesforce-eventlogfile)
 
 
-![GitHub issues](https://img.shields.io/github/issues/newrelic-experimental/newrelic-experimental-FIT-template)
-![GitHub issues closed](https://img.shields.io/github/issues-closed/newrelic-experimental/newrelic-experimental-FIT-template)
-![GitHub pull requests](https://img.shields.io/github/issues-pr/newrelic-experimental/newrelic-experimental-FIT-template)
-![GitHub pull requests closed](https://img.shields.io/github/issues-pr-closed/newrelic-experimental/newrelic-experimental-FIT-template)
+![GitHub issues](https://img.shields.io/github/issues/newrelic-experimental/newrelic-logs-salesforce-eventlogfile)
+![GitHub issues closed](https://img.shields.io/github/issues-closed/newrelic-experimental/newrelic-logs-salesforce-eventlogfile)
+![GitHub pull requests](https://img.shields.io/github/issues-pr/newrelic-experimental/newrelic-logs-salesforce-eventlogfile)
+![GitHub pull requests closed](https://img.shields.io/github/issues-pr-closed/newrelic-experimental/newrelic-logs-salesforce-eventlogfile)
 
-# [Project Name] [build badges go here when available]
+# Salesforce Event Logs integration for NewRelic Logs
 
->[Brief description - what is the project and value does it provide? How often should users expect to get releases? How is versioning set up? Where does this project want to go?]
+*Salesforce Event Logs integration for NewRelic Logs* offers an integration to process and foward Salesforce event log files to [NewRelic Logs](https://docs.newrelic.com/docs/introduction-new-relic-logs)
 
 ## Installation
 
-> [Include a step-by-step procedure on how to get your code installed. Be sure to include any third-party dependencies that need to be installed separately]
 
-## Getting Started
 
->[Simple steps to start working with the software similar to a "Hello World"]
+
+## Configuration
+
+To collect Salesforce event log data, you have to have read access to the Salesforce event log and enable the Salesforce event log file API.
+Create a Salesforce 'Connected App' to use OAuth authentication.
+
+Then fill in the relevant information in the **config.yml** file in the root folder 
+ 1. Update the *name*, connection *arguments* and *labels* for the salesforce instance from which to fetch event logs files.
+ 2. Update the **newrelic** *http_endpoint* and *license_key*
+
 
 ## Usage
 
->[**Optional** - Include more thorough instructions on how to use the software. This section might not be needed if the Getting Started section is enough. Remove this section if it's not needed.]
-
-## Building
-
->[**Optional** - Include this section if users will need to follow specific instructions to build the software from source. Be sure to include any third party build dependencies that need to be installed separately. Remove this section if it's not needed.]
-
-## Testing
-
->[**Optional** - Include instructions on how to run tests if we include tests with the codebase. Remove this section if it's not needed.]
+1.  Run  `python -m pip install -r requirements.txt`  to install dependencies
+3.  Run  `python src/main.py` to run the integration
 
 ## Support
 
 New Relic has open-sourced this project. This project is provided AS-IS WITHOUT WARRANTY OR DEDICATED SUPPORT. Issues and contributions should be reported to the project here on GitHub.
 
->[Choose 1 of the 2 options below for Support details, and remove the other one.]
+We encourage you to bring your experiences and questions to the [Explorers Hub](https://discuss.newrelic.com) where our community members collaborate on solutions and new ideas.
 
->[Option 1 - no specific thread in Community]
->We encourage you to bring your experiences and questions to the [Explorers Hub](https://discuss.newrelic.com) where our community members collaborate on solutions and new ideas.
-
->[Option 2 - thread in Community]
->New Relic hosts and moderates an online forum where customers can interact with New Relic employees as well as other customers to get help and share best practices. Like all official New Relic open source projects, there's a related Community topic in the New Relic Explorers Hub.
->You can find this project's topic/threads here: [URL for Community thread]
 
 ## Contributing
 
@@ -62,8 +57,10 @@ As noted in our [security policy](../../security/policy), New Relic is committed
 
 If you believe you have found a security vulnerability in this project or any of New Relic's products or websites, we welcome and greatly appreciate you reporting it to New Relic through [HackerOne](https://hackerone.com/newrelic).
 
+
 ## License
 
-[Project Name] is licensed under the [Apache 2.0](http://apache.org/licenses/LICENSE-2.0.txt) License.
+*Salesforce Event Logs integration for NewRelic Logs* is licensed under the [Apache 2.0](http://apache.org/licenses/LICENSE-2.0.txt) License.
 
->[If applicable: [Project Name] also uses source code from third-party libraries. You can find full details on which libraries are used and the terms under which they are licensed in the third-party notices document.]
+*Salesforce Event Logs integration for NewRelic Logs* also uses source code from third-party libraries. You can find full details on which libraries are used and the terms under which they are licensed in the third-party notices document.
+
