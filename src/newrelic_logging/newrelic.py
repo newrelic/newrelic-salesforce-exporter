@@ -1,6 +1,11 @@
-import requests
-import json
 import gzip
+import json
+
+from requests import RequestException
+
+
+class NewRelicApiException(Exception):
+    pass
 
 
 class NewRelic:
@@ -14,14 +19,16 @@ class NewRelic:
     license_key = ''
 
     @classmethod
-    def post(cls, data):
+    def post(cls, session, data):
         payload = gzip.compress(json.dumps(data).encode())
         headers = {
             "X-License-Key": cls.license_key,
             "X-Event-Source": cls.EVENT_SOURCE,
             "Content-Encoding": cls.CONTENT_ENCODING,
         }
-        r = requests.post(cls.api_endpoint, data=payload,
-                          headers=headers)
-        # print(f"newrelic_logging logs post returned code {r.status_code}")
+        try:
+            r = session.post(cls.api_endpoint, data=payload,
+                             headers=headers)
+        except RequestException as e:
+            raise NewRelicApiException(repr(e)) from e
         return r.status_code

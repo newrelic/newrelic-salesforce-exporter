@@ -1,3 +1,4 @@
+from .http_session import new_retry_session
 from .newrelic import NewRelic
 from .salesforce import SalesForce
 
@@ -9,8 +10,6 @@ class Integration:
         for instance in config['instances']:
             labels = instance['labels']
             client = SalesForce(instance['arguments'], event_type_fields_mapping, initial_delay)
-            if not client.get_access_token():
-                print("could not connect to salesforce")
             self.instances.append({'labels': labels, 'client': client})
         newrelic_config = config['newrelic']
         NewRelic.license_key = newrelic_config['license_key']
@@ -23,11 +22,17 @@ class Integration:
             NewRelic.api_endpoint = newrelic_config['http_endpoint']
 
     def run(self):
+        sfdc_session = new_retry_session()
+        nr_session = new_retry_session()
         for instance in self.instances:
             labels = instance['labels']
             client = instance['client']
-            logs = client.fetch_logs()
 
+            if not client.authenticate(sfdc_session):
+                print(f"error authenticating with {client.token_url}")
+                continue
+
+            logs = client.fetch_logs(sfdc_session)
             for data in logs:
                 rows = data['rows']
                 if len(rows) == 0:
@@ -37,23 +42,8 @@ class Integration:
                 log_type = data['log_type']
                 log_file_id = data['Id']
 
-                # BEGIN DEBUG CODE
-                #
-                # timestamp = int(datetime.utcnow().timestamp())
-                # logs_dir = f'logs/{log_type}/'
-                # if not os.path.exists(logs_dir):
-                #     os.makedirs(logs_dir)
-                #
-                # logs_dir = f'logs/{log_type}/{timestamp}'
-                # if not os.path.exists(logs_dir):
-                #     os.makedirs(logs_dir)
-                #
-                # with open(f'{logs_dir}/{log_file_id}.json', 'w') as f:
-                #     f.write(json.dumps(payload, indent=2))
-                # END DEBUG CODE
-
-                status_code = NewRelic.post(payload)
+                status_code = NewRelic.post(nr_session, payload)
                 if status_code != 202:
-                    print(f'NewRelic logs endpoint returned code- {status_code}')
+                    print(f'newrelic logs api  returned code- {status_code}')
                 else:
-                    print(f"Sent {len(rows)} log messages for log file {log_type}/{log_file_id}")
+                    print(f"sent {len(rows)} log messages from log file {log_type}/{log_file_id}")

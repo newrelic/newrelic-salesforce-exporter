@@ -1,9 +1,10 @@
 integration_name: com.newrelic.labs.sfdc.eventlogfiles
-run_as_service: True
+run_as_service: False
+cron_interval_minutes: 60
+service_schedule: { "hour":  "*", "minute": "30" }
 instances:
   - name: sfdc-logs
     arguments:
-      base_url: ""
       token_url: "https://test.salesforce.com/services/oauth2/token"
       auth: {
         "grant_type": "password",
@@ -13,6 +14,12 @@ instances:
         "password": ""
       }
       cache_enabled: False
+      redis: {
+        "host": "",
+        "port": "",
+        "db_number": 0,
+        "password": ""
+      }
       date_field: "LogDate"
       generation_interval: "Hourly"
       time_lag_minutes: 300
