@@ -9,6 +9,7 @@ class Integration:
         self.instances = []
         for instance in config['instances']:
             labels = instance['labels']
+            labels['nr-labs'] = 'data'
             client = SalesForce(instance['arguments'], event_type_fields_mapping, initial_delay)
             self.instances.append({'labels': labels, 'client': client})
         newrelic_config = config['newrelic']
