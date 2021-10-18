@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import os
 import sys
+import getopt
 
 from apscheduler.executors.pool import ThreadPoolExecutor
 from apscheduler.jobstores.memory import MemoryJobStore
@@ -10,11 +11,24 @@ from yaml import Loader, load
 
 from newrelic_logging.integration import Integration
 
-config_dir = os.environ.get('CONFIG_DIR')
+config_dir = None
+argv = sys.argv[1:]
+try:
+    opts, args = getopt.getopt(argv, 'c:', ['config_dir='])
+    for opt, arg in opts:
+        if opt in ('-c', '--config_dir'):
+            config_dir = arg
+
+except getopt.GetoptError:
+    sys.exit(f'error parsing command line options')
+
 if config_dir is None:
-    config_dir = os.getcwd()
+    config_dir = os.environ.get('CONFIG_DIR')
+    if config_dir is None:
+        config_dir = os.getcwd()
 
 config_file = f'{config_dir}/config.yml'
+
 if not os.path.exists(config_file):
     sys.exit(f'config file {config_file} not found')
 
