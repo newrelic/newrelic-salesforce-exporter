@@ -48,16 +48,20 @@ Then fill in the relevant information in the **config.yml** file in the root fol
 
 	**Note about cache_enabled, date_field and time_lag_minutes arguments** If a *redis cache* is not enabled and thereby disabling log message deduplication, we want to download and process every log file only *once* but with a lag to ensure we are picking most message for occured in that time period. So in this case, it is best to use *LogDate* as the date_field to use in queries and setup a lag of 3 - 5 hours (180 - 300 minutes) as that is the time it could take (when the production servers are under load) for most of the generated log messages to be archived by salesforce log service and become available for download through salesforce queries . When a lag is specified, the application requests log activity for an interval in the past rather than current time.   
 On the other hand, if a *redis cache* is enabled, then use *CreatedDate* for use in salesforce log queries and set the lag to 0. In this case, we are going to query for all log files updated with additional log messages since this application last ran (or the cron tab interval) and process them.   
-So the two recommeded combinations for this set of arguments are  
+So the two recommended combinations for this set of arguments are  
   
    - **cache_enabled**=false, **date_field**=LogDate and **time_lag_minutes**=180  
    - **cache_enabled**=true, **redis**={...}, **date_field**=CreatedDate and **time_lag_minutes**=0  
           
- 3. Update the **newrelic** section with the newrelic log API *http_endpoint* and *license_key*    
+ 3. Update the **newrelic** section with
+    - **data_format**: `logs` or `events`. Correspondingly Salesforce event log data is formatted and posted to New Relic Logs API or Events API endpoints
+    - **api_endpoint**: `US` or `EU` or the full api endpoint URL for the chosen data_format collector endpoint
+    - **account_id**: Required only when `data_format` is `events`
+    - **license_key**: New Relic account license key
     
  ## Usage    
  1. Run  `python -m pip install -r requirements.txt` to install dependencies    
-3. Run  `python src/__main__.py` to run the integration    
+ 2. Run  `python src/__main__.py` to run the integration    
     
 ## Support    
  New Relic has open-sourced this project. This project is provided AS-IS WITHOUT WARRANTY OR DEDICATED SUPPORT. Issues and contributions should be reported to the project here on GitHub.    
