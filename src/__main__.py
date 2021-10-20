@@ -1,7 +1,7 @@
 #!/usr/bin/env python
+import getopt
 import os
 import sys
-import getopt
 
 from apscheduler.executors.pool import ThreadPoolExecutor
 from apscheduler.jobstores.memory import MemoryJobStore
@@ -33,6 +33,7 @@ if not os.path.exists(config_file):
     sys.exit(f'config file {config_file} not found')
 
 event_mapping_file = f'{config_dir}/event_type_fields.yml'
+numeric_fields_file = f'{config_dir}/numeric_fields.yml'
 
 
 def main():
@@ -40,11 +41,34 @@ def main():
         config = load(stream, Loader=Loader)
 
     if not os.path.exists(event_mapping_file):
-        print(f'event_mapping_file {event_mapping_file} not found, so event mapping will not be used', file=sys.stderr)
+        print(f'event_mapping_file {event_mapping_file} not found, so event mapping will not be used')
         event_mapping = {}
     else:
         with open(event_mapping_file) as stream:
             event_mapping = load(stream, Loader=Loader)['mapping']
+
+    if not os.path.exists(numeric_fields_file):
+        print(f'numeric_fields_file {numeric_fields_file} not found')
+        numeric_fields_mapping = {"Common",
+                                  ['EXEC_TIME', 'RUN_TIME', 'NUMBER_OF_INTERVIEWS', 'NUMBER_COLUMNS', 'NUM_SESSIONS',
+                                   'CPU_TIME', 'EPT', 'DB_CPU_TIME', 'VIEW_STATE_SIZE', 'ROWS_PROCESSED',
+                                   'RESPONSE_SIZE', 'PAGE_START_TIME', 'NUMBER_EXCEPTION_FILTERS',
+                                   'BROWSER_DEVICE_TYPE', 'NUMBER_FIELDS', 'USER_AGENT', 'CALLOUT_TIME', 'DURATION',
+                                   'STATUS_CODE', 'DB_BLOCKS', 'NUMBER_OF_RECORDS', 'TOTAL_TIME', 'RECORDS_FAILED',
+                                   'ROW_COUNT', 'AVERAGE_ROW_SIZE', 'DB_TOTAL_TIME',
+                                   'READ_TIME', 'REQUEST_SIZE', 'EFFECTIVE_PAGE_TIME', 'RESULT_SIZE_MB',
+                                   'RECORDS_PROCESSED', 'NUM_CLICKS', 'NUMBER_BUCKETS', 'TOTAL_EXECUTION_TIME',
+                                   'NUMBER_SOQL_QUERIES', 'FLOW_LOAD_TIME', 'REOPEN_COUNT', 'NUMBER_OF_ERRORS',
+                                   'LIMIT_USAGE_PERCENT']}
+    else:
+        with open(numeric_fields_file) as stream:
+            numeric_fields_mapping = load(stream, Loader=Loader)['mapping']
+
+    numeric_fields_list = set()
+    for event_num_fields in numeric_fields_mapping.values():
+        for num_field in event_num_fields:
+            numeric_fields_list.add(num_field)
+    Integration.numeric_fields_list = numeric_fields_list
 
     run_as_service = config.get('run_as_service', False)
 

@@ -93,102 +93,139 @@ class SalesForce:
         except RequestException as e:
             raise LoginException(f'salesforce authentication failed') from e
 
-    def fetch_logs(self, session):
+    def make_query(self):
         to_timestamp = (datetime.utcnow() - timedelta(minutes=self.time_lag_minutes)).isoformat(
             timespec='milliseconds') + "Z"
         from_timestamp = self.last_to_timestamp
         self.last_to_timestamp = to_timestamp
         query = self.query_template.format(to_timestamp=to_timestamp, from_timestamp=from_timestamp,
                                            log_interval_type=self.generation_interval)
-        print(f'Running query {query}')
+        return query
 
+    def execute_query(self, query, session):
         url = f'{self.instance_url}/services/data/v52.0/query?q={query}'
 
         try:
             headers = {
                 'Authorization': f'Bearer {self.access_token}'
             }
-            soql_response = session.get(url, headers=headers)
-            if soql_response.status_code != 200:
+            query_response = session.get(url, headers=headers)
+            if query_response.status_code != 200:
                 error_message = f'salesforce event log query failed. ' \
-                                f'status-code:{soql_response.status_code}, ' \
-                                f'reason: {soql_response.reason} ' \
-                                f'response: {soql_response.text} '
-                print(error_message, file=sys.stderr)
-                return
+                                f'status-code:{query_response.status_code}, ' \
+                                f'reason: {query_response.reason} ' \
+                                f'response: {query_response.text} '
+
+                raise SalesforceApiException(f'error when trying to run SOQL query. message: {error_message}')
+            return query_response.json()
         except RequestException as e:
             raise SalesforceApiException('error when trying to run SOQL query. cause: {e}') from e
 
-        logs = []
-        resp_json = soql_response.json()
-        for i in resp_json['records']:
-            log_type = i['EventType']
-            log_file_id = i['Id']
-            cache_key = f'{log_file_id}'
+    def retrieve_cached_message_list(self, record_id):
+        cache_key_exists = self.redis.exists(record_id)
+        if cache_key_exists:
+            cached_messages = self.redis.lrange(record_id, 0, -1)
+        else:
+            self.redis.rpush(record_id, 'init')
+            self.redis.expire(record_id, timedelta(days=7))
 
-            cache_key_exists = False
+    def download_file(self, session, url):
+        headers = {
+            'Authorization': f'Bearer {self.access_token}'
+        }
+        response = session.get(url, headers=headers)
+        if response.status_code != 200:
+            error_message = f'salesforce event log file download failed. ' \
+                            f'status-code: {response.status_code}, ' \
+                            f'reason: {response.reason} ' \
+                            f'response: {response.text}'
+            print(error_message, file=sys.stderr)
+            return None
+        return response
+
+    def parse_csv(self, download_response, record_id, record_event_type, cached_messages):
+        content = download_response.content.decode('utf-8')
+        reader = csv.DictReader(content.splitlines())
+        rows = []
+        for row in reader:
+            row_id = row["REQUEST_ID"]
+            if self.redis:
+                if cached_messages is not None:
+                    row_id_b = row_id.encode('utf-8')
+                    if row_id_b in cached_messages:
+                        # print('dropping row: cache{row_id}')
+                        continue
+                    self.redis.rpush(record_id, row_id)
+                else:
+                    self.redis.rpush(record_id, row_id)
+            rows.append(row)
+        return rows
+
+    def fetch_logs(self, session):
+        logs = []
+
+        query = self.make_query()
+
+        try:
+            print(f'Running query {query}')
+            response = self.execute_query(query, session)
+        except SalesforceApiException as e:
+            print(e, file=sys.stderr)
+            return
+
+        for record in response['records']:
+            record_file_name = record.get('LogFile', None)
+            if record_file_name is None:
+                continue
+
+            record_id = str(record['Id'])
+            record_event_type = record['EventType']
+
             cached_messages = None
             if self.redis:
-                cache_key_exists = self.redis.exists(cache_key)
-                if cache_key_exists:
-                    cached_messages = self.redis.lrange(cache_key, 0, -1)
-                else:
-                    self.redis.rpush(cache_key, 'init')
-                    self.redis.expire(cache_key, timedelta(days=7))
+                self.retrieve_cached_message_list(record_id)
 
             try:
-                file_id = i.get('LogFile', None)
-                download_response = session.get(f'{self.instance_url}{file_id}', headers=headers)
-                if download_response.status_code != 200:
-                    error_message = f'salesforce event log file download failed. ' \
-                                    f'status-code: {download_response.status_code}, ' \
-                                    f'reason: {download_response.reason} ' \
-                                    f'response: {download_response.text}'
-                    print(error_message, file=sys.stderr)
+                download_response = self.download_file(session, f'{self.instance_url}{record_file_name}')
+                if download_response is None:
                     continue
-                else:
-                    content = download_response.content.decode('utf-8')
-                    reader = csv.DictReader(content.splitlines())
-                    rows = []
-                    for row in reader:
-                        row_id = row["REQUEST_ID"]
-                        message = {}
-                        if self.redis:
-                            if cache_key_exists:
-                                row_id_b = row_id.encode('utf-8')
-                                if row_id_b in cached_messages:
-                                    # print('dropping row: cache{row_id}')
-                                    continue
-                                self.redis.rpush(cache_key, row_id)
-                            else:
-                                self.redis.rpush(cache_key, row_id)
-
-                        if log_type in self.event_type_fields_mapping:
-                            for field in self.event_type_fields_mapping[log_type]:
-                                message[field] = row[field]
-                        else:
-                            message = row
-
-                        if row.get('TIMESTAMP'):
-                            timestamp_obj = datetime.strptime(row.get('TIMESTAMP'), '%Y%m%d%H%M%S.%f')
-                            timestamp = pytz.utc.localize(timestamp_obj).replace(microsecond=0).timestamp()
-                        else:
-                            timestamp = datetime.utcnow().replace(microsecond=0).timestamp()
-
-                        message['LogFileId'] = log_file_id
-                        rows.append({
-                            'message': message,
-                            'timestamp': int(timestamp)
-                        })
-                    logs.append({
-                        'log_type': log_type,
-                        'Id': log_file_id,
-                        'CreatedDate': i['CreatedDate'],
-                        'LogDate': i['LogDate'],
-                        'rows': rows
-                    })
             except RequestException as e:
-                raise SalesforceApiException('salesforce event log file download failed') from e
+                print(f'salesforce event log file "{record_file_name}" download failed')
+                print(e)
                 continue
+
+            csv_rows = self.parse_csv(download_response, record_id, record_event_type, cached_messages)
+
+            log_entries = []
+            for row in csv_rows:
+                message = {}
+                if record_event_type in self.event_type_fields_mapping:
+                    for field in self.event_type_fields_mapping[record_event_type]:
+                        message[field] = row[field]
+                else:
+                    message = row
+
+                if row.get('TIMESTAMP'):
+                    timestamp_obj = datetime.strptime(row.get('TIMESTAMP'), '%Y%m%d%H%M%S.%f')
+                    timestamp = pytz.utc.localize(timestamp_obj).replace(microsecond=0).timestamp()
+                else:
+                    timestamp = datetime.utcnow().replace(microsecond=0).timestamp()
+
+                message['LogFileId'] = record_id
+                message.pop('TIMESTAMP', None)
+                message['timestamp'] = int(timestamp)
+
+                log_entries.append({
+                    'message': message,
+                    'timestamp': int(timestamp)
+                })
+
+            logs.append({
+                'log_type': record_event_type,
+                'Id': record_id,
+                'CreatedDate': record['CreatedDate'],
+                'LogDate': record['LogDate'],
+                'log_entries': log_entries
+            })
 
         return logs
