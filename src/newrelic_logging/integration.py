@@ -20,7 +20,8 @@ class Integration:
             labels = instance['labels']
             labels['nr-labs'] = 'data'
             client = SalesForce(instance['arguments'], event_type_fields_mapping, initial_delay)
-            self.instances.append({'labels': labels, 'client': client})
+            oauth_type = instance['arguments']['auth']['grant_type']
+            self.instances.append({'labels': labels, 'client': client, "oauth_type": oauth_type})
         newrelic_config = config['newrelic']
         data_format = newrelic_config['data_format']
         if data_format.lower() == "logs":
@@ -40,10 +41,16 @@ class Integration:
         for instance in self.instances:
             labels = instance['labels']
             client = instance['client']
+            oauth_type = instance['oauth_type']
 
-            if not client.authenticate(sfdc_session):
-                print(f"error authenticating with {client.token_url}")
-                continue
+            if oauth_type == 'password':
+                if not client.authenticate_with_password(sfdc_session):
+                    print(f"error authenticating with {client.token_url}")
+                    continue
+            else:
+                if not client.authenticate_with_jwt(sfdc_session):
+                    print(f"error authenticating with {client.token_url}")
+                    continue
 
             logs = client.fetch_logs(sfdc_session)
             if self.data_format == DataFormat.LOGS:
@@ -83,20 +90,24 @@ class Integration:
                 for event_name in message:
                     event_value = message[event_name]
                     if event_name in Integration.numeric_fields_list:
-                        try:
-                            log_event[event_name] = int(event_value)
-                        except TypeError:
+                        if event_value:
                             try:
-                                log_event[event_name] = float(event_value)
-                            except TypeError:
-                                log_event[event_name] = event_value
+                                log_event[event_name] = int(event_value)
+                            except (TypeError, ValueError) as e:
+                                print(f'error for {event_name} / {event_value}')
+                                try:
+                                    log_event[event_name] = float(event_value)
+                                except (TypeError, ValueError) as e:
+                                    log_event[event_name] = event_value
+                        else:
+                            log_event[event_name] = 0
                     else:
                         log_event[event_name] = event_value
                 log_event.update(labels)
                 event_type = log_event.get('EVENT_TYPE')
                 if event_type is None:
                     continue
-                log_event['eventType'] = event_type
+                log_event['eventType'] = 's' + event_type
                 log_events.append(log_event)
                 print(log_event)
                 print('\n')

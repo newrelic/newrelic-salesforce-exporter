@@ -1,6 +1,10 @@
+import base64
 import csv
+import json
 import sys
 from datetime import datetime, timedelta
+import jwt
+from cryptography.hazmat.primitives import serialization
 
 import pytz
 import redis
@@ -23,6 +27,13 @@ SALESFORCE_LOG_DATE_QUERY = \
     "from_timestamp}+AND+LogDate<{to_timestamp}+AND+Interval='{log_interval_type}' "
 
 
+def base64_url_encode(json_obj):
+    json_str = json.dumps(json_obj)
+    encoded_bytes = base64.urlsafe_b64encode(json_str.encode('utf-8'))
+    encoded_str = str(encoded_bytes, 'utf-8')
+    return encoded_str
+
+
 class SalesForce:
     access_token = None
     instance_url = None
@@ -31,10 +42,7 @@ class SalesForce:
     redis = False
 
     def __init__(self, config, event_type_fields_mapping, initial_delay):
-        self.client_id = config['auth']['client_id']
-        self.client_secret = config['auth']['client_secret']
-        self.username = config['auth']['username']
-        self.password = config['auth']['password']
+        self.auth_data = config['auth']
         self.token_url = config['token_url']
         self.time_lag_minutes = config['time_lag_minutes']
         self.generation_interval = config['generation_interval']
@@ -60,13 +68,74 @@ class SalesForce:
     def is_authenticated(self):
         return self.authenticated
 
-    def authenticate(self, session):
+    def authenticate_with_jwt(self, session):
+        private_key_file = self.auth_data['private_key']
+        client_id = self.auth_data['client_id']
+        subject = self.auth_data['subject']
+        audience = self.auth_data['audience']
+        exp = int((datetime.utcnow() - timedelta(minutes=5)).timestamp())
+
+        private_key = open(private_key_file, 'r').read()
+        key = serialization.load_ssh_private_key(private_key.encode(), password=b'')
+
+        jwt_header = {"alg": "RS256"}
+        jwt_claim_set = {"iss": client_id,
+                         "sub": subject,
+                         "aud": audience,
+                         "exp": exp}
+
+        token = base64_url_encode(jwt_header) + "." + base64_url_encode(jwt_claim_set)
+
+        token_signature = jwt.encode(
+            payload=token,
+            key=key,
+            algorithm='RS256'
+        )
+
+        assertion = token + "." + token_signature
+
+        params = {
+            "grant_type": "urn:ietf:params:oauth:grant-type:jwt-bearer",
+            "assertion": assertion,
+            "format": "json"
+        }
+
+        headers = {
+            "Content-Type": "application/x-www-form-urlencoded",
+            "Accept": "application/json"
+        }
+
+        try:
+            resp = session.post(self.token_url, params=params,
+                                headers=headers)
+            if resp.status_code != 200:
+                error_message = f'salesforce token request failed. status-code:{resp.status_code}, reason: {resp.reason}'
+                print(error_message, file=sys.stderr)
+                return False
+
+            resp_json = resp.json()
+            self.access_token = resp_json['access_token']
+            self.instance_url = resp_json['instance_url']
+            self.token_type = resp_json['token_type']
+            self.authenticated = True
+            return True
+        except ConnectionError as e:
+            raise LoginException(f'salesforce authentication failed') from e
+        except RequestException as e:
+            raise LoginException(f'salesforce authentication failed') from e
+
+    def authenticate_with_password(self, session):
+        client_id = self.auth_data['client_id']
+        client_secret = self.auth_data['client_secret']
+        username = self.auth_data['username']
+        password = self.auth_data['password']
+
         params = {
             "grant_type": "password",
-            "client_id": self.client_id,
-            "client_secret": self.client_secret,
-            "username": self.username,
-            "password": self.password
+            "client_id": client_id,
+            "client_secret": client_secret,
+            "username": username,
+            "password": password
         }
 
         headers = {
