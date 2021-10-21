@@ -88,29 +88,28 @@ class Integration:
                 log_event = {}
                 message = log_entry['message']
                 for event_name in message:
+                    modified_event_name = event_name.lower()
                     event_value = message[event_name]
                     if event_name in Integration.numeric_fields_list:
                         if event_value:
                             try:
-                                log_event[event_name] = int(event_value)
+                                log_event[modified_event_name] = int(event_value)
                             except (TypeError, ValueError) as e:
                                 print(f'error for {event_name} / {event_value}')
                                 try:
-                                    log_event[event_name] = float(event_value)
+                                    log_event[modified_event_name] = float(event_value)
                                 except (TypeError, ValueError) as e:
-                                    log_event[event_name] = event_value
+                                    log_event[modified_event_name] = event_value
                         else:
-                            log_event[event_name] = 0
+                            log_event[modified_event_name] = 0
                     else:
-                        log_event[event_name] = event_value
+                        log_event[modified_event_name] = event_value
                 log_event.update(labels)
-                event_type = log_event.get('EVENT_TYPE')
+                event_type = log_event.get('event_type')
                 if event_type is None:
                     continue
-                log_event['eventType'] = 's' + event_type
+                log_event['eventType'] = 'sfdc' + event_type
                 log_events.append(log_event)
-                print(log_event)
-                print('\n')
             if len(log_entries) > 2000:
                 # TODO: split payload into multiple
                 print("skipping as there are more than 2000 events for payload from log file {log_type}/{log_file_id}")
