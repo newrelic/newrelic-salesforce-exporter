@@ -194,9 +194,11 @@ class SalesForce:
         cache_key_exists = self.redis.exists(record_id)
         if cache_key_exists:
             cached_messages = self.redis.lrange(record_id, 0, -1)
+            return cached_messages
         else:
             self.redis.rpush(record_id, 'init')
             self.redis.expire(record_id, timedelta(days=7))
+        return None
 
     def download_file(self, session, url):
         headers = {
@@ -222,7 +224,7 @@ class SalesForce:
                 if cached_messages is not None:
                     row_id_b = row_id.encode('utf-8')
                     if row_id_b in cached_messages:
-                        # print('dropping row: cache{row_id}')
+                        # print(f'dropping message with REQUEST_ID: {row_id}')
                         continue
                     self.redis.rpush(record_id, row_id)
                 else:
@@ -252,7 +254,7 @@ class SalesForce:
 
             cached_messages = None
             if self.redis:
-                self.retrieve_cached_message_list(record_id)
+                cached_messages = self.retrieve_cached_message_list(record_id)
 
             try:
                 download_response = self.download_file(session, f'{self.instance_url}{record_file_name}')
