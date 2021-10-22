@@ -13,14 +13,15 @@ from newrelic_logging.integration import Integration
 
 config_dir = None
 argv = sys.argv[1:]
+print(f'using program arguments {argv}')
 try:
     opts, args = getopt.getopt(argv, 'c:', ['config_dir='])
     for opt, arg in opts:
         if opt in ('-c', '--config_dir'):
             config_dir = arg
 
-except getopt.GetoptError:
-    sys.exit(f'error parsing command line options')
+except getopt.GetoptError as e:
+    sys.exit(f'error parsing command line options: {e}')
 
 if config_dir is None:
     config_dir = os.environ.get('CONFIG_DIR')
