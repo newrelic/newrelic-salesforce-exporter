@@ -95,10 +95,10 @@ class Integration:
                             try:
                                 log_event[modified_event_name] = int(event_value)
                             except (TypeError, ValueError) as e:
-                                print(f'error for {event_name} / {event_value}')
                                 try:
                                     log_event[modified_event_name] = float(event_value)
                                 except (TypeError, ValueError) as e:
+                                    print(f'type conversion error for {event_name}[{event_value}]')
                                     log_event[modified_event_name] = event_value
                         else:
                             log_event[modified_event_name] = 0
