@@ -41,20 +41,34 @@ class SalesForce:
     token_url = ''
     redis = False
 
-    def __init__(self, config, event_type_fields_mapping, initial_delay):
-        self.auth_data = config['auth']
-        self.token_url = config['token_url']
-        self.time_lag_minutes = config['time_lag_minutes']
-        self.generation_interval = config['generation_interval']
+    def __init__(self, instance_name, config, event_type_fields_mapping, initial_delay):
+        self.instance_name = instance_name
+        try:
+            self.auth_data = config['auth']
+            self.token_url = config['token_url']
+            self.time_lag_minutes = config['time_lag_minutes']
+            self.generation_interval = config['generation_interval']
+            self.date_field = config['date_field']
+            self.cache_enabled = config['cache_enabled']
+        except KeyError as e:
+            print(f'Please specify a "{e.args[0]}" parameter for sfdc instance "{instance_name}" in config.yml')
+            sys.exit(1)
+
+        if self.cache_enabled:
+            try:
+                redis_config = config['redis']
+            except KeyError as e:
+                print(f'Please specify a "{e.args[0]}" parameter for sfdc instance "{instance_name}" in config.yml')
+                sys.exit(1)
+
         self.last_to_timestamp = (datetime.utcnow() - timedelta(
             minutes=self.time_lag_minutes + initial_delay)).isoformat(timespec='milliseconds') + "Z"
-        self.date_field = config['date_field']
-        if config['date_field'].lower() == "logdate":
+
+        if self.date_field.lower() == "logdate":
             self.query_template = SALESFORCE_LOG_DATE_QUERY
         else:
             self.query_template = SALESFORCE_CREATED_DATE_QUERY
-        if config['cache_enabled']:
-            redis_config = config['redis']
+        if self.cache_enabled:
             r = redis.Redis(host=redis_config['host'], port=redis_config['port'], db=redis_config['db_number'],
                             password=redis_config['password'],
                             ssl=True)
@@ -69,34 +83,39 @@ class SalesForce:
         return self.authenticated
 
     def authenticate_with_jwt(self, session):
-        private_key_file = self.auth_data['private_key']
-        client_id = self.auth_data['client_id']
-        subject = self.auth_data['subject']
-        audience = self.auth_data['audience']
+        try:
+            private_key_file = self.auth_data['private_key']
+            client_id = self.auth_data['client_id']
+            subject = self.auth_data['subject']
+            audience = self.auth_data['audience']
+        except KeyError as e:
+            print(f'Please specify a "{e.args[0]}" parameter under "auth" section '
+                  'of salesforce instance in config.yml')
+            sys.exit(1)
+
         exp = int((datetime.utcnow() - timedelta(minutes=5)).timestamp())
 
         private_key = open(private_key_file, 'r').read()
-        key = serialization.load_ssh_private_key(private_key.encode(), password=b'')
+        try:
+            key = serialization.load_ssh_private_key(private_key.encode(), password=b'')
+        except ValueError as e:
+            print(f'authentication failed for {self.instance_name}. error message: {str(e)}')
+            return False
 
-        jwt_header = {"alg": "RS256"}
         jwt_claim_set = {"iss": client_id,
                          "sub": subject,
                          "aud": audience,
                          "exp": exp}
 
-        token = base64_url_encode(jwt_header) + "." + base64_url_encode(jwt_claim_set)
-
-        token_signature = jwt.encode(
-            payload=token,
-            key=key,
-            algorithm='RS256'
+        signed_token = jwt.encode(
+            jwt_claim_set,
+            key,
+            algorithm='RS256',
         )
-
-        assertion = token + "." + token_signature
 
         params = {
             "grant_type": "urn:ietf:params:oauth:grant-type:jwt-bearer",
-            "assertion": assertion,
+            "assertion": signed_token,
             "format": "json"
         }
 
@@ -109,8 +128,8 @@ class SalesForce:
             resp = session.post(self.token_url, params=params,
                                 headers=headers)
             if resp.status_code != 200:
-                error_message = f'salesforce token request failed. status-code:{resp.status_code}, reason: {resp.reason}'
-                print(error_message, file=sys.stderr)
+                error_message = f'sfdc token request failed. http-status-code:{resp.status_code}, reason: {resp.text}'
+                print(f'authentication failed for {self.instance_name}. message: {error_message}', file=sys.stderr)
                 return False
 
             resp_json = resp.json()
@@ -120,9 +139,9 @@ class SalesForce:
             self.authenticated = True
             return True
         except ConnectionError as e:
-            raise LoginException(f'salesforce authentication failed') from e
+            raise LoginException(f'authentication failed for sfdc instance {self.instance_name}') from e
         except RequestException as e:
-            raise LoginException(f'salesforce authentication failed') from e
+            raise LoginException(f'authentication failed for sfdc instance {self.instance_name}') from e
 
     def authenticate_with_password(self, session):
         client_id = self.auth_data['client_id']
@@ -158,9 +177,9 @@ class SalesForce:
             self.authenticated = True
             return True
         except ConnectionError as e:
-            raise LoginException(f'salesforce authentication failed') from e
+            raise LoginException(f'authentication failed for sfdc instance {self.instance_name}') from e
         except RequestException as e:
-            raise LoginException(f'salesforce authentication failed') from e
+            raise LoginException(f'authentication failed for sfdc instance {self.instance_name}') from e
 
     def make_query(self):
         to_timestamp = (datetime.utcnow() - timedelta(minutes=self.time_lag_minutes)).isoformat(
@@ -188,7 +207,7 @@ class SalesForce:
                 raise SalesforceApiException(f'error when trying to run SOQL query. message: {error_message}')
             return query_response.json()
         except RequestException as e:
-            raise SalesforceApiException('error when trying to run SOQL query. cause: {e}') from e
+            raise SalesforceApiException(f'error when trying to run SOQL query. cause: {e}') from e
 
     def retrieve_cached_message_list(self, record_id):
         cache_key_exists = self.redis.exists(record_id)
@@ -224,7 +243,7 @@ class SalesForce:
                 if cached_messages is not None:
                     row_id_b = row_id.encode('utf-8')
                     if row_id_b in cached_messages:
-                        # print(f'dropping message with REQUEST_ID: {row_id}')
+                        # print(f' debug: dropping message with REQUEST_ID: {row_id}')
                         continue
                     self.redis.rpush(record_id, row_id)
                 else:
