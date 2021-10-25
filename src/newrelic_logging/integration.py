@@ -112,23 +112,16 @@ class Integration:
                     continue
                 log_event['eventType'] = event_type
                 log_events.append(log_event)
-                # since the max number of events that can be posted in a single payload to New Relic is 2000
-                if len(log_entries) > 1990:
-                    try:
-                        status_code = NewRelic.post_events(nr_session, log_events)
-                        if status_code != 200:
-                            print(f'newrelic events api returned code- {status_code}')
-                        else:
-                            log_type = log_file_obj['log_type']
-                            log_file_id = log_file_obj['Id']
-                            print(f"posted {len(log_events)} events from log file {log_type}/{log_file_id}")
-                    finally:
-                        log_entries = {}
 
-            status_code = NewRelic.post_events(nr_session, log_events)
-            if status_code != 200:
-                print(f'newrelic events api returned code- {status_code}')
-            else:
-                log_type = log_file_obj['log_type']
-                log_file_id = log_file_obj['Id']
-                print(f"posted {len(log_events)} events from log file {log_type}/{log_file_id}")
+            # since the max number of events that can be posted in a single payload to New Relic is 2000
+            max_events = 2000
+            x = [log_entries[i:i + max_events] for i in range(0, len(log_entries), max_events)]
+
+            for log_entries_slice in x:
+                status_code = NewRelic.post_events(nr_session, log_entries_slice)
+                if status_code != 200:
+                    print(f'newrelic events api returned code- {status_code}')
+                else:
+                    log_type = log_file_obj['log_type']
+                    log_file_id = log_file_obj['Id']
+                    print(f"posted {len(log_entries_slice)} events from log file {log_type}/{log_file_id}")
