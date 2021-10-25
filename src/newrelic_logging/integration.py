@@ -89,7 +89,8 @@ class Integration:
                 log_event = {}
                 message = log_entry['message']
                 for event_name in message:
-                    modified_event_name = event_name.lower()
+                    # currently no need to modify as we did not see any special chars that need to be removed
+                    modified_event_name = event_name
                     event_value = message[event_name]
                     if event_name in Integration.numeric_fields_list:
                         if event_value:
@@ -111,16 +112,23 @@ class Integration:
                     continue
                 log_event['eventType'] = 'sfdc' + event_type
                 log_events.append(log_event)
-            if len(log_entries) > 2000:
-                # TODO: split payload into multiple
-                print("skipping as there are more than 2000 events for payload from log file {log_type}/{log_file_id}")
-                continue
-
-            log_type = log_file_obj['log_type']
-            log_file_id = log_file_obj['Id']
+                # since the max number of events that can be posted in a single payload to New Relic is 2000
+                if len(log_entries) > 1990:
+                    try:
+                        status_code = NewRelic.post_events(nr_session, log_events)
+                        if status_code != 200:
+                            print(f'newrelic events api returned code- {status_code}')
+                        else:
+                            log_type = log_file_obj['log_type']
+                            log_file_id = log_file_obj['Id']
+                            print(f"posted {len(log_events)} events from log file {log_type}/{log_file_id}")
+                    finally:
+                        log_entries = {}
 
             status_code = NewRelic.post_events(nr_session, log_events)
             if status_code != 200:
                 print(f'newrelic events api returned code- {status_code}')
             else:
+                log_type = log_file_obj['log_type']
+                log_file_id = log_file_obj['Id']
                 print(f"posted {len(log_events)} events from log file {log_type}/{log_file_id}")
