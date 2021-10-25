@@ -54,7 +54,7 @@ def main():
                                   ['EXEC_TIME', 'RUN_TIME', 'NUMBER_OF_INTERVIEWS', 'NUMBER_COLUMNS', 'NUM_SESSIONS',
                                    'CPU_TIME', 'EPT', 'DB_CPU_TIME', 'VIEW_STATE_SIZE', 'ROWS_PROCESSED',
                                    'RESPONSE_SIZE', 'PAGE_START_TIME', 'NUMBER_EXCEPTION_FILTERS',
-                                   'BROWSER_DEVICE_TYPE', 'NUMBER_FIELDS', 'USER_AGENT', 'CALLOUT_TIME', 'DURATION',
+                                   'BROWSER_DEVICE_TYPE', 'NUMBER_FIELDS', 'CALLOUT_TIME', 'DURATION',
                                    'STATUS_CODE', 'DB_BLOCKS', 'NUMBER_OF_RECORDS', 'TOTAL_TIME', 'RECORDS_FAILED',
                                    'ROW_COUNT', 'AVERAGE_ROW_SIZE', 'DB_TOTAL_TIME',
                                    'READ_TIME', 'REQUEST_SIZE', 'EFFECTIVE_PAGE_TIME', 'RESULT_SIZE_MB',
