@@ -107,15 +107,16 @@ class Integration:
                     else:
                         log_event[modified_event_name] = event_value
                 log_event.update(labels)
-                event_type = log_event.get('event_type')
+                event_type = log_event.get('EVENT_TYPE')
                 if event_type is None:
+                    print(f'EVENT_TYPE attribute could not be extracted. Unable to process event.')
                     continue
                 log_event['eventType'] = event_type
                 log_events.append(log_event)
 
             # since the max number of events that can be posted in a single payload to New Relic is 2000
             max_events = 2000
-            x = [log_entries[i:i + max_events] for i in range(0, len(log_entries), max_events)]
+            x = [log_events[i:i + max_events] for i in range(0, len(log_events), max_events)]
 
             for log_entries_slice in x:
                 status_code = NewRelic.post_events(nr_session, log_entries_slice)
