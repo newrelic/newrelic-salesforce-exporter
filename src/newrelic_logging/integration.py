@@ -110,7 +110,7 @@ class Integration:
                 event_type = log_event.get('event_type')
                 if event_type is None:
                     continue
-                log_event['eventType'] = 'sfdc' + event_type
+                log_event['eventType'] = event_type
                 log_events.append(log_event)
                 # since the max number of events that can be posted in a single payload to New Relic is 2000
                 if len(log_entries) > 1990:
