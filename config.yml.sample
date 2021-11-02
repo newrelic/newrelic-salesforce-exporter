@@ -26,7 +26,7 @@ instances:
     labels:
       environment: production
 newrelic:
-  data_format: "logs"
+  data_format: "events"
   api_endpoint: "US"
   account_id: ""
   license_key: ""

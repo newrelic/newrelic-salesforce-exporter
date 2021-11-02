@@ -28,7 +28,7 @@ class Integration:
         if data_format.lower() == "logs":
             self.data_format = DataFormat.LOGS
             NewRelic.logs_license_key = newrelic_config['license_key']
-            NewRelic.set_logs_endpoint(newrelic_config['http_endpoint'])
+            NewRelic.set_logs_endpoint(newrelic_config['api_endpoint'])
         elif data_format.lower() == "events":
             self.data_format = DataFormat.EVENTS
             NewRelic.events_api_key = newrelic_config['license_key']
