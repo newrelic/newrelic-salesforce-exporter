@@ -39,7 +39,7 @@ Then fill in the relevant information in the **config.yml** file in the root fol
    *arguments* and *labels* for each salesforce instance from which to fetch event logs files.  
      
 	- **token_url**: The salesforce url to authenticate and obtain an *oauth access_token* and *sfdc_instance_url* for further queries  
-	- **auth**: Provide the oauth application credentials to use for authentication  
+	- **auth**: Provide the oauth application credentials to use for authentication. See [Authentication](#authentication) section below. 
 	- **cache_enabled**: True or False. If True, you must provide a redis server to cache all log file ids and message ids processed by this application. This allows the application to perform log message deduplication so that previously processed logs are skipped  
 	- **redis**: (optional). Required only when cache_enabled is True  
 	- **date_field**: The date to use in salesforce query for fetching event log files. It can be *LogDate* or *CreatedDate*. See note below regarding best practice on setting this field  
@@ -58,8 +58,35 @@ So the two recommended combinations for this set of arguments are
     - **api_endpoint**: `US` or `EU` or the full api endpoint URL for the chosen data_format collector endpoint
     - **account_id**: Required only when `data_format` is `events`
     - **license_key**: New Relic account license key
+
+
+## Authentication
+This integration supports the OAuth 2.0 Username Password and OAuth 2.0 JWT Bearer Token methods of authentication. The JWT Bearer flow is strongly recommended as it does not expose any passwords.
+
+For OAuth 2.0 Username Password Flow, the auth section template is
+```
+	auth: {
+		"grant_type": "password",
+		"client_id": "",
+		"client_secret": "",
+		"username": "",
+		"password": ""
+	}
+```
+
+For OAuth 2.0 JWT Bearer Flow, the auth section template is
+```
+	auth: {
+        "grant_type": "urn:ietf:params:oauth:grant-type:jwt-bearer",
+        "client_id": "",
+        "private_key": "path_to_private_key",
+        "subject": "",
+        "audience": "https://login.salesforce.com"
+    }
+```
     
- ## Usage    
+
+## Usage    
  1. Run  `python -m pip install -r requirements.txt` to install dependencies    
  2. Run  `python src/__main__.py` to run the integration    
     
