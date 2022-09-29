@@ -15,7 +15,7 @@ class NewRelic:
     LOGS_EVENT_SOURCE = 'logs'
 
     US_EVENTS_ENDPOINT = "https://insights-collector.newrelic.com/v1/accounts/{account_id}/events"
-    EU_EVENTS_ENDPOINT = "https://insights-collector.eu01.nr-data.net/accounts/{account_id}/events"
+    EU_EVENTS_ENDPOINT = "https://insights-collector.eu01.nr-data.net/v1/accounts/{account_id}/events"
 
     CONTENT_ENCODING = 'gzip'
 
