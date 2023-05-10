@@ -83,17 +83,10 @@ For OAuth 2.0 JWT Bearer Flow, the auth section template is
     }
 ```
     
-
 ## Usage    
  1. Run  `python -m pip install -r requirements.txt` to install dependencies    
  2. Run  `python src/__main__.py` to run the integration    
-    
-## Support    
- New Relic has open-sourced this project. This project is provided AS-IS WITHOUT WARRANTY OR DEDICATED SUPPORT. Issues and contributions should be reported to the project here on GitHub.    
-    
-We encourage you to bring your experiences and questions to the [Explorers Hub](https://discuss.newrelic.com) where our community members collaborate on solutions and new ideas.    
-    
-    
+        
 ## Contributing    
  We encourage your contributions to improve [Project Name]! Keep in mind when you submit your pull request, you'll need to sign the CLA via the click-through using CLA-Assistant. You only have to sign the CLA one time per project. If you have any questions, or to execute our corporate CLA, required if your contribution is on behalf of a company, please drop us an email at opensource@newrelic.com.    
     
