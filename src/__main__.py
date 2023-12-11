@@ -36,10 +36,12 @@ if not os.path.exists(config_file):
 event_mapping_file = f'{config_dir}/event_type_fields.yml'
 numeric_fields_file = f'{config_dir}/numeric_fields.yml'
 
-
 def main():
     with open(config_file) as stream:
         config = load(stream, Loader=Loader)
+
+    if 'queries' in config:
+        print("Queries: ", config['queries'])
 
     if not os.path.exists(event_mapping_file):
         print(f'event_mapping_file {event_mapping_file} not found, so event mapping will not be used')

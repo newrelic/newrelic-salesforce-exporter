@@ -41,7 +41,7 @@ class SalesForce:
     token_url = ''
     redis = False
 
-    def __init__(self, instance_name, config, event_type_fields_mapping, initial_delay):
+    def __init__(self, instance_name, config, event_type_fields_mapping, initial_delay, queries=[]):
         self.instance_name = instance_name
         try:
             self.auth_data = config['auth']
@@ -64,10 +64,14 @@ class SalesForce:
         self.last_to_timestamp = (datetime.utcnow() - timedelta(
             minutes=self.time_lag_minutes + initial_delay)).isoformat(timespec='milliseconds') + "Z"
 
-        if self.date_field.lower() == "logdate":
-            self.query_template = SALESFORCE_LOG_DATE_QUERY
+        if len(queries) > 0:
+            self.query_template = queries
         else:
-            self.query_template = SALESFORCE_CREATED_DATE_QUERY
+            if self.date_field.lower() == "logdate":
+                self.query_template = SALESFORCE_LOG_DATE_QUERY
+            else:
+                self.query_template = SALESFORCE_CREATED_DATE_QUERY
+        
         if self.cache_enabled:
             r = redis.Redis(host=redis_config['host'], port=redis_config['port'], db=redis_config['db_number'],
                             password=redis_config['password'],
@@ -181,12 +185,15 @@ class SalesForce:
         except RequestException as e:
             raise LoginException(f'authentication failed for sfdc instance {self.instance_name}') from e
 
-    def make_query(self):
+    def make_multiple_queries(self, query_templates):
+        return [self.make_single_query(template) for template in query_templates]
+
+    def make_single_query(self, query_template):
         to_timestamp = (datetime.utcnow() - timedelta(minutes=self.time_lag_minutes)).isoformat(
             timespec='milliseconds') + "Z"
         from_timestamp = self.last_to_timestamp
         self.last_to_timestamp = to_timestamp
-        query = self.query_template.format(to_timestamp=to_timestamp, from_timestamp=from_timestamp,
+        query = query_template.format(to_timestamp=to_timestamp, from_timestamp=from_timestamp,
                                            log_interval_type=self.generation_interval)
         return query
 
@@ -250,15 +257,27 @@ class SalesForce:
                     self.redis.rpush(record_id, row_id)
             rows.append(row)
         return rows
-
+    
     def fetch_logs(self, session):
-        logs = []
+        if type(self.query_template) is list:
+            queries = self.make_multiple_queries(self.query_template)
+            logs = []
+            for query in queries:
+                part_logs = self.fetch_logs_from_single_req(session, query)
+                logs.extend(part_logs)
+            return logs
+        else:
+            query = self.make_single_query(self.query_template)
+            return self.fetch_logs_from_single_req(session, query)
 
-        query = self.make_query()
+    def fetch_logs_from_single_req(self, session, query):
+        logs = []
 
         try:
             print(f'Running query {query}')
             response = self.execute_query(query, session)
+            #UNDO: print
+            print("Response = ", response)
         except SalesforceApiException as e:
             print(e, file=sys.stderr)
             return

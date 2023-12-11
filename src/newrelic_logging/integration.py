@@ -20,7 +20,10 @@ class Integration:
             instance_name = instance['name']
             labels = instance['labels']
             labels['nr-labs'] = 'data'
-            client = SalesForce(instance_name, instance['arguments'], event_type_fields_mapping, initial_delay)
+            if 'queries' in config:
+                client = SalesForce(instance_name, instance['arguments'], event_type_fields_mapping, initial_delay, config['queries'])
+            else:
+                client = SalesForce(instance_name, instance['arguments'], event_type_fields_mapping, initial_delay)
             oauth_type = instance['arguments']['auth']['grant_type']
             self.instances.append({'labels': labels, 'client': client, "oauth_type": oauth_type})
         newrelic_config = config['newrelic']
