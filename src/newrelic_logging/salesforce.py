@@ -192,10 +192,13 @@ class SalesForce:
         to_timestamp = (datetime.utcnow() - timedelta(minutes=self.time_lag_minutes)).isoformat(
             timespec='milliseconds') + "Z"
         from_timestamp = self.last_to_timestamp
-        self.last_to_timestamp = to_timestamp
         query = query_template.format(to_timestamp=to_timestamp, from_timestamp=from_timestamp,
                                            log_interval_type=self.generation_interval)
         return query
+    
+    def slide_time_range(self):
+        self.last_to_timestamp = (datetime.utcnow() - timedelta(minutes=self.time_lag_minutes)).isoformat(
+            timespec='milliseconds') + "Z"
 
     def execute_query(self, query, session):
         url = f'{self.instance_url}/services/data/v52.0/query?q={query}'
@@ -261,6 +264,7 @@ class SalesForce:
     def fetch_logs(self, session):
         if type(self.query_template) is list:
             queries = self.make_multiple_queries(self.query_template)
+            self.slide_time_range()
             logs = []
             for query in queries:
                 part_logs = self.fetch_logs_from_single_req(session, query)
@@ -268,6 +272,7 @@ class SalesForce:
             return logs
         else:
             query = self.make_single_query(self.query_template)
+            self.slide_time_range()
             return self.fetch_logs_from_single_req(session, query)
 
     def fetch_logs_from_single_req(self, session, query):
