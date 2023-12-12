@@ -279,8 +279,6 @@ class SalesForce:
         return logs
 
     def fetch_logs_from_single_req(self, session, query):
-        logs = []
-
         try:
             print(f'Running query {query}')
             response = self.execute_query(query, session)
@@ -290,59 +288,76 @@ class SalesForce:
             print(e, file=sys.stderr)
             return
 
+        logs = []
         for record in response['records']:
-            record_file_name = record.get('LogFile', None)
-            if record_file_name is None:
-                continue
-
-            record_id = str(record['Id'])
-            record_event_type = record['EventType']
-
-            cached_messages = None
-            if self.redis:
-                cached_messages = self.retrieve_cached_message_list(record_id)
-
-            try:
-                download_response = self.download_file(session, f'{self.instance_url}{record_file_name}')
-                if download_response is None:
-                    continue
-            except RequestException as e:
-                print(f'salesforce event log file "{record_file_name}" download failed')
-                print(e)
-                continue
-
-            csv_rows = self.parse_csv(download_response, record_id, record_event_type, cached_messages)
-
-            log_entries = []
-            for row in csv_rows:
-                message = {}
-                if record_event_type in self.event_type_fields_mapping:
-                    for field in self.event_type_fields_mapping[record_event_type]:
-                        message[field] = row[field]
+            if 'LogFile' in record:
+                log = self.build_log_from_logfile(session, record)
+                if log is not None:
+                    logs.append(log)
                 else:
-                    message = row
+                    print("Log is None, skipping")
+            else:
+                log = self.build_log_from_event(record)
+                logs.append(log)
+            
+        return logs
+    
+    # TODO: set timestamps taken from event/logfile data.
+    # TODO: Use "actualTimestamp" attribute, to avoid API limits (24 hours old)
 
-                if row.get('TIMESTAMP'):
-                    timestamp_obj = datetime.strptime(row.get('TIMESTAMP'), '%Y%m%d%H%M%S.%f')
-                    timestamp = pytz.utc.localize(timestamp_obj).replace(microsecond=0).timestamp()
-                else:
-                    timestamp = datetime.utcnow().replace(microsecond=0).timestamp()
+    def build_log_from_event(self, record):
+        return {
+            'log_entries': record
+        }
+    
+    def build_log_from_logfile(self, session, record):
+        record_file_name = record['LogFile']
+        record_id = str(record['Id'])
+        record_event_type = record['EventType']
 
-                message['LogFileId'] = record_id
-                message.pop('TIMESTAMP', None)
-                message['timestamp'] = int(timestamp)
+        cached_messages = None
+        if self.redis:
+            cached_messages = self.retrieve_cached_message_list(record_id)
 
-                log_entries.append({
-                    'message': message,
-                    'timestamp': int(timestamp)
-                })
+        try:
+            download_response = self.download_file(session, f'{self.instance_url}{record_file_name}')
+            if download_response is None:
+                return None
+        except RequestException as e:
+            print(f'salesforce event log file "{record_file_name}" download failed')
+            print(e)
+            return None
 
-            logs.append({
-                'log_type': record_event_type,
-                'Id': record_id,
-                'CreatedDate': record['CreatedDate'],
-                'LogDate': record['LogDate'],
-                'log_entries': log_entries
+        csv_rows = self.parse_csv(download_response, record_id, record_event_type, cached_messages)
+
+        log_entries = []
+        for row in csv_rows:
+            message = {}
+            if record_event_type in self.event_type_fields_mapping:
+                for field in self.event_type_fields_mapping[record_event_type]:
+                    message[field] = row[field]
+            else:
+                message = row
+
+            if row.get('TIMESTAMP'):
+                timestamp_obj = datetime.strptime(row.get('TIMESTAMP'), '%Y%m%d%H%M%S.%f')
+                timestamp = pytz.utc.localize(timestamp_obj).replace(microsecond=0).timestamp()
+            else:
+                timestamp = datetime.utcnow().replace(microsecond=0).timestamp()
+
+            message['LogFileId'] = record_id
+            message.pop('TIMESTAMP', None)
+            message['timestamp'] = int(timestamp)
+
+            log_entries.append({
+                'message': message,
+                'timestamp': int(timestamp)
             })
 
-        return logs
+        return {
+            'log_type': record_event_type,
+            'Id': record_id,
+            'CreatedDate': record['CreatedDate'],
+            'LogDate': record['LogDate'],
+            'log_entries': log_entries
+        }

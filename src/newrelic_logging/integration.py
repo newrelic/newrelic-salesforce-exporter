@@ -71,8 +71,8 @@ class Integration:
                 continue
 
             payload = [{'common': labels, 'logs': log_entries}]
-            log_type = log_file_obj['log_type']
-            log_file_id = log_file_obj['Id']
+            log_type = log_file_obj.get('log_type', '')
+            log_file_id = log_file_obj.get('Id', '')
 
             status_code = NewRelic.post_logs(nr_session, payload)
             if status_code != 202:
