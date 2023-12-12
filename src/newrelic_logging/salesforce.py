@@ -265,15 +265,18 @@ class SalesForce:
         if type(self.query_template) is list:
             queries = self.make_multiple_queries(self.query_template)
             self.slide_time_range()
-            logs = []
-            for query in queries:
-                part_logs = self.fetch_logs_from_single_req(session, query)
-                logs.extend(part_logs)
-            return logs
+            return self.fetch_logs_from_multiple_req(session, queries)
         else:
             query = self.make_single_query(self.query_template)
             self.slide_time_range()
             return self.fetch_logs_from_single_req(session, query)
+        
+    def fetch_logs_from_multiple_req(self, session, queries):
+        logs = []
+        for query in queries:
+            part_logs = self.fetch_logs_from_single_req(session, query)
+            logs.extend(part_logs)
+        return logs
 
     def fetch_logs_from_single_req(self, session, query):
         logs = []
