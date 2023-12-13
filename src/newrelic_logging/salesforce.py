@@ -3,6 +3,7 @@ import csv
 import json
 import sys
 from datetime import datetime, timedelta
+from dateutil.parser import parse
 import jwt
 from cryptography.hazmat.primitives import serialization
 
@@ -308,12 +309,17 @@ class SalesForce:
     # TODO: Use "actualTimestamp" attribute, to avoid API limits (48 hours old)
 
     def build_log_from_event(self, record):
-        #TODO: check if CreatedDate exists and generate a timestamp from it
+        if 'CreatedDate' in record:
+            timestamp = int(parse(record['CreatedDate']).timestamp() * 1000)
+        else:
+            timestamp = int(datetime.datetime.now().timestamp() * 1000)
+        
         log_entries = []
         log_entries.append({
             #TODO: generate a meaningful message
             'message': "SF Event",
             'attributes': record,
+            'timestamp': timestamp
         })
         return {
             'log_entries': log_entries
