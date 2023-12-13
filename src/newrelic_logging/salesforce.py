@@ -305,12 +305,18 @@ class SalesForce:
     # TODO: buffer logs and then send them in batches
     
     # TODO: set timestamps taken from event/logfile data.
-    # TODO: Use "actualTimestamp" attribute, to avoid API limits (24 hours old)
+    # TODO: Use "actualTimestamp" attribute, to avoid API limits (48 hours old)
 
-    #TODO: format a proper log json
     def build_log_from_event(self, record):
+        #TODO: check if CreatedDate exists and generate a timestamp from it
+        log_entries = []
+        log_entries.append({
+            #TODO: generate a meaningful message
+            'message': "SF Event",
+            'attributes': record,
+        })
         return {
-            'log_entries': record
+            'log_entries': log_entries
         }
     
     def build_log_from_logfile(self, session, record):
