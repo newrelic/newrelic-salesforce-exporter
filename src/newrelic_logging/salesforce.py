@@ -289,41 +289,47 @@ class SalesForce:
             print(e, file=sys.stderr)
             return
 
-        logs = []
-        for record in response['records']:
-            if 'LogFile' in record:
-                log = self.build_log_from_logfile(session, record)
-                if log is not None:
-                    logs.append(log)
-                else:
-                    print("Log is None, skipping")
-            else:
-                log = self.build_log_from_event(record)
-                logs.append(log)
+        records = response['records']
+        if self.is_logfile_response(records):
+            logs = []
+            for record in records:
+                if 'LogFile' in record:
+                    log = self.build_log_from_logfile(session, record)
+                    if log is not None:
+                        logs.append(log)
+        else:
+            logs = self.build_log_from_event(records)
             
         return logs
+    
+    def is_logfile_response(self, records):
+        if len(records) > 0:
+            return 'LogFile' in records[0]
+        else:
+            return True
     
     # TODO: buffer logs and then send them in batches
     
     # TODO: set timestamps taken from event/logfile data.
     # TODO: Use "actualTimestamp" attribute, to avoid API limits (48 hours old)
 
-    def build_log_from_event(self, record):
-        if 'CreatedDate' in record:
-            timestamp = int(parse(record['CreatedDate']).timestamp() * 1000)
-        else:
-            timestamp = int(datetime.datetime.now().timestamp() * 1000)
-        
+    def build_log_from_event(self, records):
         log_entries = []
-        log_entries.append({
-            #TODO: generate a meaningful message
-            'message': "SF Event",
-            'attributes': record,
-            'timestamp': timestamp
-        })
-        return {
+        for record in records:
+            if 'CreatedDate' in record:
+                timestamp = int(parse(record['CreatedDate']).timestamp() * 1000)
+            else:
+                timestamp = int(datetime.datetime.now().timestamp() * 1000)
+            
+            log_entries.append({
+                #TODO: generate a meaningful message
+                'message': "SF Event",
+                'attributes': record,
+                'timestamp': timestamp
+            })
+        return [{
             'log_entries': log_entries
-        }
+        }]
     
     def build_log_from_logfile(self, session, record):
         record_file_name = record['LogFile']
