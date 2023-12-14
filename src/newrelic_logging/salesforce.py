@@ -3,7 +3,6 @@ import csv
 import json
 import sys
 from datetime import datetime, timedelta
-from dateutil.parser import parse
 import jwt
 from cryptography.hazmat.primitives import serialization
 
@@ -309,18 +308,21 @@ class SalesForce:
         else:
             return True
     
-    # TODO: Use alternative timestamp attribute to avoid API limits (48 hours old)
+    # TODO: Ensure NR API limits:
+    #  - Use alternative timestamp attribute to avoid time limits (48h for Log API, 24h for Event API).
+    #  - Check attribute key and value size limits (255 and 4094 bytes respectively).
+    #  - Check max number of attributes per event (255).
 
     def build_log_from_event(self, records):
         log_entries = []
         for record in records:
             if 'CreatedDate' in record:
-                timestamp = int(parse(record['CreatedDate']).timestamp() * 1000)
+                timestamp = int(datetime.strptime(record['CreatedDate'], '%Y-%m-%dT%H:%M:%S.%f%z').timestamp() * 1000)
             else:
                 timestamp = int(datetime.datetime.now().timestamp() * 1000)
             
             log_entries.append({
-                #TODO: generate a meaningful message
+                #TODO: generate a meaningful message, maybe event type?
                 'message': "SF Event",
                 'attributes': record,
                 'timestamp': timestamp
@@ -402,7 +404,7 @@ class SalesForce:
             'log_entries': log_entries
         }
 
-    # Slice CSV into smaller groups
+    # Slice CSV into smaller chunks
     def extract_csv_slice(self, csv_rows):
         part_rows = []
         i = 0
