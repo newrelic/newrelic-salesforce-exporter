@@ -314,23 +314,43 @@ class SalesForce:
     #  - Check max number of attributes per event (255).
 
     def build_log_from_event(self, records):
-        log_entries = []
-        for record in records:
-            if 'CreatedDate' in record:
-                timestamp = int(datetime.strptime(record['CreatedDate'], '%Y-%m-%dT%H:%M:%S.%f%z').timestamp() * 1000)
+        logs = []
+        while True:
+            part_rows = self.extract_row_slice(records)
+            if len(part_rows) > 0:
+                logs.append(self.pack_event_into_log(part_rows))
             else:
+                break
+        return logs
+    
+    def pack_event_into_log(self, rows):
+        log_entries = []
+        for row in rows:
+            if 'CreatedDate' in row:
+                created_date = row['CreatedDate']
+                timestamp = int(datetime.strptime(created_date, '%Y-%m-%dT%H:%M:%S.%f%z').timestamp() * 1000)
+            else:
+                created_date = ""
                 timestamp = int(datetime.datetime.now().timestamp() * 1000)
+
+            message = "SF Event"
+            if 'attributes' in row and type(row['attributes']) == dict:
+                attributes = row.pop('attributes', [])
+                if 'type' in attributes and type(attributes['type']) == str:
+                    message = attributes['type']
             
+            if created_date != "":
+                message = message + " " + created_date
+
             log_entries.append({
-                #TODO: generate a meaningful message, maybe event type?
-                'message': "SF Event",
-                'attributes': record,
+                'message': message,
+                'attributes': row,
                 'timestamp': timestamp
             })
-        return [{
+        return {
             'log_entries': log_entries
-        }]
-    
+        }
+
     def build_log_from_logfile(self, session, record):
         record_file_name = record['LogFile']
         record_id = str(record['Id'])
@@ -357,7 +377,7 @@ class SalesForce:
         logs = []
         row_offset = 0
         while True:
-            part_rows = self.extract_csv_slice(csv_rows)
+            part_rows = self.extract_row_slice(csv_rows)
             part_rows_len = len(part_rows)
             if part_rows_len > 0:
                 logs.append(self.pack_csv_into_log(record, row_offset, part_rows))
@@ -404,12 +424,12 @@ class SalesForce:
             'log_entries': log_entries
         }
 
-    # Slice CSV into smaller chunks
-    def extract_csv_slice(self, csv_rows):
+    # Slice record into smaller chunks
+    def extract_row_slice(self, rows):
         part_rows = []
         i = 0
-        while len(csv_rows) > 0:
-            part_rows.append(csv_rows.pop())
+        while len(rows) > 0:
+            part_rows.append(rows.pop())
             i += 1
             if i >= CSV_SLICE_SIZE:
                 break
