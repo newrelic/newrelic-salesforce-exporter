@@ -20,11 +20,11 @@ class SalesforceApiException(Exception):
 
 
 SALESFORCE_CREATED_DATE_QUERY = \
-    "SELECT+Id,+EventType,+CreatedDate,+LogDate,+Interval,+LogFile,+Sequence+From+EventLogFile+Where+CreatedDate>={" \
-    "from_timestamp}+AND+CreatedDate<{to_timestamp}+AND+Interval='{log_interval_type}' "
+    "SELECT Id,EventType,CreatedDate,LogDate,Interval,LogFile,Sequence From EventLogFile Where CreatedDate>={" \
+    "from_timestamp} AND CreatedDate<{to_timestamp} AND Interval='{log_interval_type}'"
 SALESFORCE_LOG_DATE_QUERY = \
-    "SELECT+Id,+EventType,+CreatedDate,+LogDate,+Interval,+LogFile,+Sequence+From+EventLogFile+Where+LogDate>={" \
-    "from_timestamp}+AND+LogDate<{to_timestamp}+AND+Interval='{log_interval_type}' "
+    "SELECT Id,EventType,CreatedDate,LogDate,Interval,LogFile,Sequence From EventLogFile Where LogDate>={" \
+    "from_timestamp} AND LogDate<{to_timestamp} AND Interval='{log_interval_type}'"
 
 CSV_SLICE_SIZE = 1000
 
