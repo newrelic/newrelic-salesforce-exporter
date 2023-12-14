@@ -90,11 +90,11 @@ class Integration:
             log_events = []
             for log_entry in log_entries:
                 log_event = {}
-                message = log_entry['message']
-                for event_name in message:
+                attributes = log_entry['attributes']
+                for event_name in attributes:
                     # currently no need to modify as we did not see any special chars that need to be removed
                     modified_event_name = event_name
-                    event_value = message[event_name]
+                    event_value = attributes[event_name]
                     if event_name in Integration.numeric_fields_list:
                         if event_value:
                             try:
@@ -110,10 +110,7 @@ class Integration:
                     else:
                         log_event[modified_event_name] = event_value
                 log_event.update(labels)
-                event_type = log_event.get('EVENT_TYPE')
-                if event_type is None:
-                    print(f'EVENT_TYPE attribute could not be extracted. Unable to process event.')
-                    continue
+                event_type = log_event.get('EVENT_TYPE', "UnknownSFEvent")
                 log_event['eventType'] = event_type
                 log_events.append(log_event)
 
