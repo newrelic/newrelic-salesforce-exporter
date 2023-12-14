@@ -195,6 +195,7 @@ class SalesForce:
         from_timestamp = self.last_to_timestamp
         query = query_template.format(to_timestamp=to_timestamp, from_timestamp=from_timestamp,
                                            log_interval_type=self.generation_interval)
+        query = query.replace(' ', '+')
         return query
     
     def slide_time_range(self):
