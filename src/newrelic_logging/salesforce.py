@@ -5,19 +5,27 @@ import sys
 from datetime import datetime, timedelta
 import jwt
 from cryptography.hazmat.primitives import serialization
-
+import os
 import pytz
 import redis
 from requests import RequestException
+from enum import Enum
 
+class AUTH_ENV:
+    GRANT_TYPE = 'SF_GRANT_TYPE'
+    CLIENT_ID =  'SF_CLIENT_ID'
+    CLIENT_SECRET = 'SF_CLIENT_SECRET'
+    USERNAME = 'SF_USERNAME'
+    PASSWORD = 'SF_PASSWORD'
+    PRIVATE_KEY = 'SF_PRIVATE_KEY'
+    SUBJECT = 'SF_SUBJECT'
+    AUDIENCE = 'SF_AUDIENCE'
 
 class LoginException(Exception):
     pass
 
-
 class SalesforceApiException(Exception):
     pass
-
 
 SALESFORCE_CREATED_DATE_QUERY = \
     "SELECT Id,EventType,CreatedDate,LogDate,Interval,LogFile,Sequence From EventLogFile Where CreatedDate>={" \
@@ -44,8 +52,35 @@ class SalesForce:
 
     def __init__(self, instance_name, config, event_type_fields_mapping, initial_delay, queries=[]):
         self.instance_name = instance_name
-        try:
+        if 'auth' in config:
             self.auth_data = config['auth']
+        else:
+            self.auth_data = {'grant_type': os.environ.get(AUTH_ENV.GRANT_TYPE, '')}
+            if self.auth_data['grant_type'] == 'password':
+                # user/pass flow
+                try:
+                    self.auth_data["client_id"] = os.environ[AUTH_ENV.CLIENT_ID]
+                    self.auth_data["client_secret"] = os.environ[AUTH_ENV.CLIENT_SECRET]
+                    self.auth_data["username"] = os.environ[AUTH_ENV.USERNAME]
+                    self.auth_data["password"] = os.environ[AUTH_ENV.PASSWORD]
+                except:
+                    print(f'Missing credentials for user/pass flow')
+                    sys.exit(1)
+            elif self.auth_data['grant_type'] == 'urn:ietf:params:oauth:grant-type:jwt-bearer':
+                # jwt flow
+                try:
+                    self.auth_data["client_id"] = os.environ[AUTH_ENV.CLIENT_ID]
+                    self.auth_data["private_key"] = os.environ[AUTH_ENV.PRIVATE_KEY]
+                    self.auth_data["subject"] = os.environ[AUTH_ENV.SUBJECT]
+                    self.auth_data["audience"] = os.environ[AUTH_ENV.AUDIENCE]
+                except:
+                    print(f'Missing credentials for JWT flow')
+                    sys.exit(1)
+            else:
+                print(f'Wrong or missing grant_type')
+                sys.exit(1)
+        
+        try:
             self.token_url = config['token_url']
             self.time_lag_minutes = config['time_lag_minutes']
             self.generation_interval = config['generation_interval']

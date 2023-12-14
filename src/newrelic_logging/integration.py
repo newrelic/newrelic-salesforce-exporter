@@ -1,15 +1,13 @@
 import sys
-
+import os
 from .http_session import new_retry_session
 from .newrelic import NewRelic
-from .salesforce import SalesForce
+from .salesforce import SalesForce, AUTH_ENV
 from enum import Enum
-
 
 class DataFormat(Enum):
     LOGS = 1
     EVENTS = 2
-
 
 class Integration:
     numeric_fields_list = set()
@@ -24,7 +22,10 @@ class Integration:
                 client = SalesForce(instance_name, instance['arguments'], event_type_fields_mapping, initial_delay, config['queries'])
             else:
                 client = SalesForce(instance_name, instance['arguments'], event_type_fields_mapping, initial_delay)
-            oauth_type = instance['arguments']['auth']['grant_type']
+            try:
+                oauth_type = instance['arguments']['auth']['grant_type']
+            except:
+                oauth_type = os.environ.get(AUTH_ENV.GRANT_TYPE, '')
             self.instances.append({'labels': labels, 'client': client, "oauth_type": oauth_type})
         newrelic_config = config['newrelic']
         data_format = newrelic_config['data_format']
