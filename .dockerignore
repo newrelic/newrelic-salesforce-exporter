@@ -1,0 +1,14 @@
+# Git stuff
+.git
+.github
+.gitignore
+
+# NR One Dashbords
+dashboards
+
+# Docs and samples
+*.md
+config.yml.sample
+
+# Python cache
+src/newrelic_logging/__pycache__
