@@ -1,48 +1,56 @@
 import os
 
 class AuthEnv:
-    GRANT_TYPE = 'SF_GRANT_TYPE'
-    CLIENT_ID =  'SF_CLIENT_ID'
-    CLIENT_SECRET = 'SF_CLIENT_SECRET'
-    USERNAME = 'SF_USERNAME'
-    PASSWORD = 'SF_PASSWORD'
-    PRIVATE_KEY = 'SF_PRIVATE_KEY'
-    SUBJECT = 'SF_SUBJECT'
-    AUDIENCE = 'SF_AUDIENCE'
+    SF_GRANT_TYPE = 'SF_GRANT_TYPE'
+    SF_CLIENT_ID =  'SF_CLIENT_ID'
+    SF_CLIENT_SECRET = 'SF_CLIENT_SECRET'
+    SF_USERNAME = 'SF_USERNAME'
+    SF_PASSWORD = 'SF_PASSWORD'
+    SF_PRIVATE_KEY = 'SF_PRIVATE_KEY'
+    SF_SUBJECT = 'SF_SUBJECT'
+    SF_AUDIENCE = 'SF_AUDIENCE'
+    NR_LICENSE_KEY = 'NR_LICENSE_KEY'
+    NR_ACCOUNT_ID = 'NR_ACCOUNT_ID'
 
     def __init__(self, prefix):
-        self.GRANT_TYPE = prefix + self.GRANT_TYPE
-        self.CLIENT_ID =  prefix + self.CLIENT_ID
-        self.CLIENT_SECRET = prefix + self.CLIENT_SECRET
-        self.USERNAME = prefix + self.USERNAME
-        self.PASSWORD = prefix + self.PASSWORD
-        self.PRIVATE_KEY = prefix + self.PRIVATE_KEY
-        self.SUBJECT = prefix + self.SUBJECT
-        self.AUDIENCE = prefix + self.AUDIENCE
+        self.SF_GRANT_TYPE = prefix + self.SF_GRANT_TYPE
+        self.SF_CLIENT_ID =  prefix + self.SF_CLIENT_ID
+        self.SF_CLIENT_SECRET = prefix + self.SF_CLIENT_SECRET
+        self.SF_USERNAME = prefix + self.SF_USERNAME
+        self.SF_PASSWORD = prefix + self.SF_PASSWORD
+        self.SF_PRIVATE_KEY = prefix + self.SF_PRIVATE_KEY
+        self.SF_SUBJECT = prefix + self.SF_SUBJECT
+        self.SF_AUDIENCE = prefix + self.SF_AUDIENCE
     
     def get_grant_type(self, default=None):
-        return self.get(self.GRANT_TYPE, default)
+        return self.get(self.SF_GRANT_TYPE, default)
     
     def get_client_id(self, default=None):
-        return self.get(self.CLIENT_ID, default)
+        return self.get(self.SF_CLIENT_ID, default)
     
     def get_client_secret(self, default=None):
-        return self.get(self.CLIENT_SECRET, default)
+        return self.get(self.SF_CLIENT_SECRET, default)
     
     def get_username(self, default=None):
-        return self.get(self.USERNAME, default)
+        return self.get(self.SF_USERNAME, default)
     
     def get_password(self, default=None):
-        return self.get(self.PASSWORD, default)
+        return self.get(self.SF_PASSWORD, default)
     
     def get_private_key(self, default=None):
-        return self.get(self.PRIVATE_KEY, default)
+        return self.get(self.SF_PRIVATE_KEY, default)
     
     def get_subject(self, default=None):
-        return self.get(self.SUBJECT, default)
+        return self.get(self.SF_SUBJECT, default)
     
     def get_audience(self, default=None):
-        return self.get(self.AUDIENCE, default)
+        return self.get(self.SF_AUDIENCE, default)
+    
+    def get_license_key(self, default=None):
+        return self.get(self.NR_LICENSE_KEY, default)
+    
+    def get_account_id(self, default=None):
+        return self.get(self.NR_ACCOUNT_ID, default)
 
     def get(self, var_name, default):
         if default == None:

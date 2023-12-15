@@ -34,14 +34,25 @@ class Integration:
             self.instances.append({'labels': labels, 'client': client, "oauth_type": oauth_type, 'name': instance_name})
         newrelic_config = config['newrelic']
         data_format = newrelic_config['data_format']
+        auth_env = AuthEnv('')
         if data_format.lower() == "logs":
             self.data_format = DataFormat.LOGS
-            NewRelic.logs_license_key = newrelic_config['license_key']
+            if 'license_key' in newrelic_config:
+                NewRelic.logs_license_key = newrelic_config['license_key']
+            else:
+                NewRelic.logs_license_key = auth_env.get_license_key()
             NewRelic.set_logs_endpoint(newrelic_config['api_endpoint'])
         elif data_format.lower() == "events":
             self.data_format = DataFormat.EVENTS
-            NewRelic.events_api_key = newrelic_config['license_key']
-            NewRelic.set_api_endpoint(newrelic_config['api_endpoint'], newrelic_config['account_id'])
+            if 'license_key' in newrelic_config:
+                NewRelic.events_api_key = newrelic_config['license_key']
+            else:
+                NewRelic.events_api_key = auth_env.get_license_key()
+            if 'account_id' in newrelic_config:
+                account_id = newrelic_config['account_id']
+            else:
+                account_id = auth_env.get_account_id()
+            NewRelic.set_api_endpoint(newrelic_config['api_endpoint'], account_id)
         else:
             sys.exit(f'invalid data_format specified. valid values are "logs" or "events"')
 
