@@ -1,8 +1,8 @@
 import sys
-import os
 from .http_session import new_retry_session
 from .newrelic import NewRelic
-from .salesforce import SalesForce, AUTH_ENV
+from .salesforce import SalesForce
+from .auth_env import AuthEnv
 from enum import Enum
 
 class DataFormat(Enum):
@@ -18,15 +18,20 @@ class Integration:
             instance_name = instance['name']
             labels = instance['labels']
             labels['nr-labs'] = 'data'
+            prefix = instance['arguments'].get('auth_env_prefix', '')
+            auth_env = AuthEnv(prefix)
             if 'queries' in config:
-                client = SalesForce(instance_name, instance['arguments'], event_type_fields_mapping, initial_delay, config['queries'])
+                client = SalesForce(auth_env, instance_name, instance['arguments'], event_type_fields_mapping, initial_delay, config['queries'])
             else:
-                client = SalesForce(instance_name, instance['arguments'], event_type_fields_mapping, initial_delay)
-            try:
-                oauth_type = instance['arguments']['auth']['grant_type']
-            except:
-                oauth_type = os.environ.get(AUTH_ENV.GRANT_TYPE, '')
-            self.instances.append({'labels': labels, 'client': client, "oauth_type": oauth_type})
+                client = SalesForce(auth_env, instance_name, instance['arguments'], event_type_fields_mapping, initial_delay)
+            if 'auth' in instance['arguments']:
+                if 'grant_type' in instance['arguments']['auth']:
+                    oauth_type = instance['arguments']['auth']['grant_type']
+                else:
+                    sys.exit("No 'grant_type' specified under 'auth' section in config.yml for instance '" + instance_name + "'")
+            else:
+                oauth_type = auth_env.get_grant_type('')
+            self.instances.append({'labels': labels, 'client': client, "oauth_type": oauth_type, 'name': instance_name})
         newrelic_config = config['newrelic']
         data_format = newrelic_config['data_format']
         if data_format.lower() == "logs":
@@ -44,6 +49,8 @@ class Integration:
         sfdc_session = new_retry_session()
 
         for instance in self.instances:
+            print("Running instance '" + instance['name'] + "'")
+
             labels = instance['labels']
             client = instance['client']
             oauth_type = instance['oauth_type']

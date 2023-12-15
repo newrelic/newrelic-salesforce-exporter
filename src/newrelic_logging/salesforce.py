@@ -5,21 +5,9 @@ import sys
 from datetime import datetime, timedelta
 import jwt
 from cryptography.hazmat.primitives import serialization
-import os
 import pytz
 import redis
 from requests import RequestException
-from enum import Enum
-
-class AUTH_ENV:
-    GRANT_TYPE = 'SF_GRANT_TYPE'
-    CLIENT_ID =  'SF_CLIENT_ID'
-    CLIENT_SECRET = 'SF_CLIENT_SECRET'
-    USERNAME = 'SF_USERNAME'
-    PASSWORD = 'SF_PASSWORD'
-    PRIVATE_KEY = 'SF_PRIVATE_KEY'
-    SUBJECT = 'SF_SUBJECT'
-    AUDIENCE = 'SF_AUDIENCE'
 
 class LoginException(Exception):
     pass
@@ -50,29 +38,29 @@ class SalesForce:
     token_url = ''
     redis = False
 
-    def __init__(self, instance_name, config, event_type_fields_mapping, initial_delay, queries=[]):
+    def __init__(self, auth_env, instance_name, config, event_type_fields_mapping, initial_delay, queries=[]):
         self.instance_name = instance_name
         if 'auth' in config:
             self.auth_data = config['auth']
         else:
-            self.auth_data = {'grant_type': os.environ.get(AUTH_ENV.GRANT_TYPE, '')}
+            self.auth_data = {'grant_type': auth_env.get_grant_type('')}
             if self.auth_data['grant_type'] == 'password':
                 # user/pass flow
                 try:
-                    self.auth_data["client_id"] = os.environ[AUTH_ENV.CLIENT_ID]
-                    self.auth_data["client_secret"] = os.environ[AUTH_ENV.CLIENT_SECRET]
-                    self.auth_data["username"] = os.environ[AUTH_ENV.USERNAME]
-                    self.auth_data["password"] = os.environ[AUTH_ENV.PASSWORD]
+                    self.auth_data["client_id"] = auth_env.get_client_id()
+                    self.auth_data["client_secret"] = auth_env.get_client_secret()
+                    self.auth_data["username"] = auth_env.get_username()
+                    self.auth_data["password"] = auth_env.get_password()
                 except:
                     print(f'Missing credentials for user/pass flow')
                     sys.exit(1)
             elif self.auth_data['grant_type'] == 'urn:ietf:params:oauth:grant-type:jwt-bearer':
                 # jwt flow
                 try:
-                    self.auth_data["client_id"] = os.environ[AUTH_ENV.CLIENT_ID]
-                    self.auth_data["private_key"] = os.environ[AUTH_ENV.PRIVATE_KEY]
-                    self.auth_data["subject"] = os.environ[AUTH_ENV.SUBJECT]
-                    self.auth_data["audience"] = os.environ[AUTH_ENV.AUDIENCE]
+                    self.auth_data["client_id"] = auth_env.get_client_id()
+                    self.auth_data["private_key"] = auth_env.get_private_key()
+                    self.auth_data["subject"] = auth_env.get_subject()
+                    self.auth_data["audience"] = auth_env.get_audience()
                 except:
                     print(f'Missing credentials for JWT flow')
                     sys.exit(1)
