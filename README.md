@@ -62,25 +62,25 @@ This integration supports the OAuth 2.0 Username Password and OAuth 2.0 JWT Bear
 For OAuth 2.0 Username Password Flow, the auth section template is:
 
 ```yaml
-	auth: {
-		"grant_type": "password",
-		"client_id": "",
-		"client_secret": "",
-		"username": "",
-		"password": ""
-	}
+auth: {
+    "grant_type": "password",
+    "client_id": "",
+    "client_secret": "",
+    "username": "",
+    "password": ""
+}
 ```
 
 For OAuth 2.0 JWT Bearer Flow, the auth section template is:
 
 ```yaml
-	auth: {
-        "grant_type": "urn:ietf:params:oauth:grant-type:jwt-bearer",
-        "client_id": "",
-        "private_key": "path_to_private_key",
-        "subject": "",
-        "audience": "https://login.salesforce.com"
-    }
+auth: {
+    "grant_type": "urn:ietf:params:oauth:grant-type:jwt-bearer",
+    "client_id": "",
+    "private_key": "path_to_private_key",
+    "subject": "",
+    "audience": "https://login.salesforce.com"
+}
 ```
 
 Alternatively, authentication credentials can be set as environment variables.
@@ -88,21 +88,21 @@ Alternatively, authentication credentials can be set as environment variables.
 The following variable names are used for OAuth 2.0 Username Password Flow:
 
 ```
-    SF_GRANT_TYPE
-    SF_CLIENT_ID
-    SF_CLIENT_SECRET
-    SF_USERNAME
-    SF_PASSWORD
+SF_GRANT_TYPE
+SF_CLIENT_ID
+SF_CLIENT_SECRET
+SF_USERNAME
+SF_PASSWORD
 ```
 
 For OAuth 2.0 JWT Bearer Flow:
 
 ```
-    SF_GRANT_TYPE
-	SF_CLIENT_ID
-    SF_PRIVATE_KEY
-    SF_SUBJECT
-    SF_AUDIENCE
+SF_GRANT_TYPE
+SF_CLIENT_ID
+SF_PRIVATE_KEY
+SF_SUBJECT
+SF_AUDIENCE
 ```
 
 If `auth_env_prefix` is defined in the `config.yml` file, it will be added as a prefix to all the environment variables listed above. This mechanism allows different instances to use different environment variables just by defining a different prefix.
@@ -110,8 +110,8 @@ If `auth_env_prefix` is defined in the `config.yml` file, it will be added as a 
 New Relic credentials can also be passed as environment variables. The following variable names are used:
 
 ```
-    NR_LICENSE_KEY
-    NR_ACCOUNT_ID
+NR_LICENSE_KEY
+NR_ACCOUNT_ID
 ```
 
 No prefix is used for these variables, as only one New Relic account is supported.
@@ -122,9 +122,9 @@ This integration provides default queries to obtain logs from Salesforce, but it
 
 ```yaml
 queries: [
-  "SELECT Id,EventType,CreatedDate,LogDate,LogFile FROM EventLogFile WHERE CreatedDate>={from_timestamp} AND EventType='RestApi' AND Interval='{log_interval_type}'",
-  "SELECT Id,EventType,CreatedDate,LogDate,LogFile FROM EventLogFile WHERE CreatedDate>={from_timestamp} AND EventType='API' AND Interval='{log_interval_type}'",
-  "SELECT Id,Action,CreatedById,CreatedByContext,CreatedByIssuer,CreatedDate,DelegateUser,Display,Section,ResponsibleNamespacePrefix FROM SetupAuditTrail WHERE CreatedDate>={from_timestamp}"
+    "SELECT Id,EventType,CreatedDate,LogDate,LogFile FROM EventLogFile WHERE CreatedDate>={from_timestamp} AND EventType='RestApi' AND Interval='{log_interval_type}'",
+    "SELECT Id,EventType,CreatedDate,LogDate,LogFile FROM EventLogFile WHERE CreatedDate>={from_timestamp} AND EventType='API' AND Interval='{log_interval_type}'",
+    "SELECT Id,Action,CreatedById,CreatedByContext,CreatedByIssuer,CreatedDate,DelegateUser,Display,Section,ResponsibleNamespacePrefix FROM SetupAuditTrail WHERE CreatedDate>={from_timestamp}"
 ]
 ```
 
