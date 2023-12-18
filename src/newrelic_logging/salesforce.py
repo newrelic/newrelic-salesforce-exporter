@@ -355,7 +355,7 @@ class SalesForce:
                 timestamp = int(datetime.strptime(created_date, '%Y-%m-%dT%H:%M:%S.%f%z').timestamp() * 1000)
             else:
                 created_date = ""
-                timestamp = int(datetime.datetime.now().timestamp() * 1000)
+                timestamp = int(datetime.now().timestamp() * 1000)
 
             message = "SF Event"
             if 'attributes' in row and type(row['attributes']) == dict:
