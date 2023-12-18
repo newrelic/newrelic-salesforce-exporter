@@ -55,6 +55,8 @@ Then fill in the relevant information in the **config.yml** file in the root fol
     - **account_id**: (optional, see [Authentication](#authentication)) Required only when `data_format` is `events`
     - **license_key**: (optional, see [Authentication](#authentication)) New Relic account license key
 
+Check `config.yml.sample` for a configuration example.
+
 ## Authentication
 
 This integration supports the OAuth 2.0 Username Password and OAuth 2.0 JWT Bearer Token methods of authentication. The JWT Bearer flow is strongly recommended as it does not expose any passwords.
@@ -133,6 +135,16 @@ Custom queries provide three substitution variables:
 - `from_timestamp`: initial time in the time range.
 - `to_timestamp`: final time in the time range.
 - `log_interval_type`: either 'Hourly' or 'Daily', from `generation_interval` in the `config.yml` file.
+
+Queries for `EventLogFile` requiere the following fields to be present:
+
+- `Id`
+- `EventType`
+- `CreatedDate`
+- `LogDate`
+- `LogFile`
+
+For queries of other events there is no minimum set of fields, but if `CreatedDate` is present, it will be used to set the timestamp. Otherwise it will be set to the current time.
 
 ## Usage
 
