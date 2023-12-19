@@ -334,7 +334,6 @@ class SalesForce:
             return True
     
     # TODO: Ensure NR API limits:
-    #  - Use alternative timestamp attribute to avoid time limits (48h for Log API, 24h for Event API).
     #  - Check attribute key and value size limits (255 and 4094 bytes respectively).
     #  - Check max number of attributes per event (255).
 
@@ -363,6 +362,7 @@ class SalesForce:
                 attributes = row.pop('attributes', [])
                 if 'type' in attributes and type(attributes['type']) == str:
                     message = attributes['type']
+                    row['EVENT_TYPE'] = attributes['type']
             
             if created_date != "":
                 message = message + " " + created_date
