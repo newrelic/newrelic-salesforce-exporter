@@ -99,8 +99,8 @@ class SalesForce:
         
         if self.cache_enabled:
             r = redis.Redis(host=redis_config['host'], port=redis_config['port'], db=redis_config['db_number'],
-                            password=redis_config['password'],
-                            ssl=True)
+                            password=redis_config.get('password', None),
+                            ssl=redis_config.get('ssl', False))
             self.set_redis(r)
         self.event_type_fields_mapping = event_type_fields_mapping
         self.authenticated = False
