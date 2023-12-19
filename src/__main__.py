@@ -96,9 +96,9 @@ def main():
         }
         scheduler = BlockingScheduler(jobstores=jobstores, executors=executors, job_defaults=job_defaults, timezone=utc)
         scheduler.add_job(integration.run, trigger='cron', hour=service_hour, minute=service_minute, second='0')
-        scheduler.start()
-        print('Press Ctrl+{0} to exit'.format('Break' if os.name == 'nt' else 'C'))
 
+        print('Press Ctrl+{0} to exit'.format('Break' if os.name == 'nt' else 'C'))
+        scheduler.start()
 
 if __name__ == "__main__":
     main()
