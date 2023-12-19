@@ -37,6 +37,7 @@ class SalesForce:
     token_type = None
     token_url = ''
     redis = False
+    timestamp_field='timestamp'
 
     def __init__(self, auth_env, instance_name, config, event_type_fields_mapping, initial_delay, queries=[]):
         self.instance_name = instance_name
@@ -366,11 +367,17 @@ class SalesForce:
             if created_date != "":
                 message = message + " " + created_date
 
-            log_entries.append({
+            row[self.timestamp_field] = int(timestamp)
+
+            log_entry = {
                 'message': message,
                 'attributes': row,
-                'timestamp': timestamp
-            })
+            }
+            
+            if self.timestamp_field == 'timestamp':
+                log_entry[self.timestamp_field] = timestamp
+
+            log_entries.append(log_entry)
         return {
             'log_entries': log_entries
         }
@@ -432,13 +439,17 @@ class SalesForce:
 
             message['LogFileId'] = record_id
             message.pop('TIMESTAMP', None)
-            message['timestamp'] = int(timestamp)
+            message[self.timestamp_field] = int(timestamp)
 
-            log_entries.append({
+            log_entry = {
                 'message': "LogFile " + record_id + " row " + str(row_index + row_offset),
-                'attributes': message,
-                'timestamp': int(timestamp)
-            })
+                'attributes': message
+            }
+
+            if self.timestamp_field == 'timestamp':
+                log_entry[self.timestamp_field] = int(timestamp)
+
+            log_entries.append(log_entry)
 
         return {
             'log_type': record_event_type,

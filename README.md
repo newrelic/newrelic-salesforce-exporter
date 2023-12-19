@@ -146,6 +146,16 @@ Queries for `EventLogFile` requiere the following fields to be present:
 
 For queries of other events there is no minimum set of fields, but if `CreatedDate` is present, it will be used to set the timestamp. Otherwise it will be set to the current time.
 
+## Custom timestamp field
+
+The New Relic APIs limit the age of the ingested data. For the New Relic Event API the timestamp of an event can be maximum 24 hours before the moment of the request. For the Log API this time is 48 hours. This also limits the data we can request from Salesforce using SOQL. To overcome these limitations we can use the following key in the config file:
+
+```yaml
+timestamp_field: actualTimestamp
+```
+
+When used, the integration will set the timestamp of each data sample in a different field, in this case named `actualTimestamp`, and will leave the `timestamp` field unset. This way, the `timestamp` field will mark the memoment when the data was injested to New Relic, and the `actualTimestamp` field will be the actual timestamp of the data sample.
+
 ## Usage
 
 ### Locally

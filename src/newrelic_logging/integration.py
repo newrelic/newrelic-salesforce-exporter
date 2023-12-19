@@ -24,6 +24,8 @@ class Integration:
                 client = SalesForce(auth_env, instance_name, instance['arguments'], event_type_fields_mapping, initial_delay, config['queries'])
             else:
                 client = SalesForce(auth_env, instance_name, instance['arguments'], event_type_fields_mapping, initial_delay)
+            if 'timestamp_field' in config and config['timestamp_field'] != '':
+                client.timestamp_field = config['timestamp_field']
             if 'auth' in instance['arguments']:
                 if 'grant_type' in instance['arguments']['auth']:
                     oauth_type = instance['arguments']['auth']['grant_type']
@@ -142,6 +144,6 @@ class Integration:
                 if status_code != 200:
                     print(f'newrelic events api returned code- {status_code}')
                 else:
-                    log_type = log_file_obj['log_type']
-                    log_file_id = log_file_obj['Id']
+                    log_type = log_file_obj.get('log_type', '')
+                    log_file_id = log_file_obj.get('Id', '')
                     print(f"posted {len(log_entries_slice)} events from log file {log_type}/{log_file_id}")

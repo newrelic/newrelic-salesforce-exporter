@@ -31,6 +31,7 @@ queries: [
   "SELECT Id,EventType,CreatedDate,LogDate,LogFile FROM EventLogFile WHERE CreatedDate>={from_timestamp} AND EventType='ApexCallout' AND Interval='{log_interval_type}'",
   "SELECT Id,Action,CreatedById,CreatedByContext,CreatedByIssuer,CreatedDate,DelegateUser,Display,Section,ResponsibleNamespacePrefix FROM SetupAuditTrail WHERE CreatedDate>={from_timestamp}"
 ]
+timestamp_field: actualTimestamp
 newrelic:
   data_format: "events"
   api_endpoint: "US"
