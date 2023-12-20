@@ -27,7 +27,13 @@ class NewRelic:
 
     @classmethod
     def post_logs(cls, session, data):
-        payload = gzip.compress(json.dumps(data).encode())
+        json_payload = json.dumps(data).encode()
+        
+        # print("----- POST DATA (LOGS) -----")
+        # print(json_payload.decode("utf-8"))
+        # print("----------------------------")
+
+        payload = gzip.compress(json_payload)
         headers = {
             "X-License-Key": cls.logs_license_key,
             "X-Event-Source": cls.LOGS_EVENT_SOURCE,
@@ -38,11 +44,20 @@ class NewRelic:
                              headers=headers)
         except RequestException as e:
             raise NewRelicApiException(repr(e)) from e
+        
+        print("NR Log API response body = ", r.content.decode("utf-8"))
+
         return r.status_code
 
     @classmethod
     def post_events(cls, session, data):
-        payload = gzip.compress(json.dumps(data).encode())
+        json_payload = json.dumps(data).encode()
+
+        # print("----- POST DATA (EVENTS) -----")
+        # print(json_payload.decode("utf-8"))
+        # print("------------------------------")
+
+        payload = gzip.compress(json_payload)
         headers = {
             "Api-Key": cls.events_api_key,
             "Content-Encoding": cls.CONTENT_ENCODING,
@@ -52,6 +67,9 @@ class NewRelic:
                              headers=headers)
         except RequestException as e:
             raise NewRelicApiException(repr(e)) from e
+        
+        print("NR Event API response body = ", r.content.decode("utf-8"))
+
         return r.status_code
 
     @classmethod
