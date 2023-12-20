@@ -1,7 +1,7 @@
 integration_name: com.newrelic.labs.sfdc.eventlogfiles
 run_as_service: False
 cron_interval_minutes: 60
-service_schedule: { "hour":  "*", "minute": "30" }
+service_schedule: { "hour":  "*", "minute": "0,15,30,45" }
 instances:
   - name: sfdc-logs
     arguments:
@@ -19,8 +19,9 @@ instances:
         "host": "",
         "port": "",
         "db_number": 0,
-        #"password": "",
-        #"ssl": True
+        "password": "",
+        "ssl": True,
+        "expire_days": 2
       }
       date_field: "LogDate"
       generation_interval: "Hourly"

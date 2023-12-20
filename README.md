@@ -37,7 +37,7 @@ Then fill in the relevant information in the **config.yml** file in the root fol
 	- **auth**: (optional) Provide the oauth application credentials to use for authentication. See [Authentication](#authentication) section below.
 	- **auth_env_prefix**: (optional) Adds a prefix to the environment variables used to obtain [authentication](#authentication) credentials.
 	- **cache_enabled**: True or False. If True, you must provide a redis server to cache all log file ids and message ids processed by this application. This allows the application to perform log message deduplication so that previously processed logs are skipped  
-	- **redis**: (optional). Required only when cache_enabled is True  
+	- **redis**: (optional). Required only when cache_enabled is True. See [Redis](#redis) section below
 	- **date_field**: The date to use in salesforce query for fetching event log files. It can be *LogDate* or *CreatedDate*. See note below regarding best practice on setting this field  
 	- **generation_interval**: The frequency at which salesforce is configured to generate log files. It can be "Hourly" or "Daily"  
 	- **time_lag_minutes**: A time lag to use when this application queries salesforce for event log files. See note below regarding best practice on setting this field  
@@ -66,10 +66,10 @@ For OAuth 2.0 Username Password Flow, the auth section template is:
 ```yaml
 auth: {
     "grant_type": "password",
-    "client_id": "",
-    "client_secret": "",
-    "username": "",
-    "password": ""
+    "client_id": "...",
+    "client_secret": "...",
+    "username": "...",
+    "password": "..."
 }
 ```
 
@@ -78,10 +78,10 @@ For OAuth 2.0 JWT Bearer Flow, the auth section template is:
 ```yaml
 auth: {
     "grant_type": "urn:ietf:params:oauth:grant-type:jwt-bearer",
-    "client_id": "",
-    "private_key": "path_to_private_key",
-    "subject": "",
-    "audience": "https://login.salesforce.com"
+    "client_id": "...",
+    "private_key": "path/to/private_key_file",
+    "subject": "...",
+    "audience": "..."
 }
 ```
 
@@ -118,6 +118,34 @@ NR_ACCOUNT_ID
 
 No prefix is used for these variables, as only one New Relic account is supported.
 
+## Redis
+
+When `cache_enabled` is `True`, we have to set a `redis` section in our `config.yml` file, for each Salesforce instance. This sections looks like:
+
+```yaml
+redis: {
+    "host": "localhost",
+    "port": "6379",
+    "db_number": 0,
+    "ssl": True,
+    "password": "...",
+    "expire_days": 2
+}
+```
+
+- `host`: redis server address.
+- `port`: redis server port.
+- `db_number`: database number to be used.
+- `ssl`: SSL is enabled or not.
+- `password`: password to access the redis server.
+- `expire_days`: expiration time in days for the keys created in redis.
+
+The following keys are mandatory: `host`, `port`, and `db_number`. The rest are optional, and the default values are:
+
+- `ssl` = `False`
+- `password` = `None`
+- `expire_days` = `7`
+
 ## Custom queries
 
 This integration provides default queries to obtain logs from Salesforce, but it's also possible to define custom queries using [SOQL](https://developer.salesforce.com/docs/atlas.en-us.soql_sosl.meta/soql_sosl/sforce_api_calls_soql.htm). We do it by defining an array of `queries` in the root of `config.yml`. In the following example we define three custom queries:
@@ -144,7 +172,7 @@ Queries for `EventLogFile` requiere the following fields to be present:
 - `LogDate`
 - `LogFile`
 
-For queries of other events there is no minimum set of fields, but if `CreatedDate` is present, it will be used to set the timestamp. Otherwise it will be set to the current time.
+For queries of other events only the `Id` field is requiered. If `CreatedDate` is present, it will be used to set the timestamp, otherwise it will be set to the current time.
 
 ## Custom timestamp field
 

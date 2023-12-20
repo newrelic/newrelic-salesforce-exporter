@@ -37,6 +37,7 @@ class SalesForce:
     token_type = None
     token_url = ''
     redis = False
+    redis_expire = 0
     timestamp_field='timestamp'
 
     def __init__(self, auth_env, instance_name, config, event_type_fields_mapping, initial_delay, queries=[]):
@@ -82,6 +83,7 @@ class SalesForce:
         if self.cache_enabled:
             try:
                 redis_config = config['redis']
+                self.redis_expire = redis_config.get('expire_days', 7)
             except KeyError as e:
                 print(f'Please specify a "{e.args[0]}" parameter for sfdc instance "{instance_name}" in config.yml')
                 sys.exit(1)
@@ -245,6 +247,9 @@ class SalesForce:
         except RequestException as e:
             raise SalesforceApiException(f'error when trying to run SOQL query. cause: {e}') from e
 
+    # NOTE: Is it possible that different SF orgs have overlapping IDs? If this is possible, we should use a different
+    #       database for each org, or add a prefix to keys to avoid conflicts.
+
     def retrieve_cached_message_list(self, record_id):
         cache_key_exists = self.redis.exists(record_id)
         if cache_key_exists:
@@ -252,8 +257,19 @@ class SalesForce:
             return cached_messages
         else:
             self.redis.rpush(record_id, 'init')
-            self.redis.expire(record_id, timedelta(days=7))
+            self.set_redis_expire(record_id)
         return None
+    
+    def check_cached_id(self, record_id):
+        if self.redis.exists(record_id):
+            return True
+        else:
+            self.redis.set(record_id, '')
+            self.set_redis_expire(record_id)
+            return False
+    
+    def set_redis_expire(self, key):
+        self.redis.expire(key, timedelta(days=self.redis_expire))
 
     def download_file(self, session, url):
         headers = {
@@ -350,6 +366,12 @@ class SalesForce:
     def pack_event_into_log(self, rows):
         log_entries = []
         for row in rows:
+            record_id = row['Id']
+
+            if self.redis and self.check_cached_id(record_id):
+                # Record cached, skip it
+                continue
+
             if 'CreatedDate' in row:
                 created_date = row['CreatedDate']
                 timestamp = int(datetime.strptime(created_date, '%Y-%m-%dT%H:%M:%S.%f%z').timestamp() * 1000)
