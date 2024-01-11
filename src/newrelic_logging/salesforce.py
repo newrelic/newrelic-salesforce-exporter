@@ -14,7 +14,7 @@ class LoginException(Exception):
 
 class SalesforceApiException(Exception):
     err_code = 0
-    def __init__(self, err_code, *args: object) -> None:
+    def __init__(self, err_code: int, *args: object) -> None:
         self.err_code = err_code
         super().__init__(*args)
     pass
@@ -53,6 +53,7 @@ class SalesForce:
             return self.instance_url
 
     auth = None
+    oauth_type = None
     token_url = ''
     redis = False
     redis_expire = 0
@@ -147,6 +148,7 @@ class SalesForce:
         self.auth = SalesForce.Auth(access_token, instance_url, token_type)
 
     def authenticate(self, oauth_type, session):
+        self.oauth_type = oauth_type
         if self.redis:
             if self.redis.exists("auth"):
                 print("--> Retrieving credentials from Redis.")
@@ -265,7 +267,7 @@ class SalesForce:
             raise LoginException(f'authentication failed for sfdc instance {self.instance_name}') from e
 
     def make_multiple_queries(self, query_templates):
-        return [self.make_single_query(template) for template in query_templates]
+        return [self.make_single_query(template.get("query", "")) for template in query_templates]
 
     def make_single_query(self, query_template):
         to_timestamp = (datetime.utcnow() - timedelta(minutes=self.time_lag_minutes)).isoformat(
@@ -323,7 +325,6 @@ class SalesForce:
     def set_redis_expire(self, key):
         self.redis.expire(key, timedelta(days=self.redis_expire))
 
-    #TODO: raise an exception if not 200, and append the error code
     def download_file(self, session, url):
         headers = {
             'Authorization': f'Bearer {self.auth.get_access_token()}'
@@ -334,8 +335,7 @@ class SalesForce:
                             f'status-code: {response.status_code}, ' \
                             f'reason: {response.reason} ' \
                             f'response: {response.text}'
-            print(error_message, file=sys.stderr)
-            return None
+            raise SalesforceApiException(response.status_code, error_message)
         return response
 
     def parse_csv(self, download_response, record_id, record_event_type, cached_messages):
@@ -358,11 +358,13 @@ class SalesForce:
     
     def fetch_logs(self, session):
         if type(self.query_template) is list:
+            # "query_template" contains a list of objects, each one is a query
             queries = self.make_multiple_queries(self.query_template)
             response = self.fetch_logs_from_multiple_req(session, queries)
             self.slide_time_range()
             return response
         else:
+            # "query_template" contains a string with the SOQL to run.
             query = self.make_single_query(self.query_template)
             response = self.fetch_logs_from_single_req(session, query)
             self.slide_time_range()
@@ -386,7 +388,7 @@ class SalesForce:
             logs = []
             for record in records:
                 if 'LogFile' in record:
-                    log = self.build_log_from_logfile(session, record)
+                    log = self.build_log_from_logfile(True, session, record)
                     if log is not None:
                         logs.extend(log)
         else:
@@ -455,7 +457,7 @@ class SalesForce:
             'log_entries': log_entries
         }
 
-    def build_log_from_logfile(self, session, record):
+    def build_log_from_logfile(self, retry, session, record):
         record_file_name = record['LogFile']
         record_id = str(record['Id'])
         record_event_type = record['EventType']
@@ -468,6 +470,23 @@ class SalesForce:
             download_response = self.download_file(session, f'{self.auth.get_instance_url()}{record_file_name}')
             if download_response is None:
                 return None
+        except SalesforceApiException as e:
+            if e.err_code == 401:
+                if retry:
+                    print("-----> Invalid token while downloading CSV file, retry auth and download...")
+                    self.clear_auth()
+                    if self.authenticate(self.oauth_type, session):
+                        return self.build_log_from_logfile(False, session, record)
+                    else:
+                        return None
+                else:
+                    print(f'salesforce event log file "{record_file_name}" download failed')
+                    print(e)
+                    return None
+            else:
+                print(f'salesforce event log file "{record_file_name}" download failed')
+                print(e)
+                return None                
         except RequestException as e:
             print(f'salesforce event log file "{record_file_name}" download failed')
             print(e)

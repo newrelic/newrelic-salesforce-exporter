@@ -92,6 +92,7 @@ class Integration:
                     client.clear_auth()
                     return self.auth_and_fetch(False, client, oauth_type, sfdc_session)
                 else:
+                    print("Exception while fetching data from SF: ", e)
                     return None
             else:
                 print("Exception while fetching data from SF: ", e)
