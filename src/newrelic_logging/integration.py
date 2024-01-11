@@ -1,7 +1,7 @@
 import sys
 from .http_session import new_retry_session
 from .newrelic import NewRelic
-from .salesforce import SalesForce
+from .salesforce import SalesForce, SalesforceApiException
 from .auth_env import AuthEnv
 from enum import Enum
 
@@ -67,22 +67,45 @@ class Integration:
             labels = instance['labels']
             client = instance['client']
             oauth_type = instance['oauth_type']
+            
+            logs = self.auth_and_fetch(True, client, oauth_type, sfdc_session)
+            if self.response_empty(logs):
+                print("------ NO DATA TO BE SENT ------")
+                continue
 
-            if oauth_type == 'password':
-                if not client.authenticate_with_password(sfdc_session):
-                    print(f"error authenticating with {client.token_url}")
-                    continue
-            else:
-                if not client.authenticate_with_jwt(sfdc_session):
-                    print(f"error authenticating with {client.token_url}")
-                    continue
-
-            logs = client.fetch_logs(sfdc_session)
             if self.data_format == DataFormat.LOGS:
                 self.process_logs(logs, labels)
             else:
                 self.process_events(logs, labels)
 
+    def auth_and_fetch(self, retry, client, oauth_type, sfdc_session):
+        if not client.authenticate(oauth_type, sfdc_session):
+            return None
+        
+        logs = None
+        try:
+            logs = client.fetch_logs(sfdc_session)
+        except SalesforceApiException as e:
+            if e.err_code == 401:
+                if retry:
+                    print("-----> Invalid token, retry auth and fetch...")
+                    client.clear_auth()
+                    return self.auth_and_fetch(False, client, oauth_type, sfdc_session)
+                else:
+                    return None
+            else:
+                print("Exception while fetching data from SF: ", e)
+                return None
+        except Exception as e:
+            print("Exception while fetching data from SF: ", e)
+            return None
+        
+        return logs
+    
+    @staticmethod
+    def response_empty(logs):
+        return logs == None or (len(logs) == 1 and len(logs[0].get("log_entries", [])) == 0)
+    
     @staticmethod
     def process_logs(logs, labels):
         nr_session = new_retry_session()

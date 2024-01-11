@@ -13,6 +13,10 @@ class LoginException(Exception):
     pass
 
 class SalesforceApiException(Exception):
+    err_code = 0
+    def __init__(self, err_code, *args: object) -> None:
+        self.err_code = err_code
+        super().__init__(*args)
     pass
 
 SALESFORCE_CREATED_DATE_QUERY = \
@@ -30,11 +34,25 @@ def base64_url_encode(json_obj):
     encoded_str = str(encoded_bytes, 'utf-8')
     return encoded_str
 
-
 class SalesForce:
-    access_token = None
-    instance_url = None
-    token_type = None
+    class Auth:
+        access_token = None
+        instance_url = None
+        # Never used, maybe in the future
+        token_type = None
+
+        def __init__(self, access_token, instance_url, token_type):
+            self.access_token = access_token
+            self.instance_url = instance_url
+            self.token_type = token_type
+
+        def get_access_token(self):
+            return self.access_token
+        
+        def get_instance_url(self):
+            return self.instance_url
+
+    auth = None
     token_url = ''
     redis = False
     redis_expire = 0
@@ -105,13 +123,55 @@ class SalesForce:
                             ssl=redis_config.get('ssl', False))
             self.set_redis(r)
         self.event_type_fields_mapping = event_type_fields_mapping
-        self.authenticated = False
 
     def set_redis(self, client):
         self.redis = client
 
-    def is_authenticated(self):
-        return self.authenticated
+    def clear_auth(self):
+        if self.redis:
+            self.redis.delete("auth")
+        self.auth = None
+
+    def store_auth(self, auth_resp):
+        access_token = auth_resp['access_token']
+        instance_url = auth_resp['instance_url']
+        token_type = auth_resp['token_type']
+        if self.redis:
+            print("--> Storing credentials on Redis.")
+            auth = {
+                "access_token": access_token,
+                "instance_url": instance_url,
+                "token_type": token_type
+            }
+            self.redis.hmset("auth", auth)
+        self.auth = SalesForce.Auth(access_token, instance_url, token_type)
+
+    def authenticate(self, oauth_type, session):
+        if self.redis:
+            if self.redis.exists("auth"):
+                print("--> Retrieving credentials from Redis.")
+                #NOTE: hmget and hgetall both return byte arrays, not strings. We have to convert.
+                # We could fix it by adding the argument "decode_responses=True" to Redis constructor,
+                # but then we would have to change all places where we assume a byte array instead of a string,
+                # and refactoring in a language without static types is a pain.
+                auth = self.redis.hmget("auth", ["access_token", "instance_url", "token_type"])
+                auth = {
+                    "access_token": auth[0].decode("utf-8"),
+                    "instance_url": auth[1].decode("utf-8"),
+                    "token_type": auth[2].decode("utf-8")
+                }
+                self.store_auth(auth)
+                return True
+
+        if oauth_type == 'password':
+            if not self.authenticate_with_password(session):
+                print(f"error authenticating with {self.token_url}")
+                return False
+        else:
+            if not self.authenticate_with_jwt(session):
+                print(f"error authenticating with {self.token_url}")
+                return False
+        return True
 
     def authenticate_with_jwt(self, session):
         try:
@@ -162,12 +222,8 @@ class SalesForce:
                 error_message = f'sfdc token request failed. http-status-code:{resp.status_code}, reason: {resp.text}'
                 print(f'authentication failed for {self.instance_name}. message: {error_message}', file=sys.stderr)
                 return False
-
-            resp_json = resp.json()
-            self.access_token = resp_json['access_token']
-            self.instance_url = resp_json['instance_url']
-            self.token_type = resp_json['token_type']
-            self.authenticated = True
+            
+            self.store_auth(resp.json())
             return True
         except ConnectionError as e:
             raise LoginException(f'authentication failed for sfdc instance {self.instance_name}') from e
@@ -200,12 +256,8 @@ class SalesForce:
                 error_message = f'salesforce token request failed. status-code:{resp.status_code}, reason: {resp.reason}'
                 print(error_message, file=sys.stderr)
                 return False
-
-            resp_json = resp.json()
-            self.access_token = resp_json['access_token']
-            self.instance_url = resp_json['instance_url']
-            self.token_type = resp_json['token_type']
-            self.authenticated = True
+            
+            self.store_auth(resp.json())
             return True
         except ConnectionError as e:
             raise LoginException(f'authentication failed for sfdc instance {self.instance_name}') from e
@@ -229,11 +281,11 @@ class SalesForce:
             timespec='milliseconds') + "Z"
 
     def execute_query(self, query, session):
-        url = f'{self.instance_url}/services/data/v52.0/query?q={query}'
+        url = f'{self.auth.get_instance_url()}/services/data/v52.0/query?q={query}'
 
         try:
             headers = {
-                'Authorization': f'Bearer {self.access_token}'
+                'Authorization': f'Bearer {self.auth.get_access_token()}'
             }
             query_response = session.get(url, headers=headers)
             if query_response.status_code != 200:
@@ -242,10 +294,10 @@ class SalesForce:
                                 f'reason: {query_response.reason} ' \
                                 f'response: {query_response.text} '
 
-                raise SalesforceApiException(f'error when trying to run SOQL query. message: {error_message}')
+                raise SalesforceApiException(query_response.status_code, f'error when trying to run SOQL query. message: {error_message}')
             return query_response.json()
         except RequestException as e:
-            raise SalesforceApiException(f'error when trying to run SOQL query. cause: {e}') from e
+            raise SalesforceApiException(-1, f'error when trying to run SOQL query. cause: {e}') from e
 
     # NOTE: Is it possible that different SF orgs have overlapping IDs? If this is possible, we should use a different
     #       database for each org, or add a prefix to keys to avoid conflicts.
@@ -271,9 +323,10 @@ class SalesForce:
     def set_redis_expire(self, key):
         self.redis.expire(key, timedelta(days=self.redis_expire))
 
+    #TODO: raise an exception if not 200, and append the error code
     def download_file(self, session, url):
         headers = {
-            'Authorization': f'Bearer {self.access_token}'
+            'Authorization': f'Bearer {self.auth.get_access_token()}'
         }
         response = session.get(url, headers=headers)
         if response.status_code != 200:
@@ -306,12 +359,14 @@ class SalesForce:
     def fetch_logs(self, session):
         if type(self.query_template) is list:
             queries = self.make_multiple_queries(self.query_template)
+            response = self.fetch_logs_from_multiple_req(session, queries)
             self.slide_time_range()
-            return self.fetch_logs_from_multiple_req(session, queries)
+            return response
         else:
             query = self.make_single_query(self.query_template)
+            response = self.fetch_logs_from_single_req(session, query)
             self.slide_time_range()
-            return self.fetch_logs_from_single_req(session, query)
+            return response
         
     def fetch_logs_from_multiple_req(self, session, queries):
         logs = []
@@ -321,14 +376,10 @@ class SalesForce:
         return logs
 
     def fetch_logs_from_single_req(self, session, query):
-        try:
-            print(f'Running query {query}')
-            response = self.execute_query(query, session)
-            #UNDO: print
-            print("Response = ", response)
-        except SalesforceApiException as e:
-            print(e, file=sys.stderr)
-            return
+        print(f'Running query {query}')
+        response = self.execute_query(query, session)
+        #UNDO: print
+        print("Response = ", response)
 
         records = response['records']
         if self.is_logfile_response(records):
@@ -414,7 +465,7 @@ class SalesForce:
             cached_messages = self.retrieve_cached_message_list(record_id)
 
         try:
-            download_response = self.download_file(session, f'{self.instance_url}{record_file_name}')
+            download_response = self.download_file(session, f'{self.auth.get_instance_url()}{record_file_name}')
             if download_response is None:
                 return None
         except RequestException as e:
