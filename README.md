@@ -166,7 +166,8 @@ queries: [
 Each custom query is encapsulated in an object with a set of optional config keys:
 
 - `api_ver`: Salesforce API version to use. Default `52.0`.
-- `timestamp_attr`: Attribute top use as timestamp from the SF response. Default `CreatedDate`. Ignored for `EvenrLogFile` queries.
+- `event_type`: New Relic event type to record. Default, the event type reported in the response.
+- `timestamp_attr`: Attribute top use as timestamp from the SF response. Default `CreatedDate`. Ignored for `EventLogFile` queries.
 - `rename_timestamp`: If present, the New Relic timestamp attribute will be renamed, from `timestamp` to the provided name. The default timestamp will be left empty and will become the time of ingestion.
 
 The `query` field can contain substitution variables, in the form `{VARIABLE_NAME}`:

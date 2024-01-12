@@ -460,12 +460,13 @@ class SalesForce:
                 created_date = ""
                 timestamp = int(datetime.now().timestamp() * 1000)
 
-            message = "SF Event"
+            message = query.get_env().get("event_type", "SFEvent")
             if 'attributes' in row and type(row['attributes']) == dict:
                 attributes = row.pop('attributes', [])
                 if 'type' in attributes and type(attributes['type']) == str:
-                    message = attributes['type']
-                    row['EVENT_TYPE'] = attributes['type']
+                    event_type_attr_name = query.get_env().get("event_type", attributes['type'])
+                    message = event_type_attr_name
+                    row['EVENT_TYPE'] = event_type_attr_name
             
             if created_date != "":
                 message = message + " " + created_date
@@ -489,7 +490,7 @@ class SalesForce:
     def build_log_from_logfile(self, retry, session, record, query: Query):
         record_file_name = record['LogFile']
         record_id = str(record['Id'])
-        record_event_type = record['EventType']
+        record_event_type = query.get_env().get("event_type", record['EventType'])
 
         cached_messages = None
         if self.redis:
@@ -541,7 +542,7 @@ class SalesForce:
 
     def pack_csv_into_log(self, record, row_offset, csv_rows, query: Query):
         record_id = str(record['Id'])
-        record_event_type = record['EventType']
+        record_event_type = query.get_env().get("event_type", record['EventType'])
 
         log_entries = []
         for row_index, row in enumerate(csv_rows):
@@ -560,6 +561,11 @@ class SalesForce:
 
             message['LogFileId'] = record_id
             message.pop('TIMESTAMP', None)
+
+            actual_event_type = message.pop('EVENT_TYPE', "SFEvent")
+            new_event_type = query.get_env().get("event_type", actual_event_type)
+            message['EVENT_TYPE'] = new_event_type
+
             timestamp_field_name = query.get_env().get("rename_timestamp", "timestamp")
             message[timestamp_field_name] = int(timestamp)
 
