@@ -24,8 +24,6 @@ class Integration:
                 client = SalesForce(auth_env, instance_name, instance['arguments'], event_type_fields_mapping, initial_delay, config['queries'])
             else:
                 client = SalesForce(auth_env, instance_name, instance['arguments'], event_type_fields_mapping, initial_delay)
-            if 'timestamp_field' in config and config['timestamp_field'] != '':
-                client.timestamp_field = config['timestamp_field']
             if 'auth' in instance['arguments']:
                 if 'grant_type' in instance['arguments']['auth']:
                     oauth_type = instance['arguments']['auth']['grant_type']

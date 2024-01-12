@@ -36,11 +36,11 @@ Then fill in the relevant information in the **config.yml** file in the root fol
 	- **token_url**: The salesforce url to authenticate and obtain an *oauth access_token* and *sfdc_instance_url* for further queries  
 	- **auth**: (optional) Provide the oauth application credentials to use for authentication. See [Authentication](#authentication) section below.
 	- **auth_env_prefix**: (optional) Adds a prefix to the environment variables used to obtain [authentication](#authentication) credentials.
-	- **cache_enabled**: True or False. If True, you must provide a redis server to cache all log file ids and message ids processed by this application. This allows the application to perform log message deduplication so that previously processed logs are skipped  
-	- **redis**: (optional). Required only when cache_enabled is True. See [Redis](#redis) section below
-	- **date_field**: The date to use in salesforce query for fetching event log files. It can be *LogDate* or *CreatedDate*. See note below regarding best practice on setting this field  
-	- **generation_interval**: The frequency at which salesforce is configured to generate log files. It can be "Hourly" or "Daily"  
-	- **time_lag_minutes**: A time lag to use when this application queries salesforce for event log files. See note below regarding best practice on setting this field  
+	- **cache_enabled**: True or False. If True, you must provide a redis server to cache all log file ids and message ids processed by this application. This allows the application to perform log message deduplication so that previously processed logs are skipped.
+	- **redis**: (optional). Required only when cache_enabled is True. See [Redis](#redis) section below.
+	- **date_field**: The date to use in salesforce query for fetching event log files. It can be *LogDate* or *CreatedDate*. See note below regarding best practice on setting this field.
+	- **generation_interval**: The frequency at which salesforce is configured to generate log files. It can be "Hourly" or "Daily".
+	- **time_lag_minutes**: A time lag to use when this application queries salesforce for event log files. See note below regarding best practice on setting this field.
 
 	**Note about cache_enabled, date_field and time_lag_minutes arguments**
 	
@@ -152,13 +152,24 @@ This integration provides default queries to obtain logs from Salesforce, but it
 
 ```yaml
 queries: [
-    "SELECT Id,EventType,CreatedDate,LogDate,LogFile FROM EventLogFile WHERE CreatedDate>={from_timestamp} AND EventType='RestApi' AND Interval='{log_interval_type}'",
-    "SELECT Id,EventType,CreatedDate,LogDate,LogFile FROM EventLogFile WHERE CreatedDate>={from_timestamp} AND EventType='API' AND Interval='{log_interval_type}'",
-    "SELECT Id,Action,CreatedById,CreatedByContext,CreatedByIssuer,CreatedDate,DelegateUser,Display,Section,ResponsibleNamespacePrefix FROM SetupAuditTrail WHERE CreatedDate>={from_timestamp}"
+    {
+        query: "SELECT Id,EventType,CreatedDate,LogDate,LogFile FROM EventLogFile WHERE CreatedDate>={from_timestamp} AND EventType='API' AND Interval='{log_interval_type}'",
+    },
+    {
+        query: "SELECT Id,Action,CreatedDate,DelegateUser,Display FROM SetupAuditTrail WHERE CreatedDate>={from_timestamp}",
+        timestamp_attr: CreatedData,
+        api_ver: "58.0"
+    },
 ]
 ```
 
-Custom queries provide three substitution variables:
+Each custom query is encapsulated in an object with a set of optional config keys:
+
+- `api_ver`: Salesforce API version to use. Default `52.0`.
+- `timestamp_attr`: Attribute top use as timestamp from the SF response. Default `CreatedDate`. Ignored for `EvenrLogFile` queries.
+- `rename_timestamp`: If present, the New Relic timestamp attribute will be renamed, from `timestamp` to the provided name. The default timestamp will be left empty and will become the time of ingestion.
+
+The `query` field can contain substitution variables, in the form `{VARIABLE_NAME}`:
 
 - `from_timestamp`: initial time in the time range.
 - `to_timestamp`: final time in the time range.
@@ -172,17 +183,7 @@ Queries for `EventLogFile` requiere the following fields to be present:
 - `LogDate`
 - `LogFile`
 
-For queries of other events only the `Id` field is requiered. If `CreatedDate` is present, it will be used to set the timestamp, otherwise it will be set to the current time.
-
-## Custom timestamp field
-
-The New Relic APIs limit the age of the ingested data. For the New Relic Event API the timestamp of an event can be maximum 24 hours before the moment of the request. For the Log API this time is 48 hours. This also limits the data we can request from Salesforce using SOQL. To overcome these limitations we can use the following key in the config file:
-
-```yaml
-timestamp_field: actualTimestamp
-```
-
-When used, the integration will set the timestamp of each data sample in a different field, in this case named `actualTimestamp`, and will leave the `timestamp` field unset. This way, the `timestamp` field will mark the memoment when the data was injested to New Relic, and the `actualTimestamp` field will be the actual timestamp of the data sample.
+For queries of other events only the `Id` field is requiered.
 
 ## Usage
 

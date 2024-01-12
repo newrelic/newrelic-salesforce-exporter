@@ -34,30 +34,52 @@ def base64_url_encode(json_obj):
     encoded_str = str(encoded_bytes, 'utf-8')
     return encoded_str
 
+class Query:
+    query = None
+    env = None
+
+    def __init__(self, query) -> None:
+        if type(query) == dict:
+            self.query = query.get("query", "")
+            query.pop('query', None)
+            self.env = query
+        elif type(query) == str:
+            self.query = query
+            self.env = {}
+
+    def get_query(self) -> str:
+        return self.query
+    
+    def set_query(self, query: str) -> None:
+        self.query = query
+    
+    def get_env(self) -> dict:
+        return self.env
+
+class Auth:
+    access_token = None
+    instance_url = None
+    # Never used, maybe in the future
+    token_type = None
+
+    def __init__(self, access_token: str, instance_url: str, token_type: str) -> None:
+        self.access_token = access_token
+        self.instance_url = instance_url
+        self.token_type = token_type
+
+    def get_access_token(self) -> str:
+        return self.access_token
+    
+    def get_instance_url(self) -> str:
+        return self.instance_url
+
 class SalesForce:
-    class Auth:
-        access_token = None
-        instance_url = None
-        # Never used, maybe in the future
-        token_type = None
-
-        def __init__(self, access_token, instance_url, token_type):
-            self.access_token = access_token
-            self.instance_url = instance_url
-            self.token_type = token_type
-
-        def get_access_token(self):
-            return self.access_token
-        
-        def get_instance_url(self):
-            return self.instance_url
-
     auth = None
     oauth_type = None
     token_url = ''
     redis = False
     redis_expire = 0
-    timestamp_field='timestamp'
+    query_template = None
 
     def __init__(self, auth_env, instance_name, config, event_type_fields_mapping, initial_delay, queries=[]):
         self.instance_name = instance_name
@@ -145,7 +167,7 @@ class SalesForce:
                 "token_type": token_type
             }
             self.redis.hmset("auth", auth)
-        self.auth = SalesForce.Auth(access_token, instance_url, token_type)
+        self.auth = Auth(access_token, instance_url, token_type)
 
     def authenticate(self, oauth_type, session):
         self.oauth_type = oauth_type
@@ -266,24 +288,27 @@ class SalesForce:
         except RequestException as e:
             raise LoginException(f'authentication failed for sfdc instance {self.instance_name}') from e
 
-    def make_multiple_queries(self, query_templates):
-        return [self.make_single_query(template.get("query", "")) for template in query_templates]
+    def make_multiple_queries(self, query_objects) -> list[Query]:
+        return [self.make_single_query(Query(obj)) for obj in query_objects]
 
-    def make_single_query(self, query_template):
+    def make_single_query(self, query_obj: Query) -> Query:
         to_timestamp = (datetime.utcnow() - timedelta(minutes=self.time_lag_minutes)).isoformat(
             timespec='milliseconds') + "Z"
         from_timestamp = self.last_to_timestamp
+        query_template = query_obj.get_query()
         query = query_template.format(to_timestamp=to_timestamp, from_timestamp=from_timestamp,
                                            log_interval_type=self.generation_interval)
         query = query.replace(' ', '+')
-        return query
+        query_obj.set_query(query)
+        return query_obj
     
     def slide_time_range(self):
         self.last_to_timestamp = (datetime.utcnow() - timedelta(minutes=self.time_lag_minutes)).isoformat(
             timespec='milliseconds') + "Z"
 
-    def execute_query(self, query, session):
-        url = f'{self.auth.get_instance_url()}/services/data/v52.0/query?q={query}'
+    def execute_query(self, query: Query, session):
+        api_ver = query.get_env().get("api_ver", "52.0")
+        url = f'{self.auth.get_instance_url()}/services/data/v{api_ver}/query?q={query.get_query()}'
 
         try:
             headers = {
@@ -301,7 +326,7 @@ class SalesForce:
         except RequestException as e:
             raise SalesforceApiException(-1, f'error when trying to run SOQL query. cause: {e}') from e
 
-    # NOTE: Is it possible that different SF orgs have overlapping IDs? If this is possible, we should use a different
+    # TODO / NOTE: Is it possible that different SF orgs have overlapping IDs? If this is possible, we should use a different
     #       database for each org, or add a prefix to keys to avoid conflicts.
 
     def retrieve_cached_message_list(self, record_id):
@@ -358,29 +383,30 @@ class SalesForce:
     
     def fetch_logs(self, session):
         if type(self.query_template) is list:
-            # "query_template" contains a list of objects, each one is a query
-            queries = self.make_multiple_queries(self.query_template)
+            # "query_template" contains a list of objects, each one is a Query object
+            queries = self.make_multiple_queries(self.query_template.copy())
             response = self.fetch_logs_from_multiple_req(session, queries)
             self.slide_time_range()
             return response
         else:
             # "query_template" contains a string with the SOQL to run.
-            query = self.make_single_query(self.query_template)
+            query = self.make_single_query(Query(self.query_template))
             response = self.fetch_logs_from_single_req(session, query)
             self.slide_time_range()
             return response
         
-    def fetch_logs_from_multiple_req(self, session, queries):
+    def fetch_logs_from_multiple_req(self, session, queries: list[Query]):
         logs = []
         for query in queries:
             part_logs = self.fetch_logs_from_single_req(session, query)
             logs.extend(part_logs)
         return logs
 
-    def fetch_logs_from_single_req(self, session, query):
-        print(f'Running query {query}')
+    def fetch_logs_from_single_req(self, session, query: Query):
+        print(f'Running query {query.get_query()}')
         response = self.execute_query(query, session)
-        #UNDO: print
+
+        #TODO: remove print
         print("Response = ", response)
 
         records = response['records']
@@ -388,11 +414,11 @@ class SalesForce:
             logs = []
             for record in records:
                 if 'LogFile' in record:
-                    log = self.build_log_from_logfile(True, session, record)
+                    log = self.build_log_from_logfile(True, session, record, query)
                     if log is not None:
                         logs.extend(log)
         else:
-            logs = self.build_log_from_event(records)
+            logs = self.build_log_from_event(records, query)
             
         return logs
     
@@ -402,21 +428,22 @@ class SalesForce:
         else:
             return True
     
-    # TODO: Ensure NR API limits:
+    # TODO: Remaining NR API limits to ensure:
     #  - Check attribute key and value size limits (255 and 4094 bytes respectively).
     #  - Check max number of attributes per event (255).
+    # Action: crop.
 
-    def build_log_from_event(self, records):
+    def build_log_from_event(self, records, query: Query):
         logs = []
         while True:
             part_rows = self.extract_row_slice(records)
             if len(part_rows) > 0:
-                logs.append(self.pack_event_into_log(part_rows))
+                logs.append(self.pack_event_into_log(part_rows, query))
             else:
                 break
         return logs
     
-    def pack_event_into_log(self, rows):
+    def pack_event_into_log(self, rows, query: Query):
         log_entries = []
         for row in rows:
             record_id = row['Id']
@@ -425,8 +452,9 @@ class SalesForce:
                 # Record cached, skip it
                 continue
 
-            if 'CreatedDate' in row:
-                created_date = row['CreatedDate']
+            timestamp_attr = query.get_env().get("timestamp_attr", "CreatedDate")
+            if timestamp_attr in row:
+                created_date = row[timestamp_attr]
                 timestamp = int(datetime.strptime(created_date, '%Y-%m-%dT%H:%M:%S.%f%z').timestamp() * 1000)
             else:
                 created_date = ""
@@ -442,22 +470,23 @@ class SalesForce:
             if created_date != "":
                 message = message + " " + created_date
 
-            row[self.timestamp_field] = int(timestamp)
+            timestamp_field_name = query.get_env().get("rename_timestamp", "timestamp")
+            row[timestamp_field_name] = int(timestamp)
 
             log_entry = {
                 'message': message,
                 'attributes': row,
             }
             
-            if self.timestamp_field == 'timestamp':
-                log_entry[self.timestamp_field] = timestamp
+            if timestamp_field_name == 'timestamp':
+                log_entry[timestamp_field_name] = timestamp
 
             log_entries.append(log_entry)
         return {
             'log_entries': log_entries
         }
 
-    def build_log_from_logfile(self, retry, session, record):
+    def build_log_from_logfile(self, retry, session, record, query: Query):
         record_file_name = record['LogFile']
         record_id = str(record['Id'])
         record_event_type = record['EventType']
@@ -476,7 +505,7 @@ class SalesForce:
                     print("-----> Invalid token while downloading CSV file, retry auth and download...")
                     self.clear_auth()
                     if self.authenticate(self.oauth_type, session):
-                        return self.build_log_from_logfile(False, session, record)
+                        return self.build_log_from_logfile(False, session, record, query)
                     else:
                         return None
                 else:
@@ -503,14 +532,14 @@ class SalesForce:
             part_rows = self.extract_row_slice(csv_rows)
             part_rows_len = len(part_rows)
             if part_rows_len > 0:
-                logs.append(self.pack_csv_into_log(record, row_offset, part_rows))
+                logs.append(self.pack_csv_into_log(record, row_offset, part_rows, query))
                 row_offset += part_rows_len
             else:
                 break
         
         return logs
 
-    def pack_csv_into_log(self, record, row_offset, csv_rows):
+    def pack_csv_into_log(self, record, row_offset, csv_rows, query: Query):
         record_id = str(record['Id'])
         record_event_type = record['EventType']
 
@@ -531,15 +560,16 @@ class SalesForce:
 
             message['LogFileId'] = record_id
             message.pop('TIMESTAMP', None)
-            message[self.timestamp_field] = int(timestamp)
+            timestamp_field_name = query.get_env().get("rename_timestamp", "timestamp")
+            message[timestamp_field_name] = int(timestamp)
 
             log_entry = {
                 'message': "LogFile " + record_id + " row " + str(row_index + row_offset),
                 'attributes': message
             }
 
-            if self.timestamp_field == 'timestamp':
-                log_entry[self.timestamp_field] = int(timestamp)
+            if timestamp_field_name == 'timestamp':
+                log_entry[timestamp_field_name] = int(timestamp)
 
             log_entries.append(log_entry)
 
