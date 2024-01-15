@@ -73,14 +73,66 @@ class Auth:
     
     def get_instance_url(self) -> str:
         return self.instance_url
+    
+# Local cache, to store data before sending it to Redis.
+class DataCache:
+    redis_expire = None
+    redis = None
+
+    #TODO: local cache structure
+    #TODO: methods to send data to Redis
+
+    def __init__(self) -> None:
+        pass
+
+    def __init__(self, redis, redis_expire) -> None:
+        self.redis_expire = redis_expire
+        self.redis = redis
+
+    def retrieve_cached_message_list(self, record_id):
+        if self.redis:
+            cache_key_exists = self.redis.exists(record_id)
+            if cache_key_exists:
+                cached_messages = self.redis.lrange(record_id, 0, -1)
+                return cached_messages
+            else:
+                self.redis.rpush(record_id, 'init')
+                self.set_redis_expire(record_id)
+        return None
+    
+    def check_cached_id(self, record_id):
+        if self.redis:
+            if self.redis.exists(record_id):
+                return True
+            else:
+                self.redis.set(record_id, '')
+                self.set_redis_expire(record_id)
+                return False
+        else:
+            return False
+        
+    def record_or_skip_row(self, record_id: str, row: dict, cached_messages: dict) -> bool:
+        row_id = row["REQUEST_ID"]
+        if self.redis:
+            if cached_messages is not None:
+                row_id_b = row_id.encode('utf-8')
+                if row_id_b in cached_messages:
+                    # print(f' debug: dropping message with REQUEST_ID: {row_id}')
+                    return True
+                self.redis.rpush(record_id, row_id)
+            else:
+                self.redis.rpush(record_id, row_id)
+        return False
+    
+    def set_redis_expire(self, key):
+        self.redis.expire(key, timedelta(days=self.redis_expire))
 
 class SalesForce:
     auth = None
     oauth_type = None
     token_url = ''
-    redis = False
-    redis_expire = 0
     query_template = None
+    data_cache = None
 
     def __init__(self, auth_env, instance_name, config, event_type_fields_mapping, initial_delay, queries=[]):
         self.instance_name = instance_name
@@ -122,14 +174,6 @@ class SalesForce:
             print(f'Please specify a "{e.args[0]}" parameter for sfdc instance "{instance_name}" in config.yml')
             sys.exit(1)
 
-        if self.cache_enabled:
-            try:
-                redis_config = config['redis']
-                self.redis_expire = redis_config.get('expire_days', 7)
-            except KeyError as e:
-                print(f'Please specify a "{e.args[0]}" parameter for sfdc instance "{instance_name}" in config.yml')
-                sys.exit(1)
-
         self.last_to_timestamp = (datetime.utcnow() - timedelta(
             minutes=self.time_lag_minutes + initial_delay)).isoformat(timespec='milliseconds') + "Z"
 
@@ -142,44 +186,50 @@ class SalesForce:
                 self.query_template = SALESFORCE_CREATED_DATE_QUERY
         
         if self.cache_enabled:
+            try:
+                redis_config = config['redis']
+                redis_expire = redis_config.get('expire_days', 7)
+            except KeyError as e:
+                print(f'Please specify a "{e.args[0]}" parameter for sfdc instance "{instance_name}" in config.yml')
+                sys.exit(1)
             r = redis.Redis(host=redis_config['host'], port=redis_config['port'], db=redis_config['db_number'],
                             password=redis_config.get('password', None),
                             ssl=redis_config.get('ssl', False))
-            self.set_redis(r)
+            self.data_cache = DataCache(r, redis_expire)
+        else:
+            self.data_cache = DataCache()
+
         self.event_type_fields_mapping = event_type_fields_mapping
 
-    def set_redis(self, client):
-        self.redis = client
-
     def clear_auth(self):
-        if self.redis:
-            self.redis.delete("auth")
+        if self.data_cache.redis:
+            self.data_cache.redis.delete("auth")
         self.auth = None
 
     def store_auth(self, auth_resp):
         access_token = auth_resp['access_token']
         instance_url = auth_resp['instance_url']
         token_type = auth_resp['token_type']
-        if self.redis:
+        if self.data_cache.redis:
             print("--> Storing credentials on Redis.")
             auth = {
                 "access_token": access_token,
                 "instance_url": instance_url,
                 "token_type": token_type
             }
-            self.redis.hmset("auth", auth)
+            self.data_cache.redis.hmset("auth", auth)
         self.auth = Auth(access_token, instance_url, token_type)
 
     def authenticate(self, oauth_type, session):
         self.oauth_type = oauth_type
-        if self.redis:
-            if self.redis.exists("auth"):
+        if self.data_cache.redis:
+            if self.data_cache.redis.exists("auth"):
                 print("--> Retrieving credentials from Redis.")
                 #NOTE: hmget and hgetall both return byte arrays, not strings. We have to convert.
                 # We could fix it by adding the argument "decode_responses=True" to Redis constructor,
                 # but then we would have to change all places where we assume a byte array instead of a string,
                 # and refactoring in a language without static types is a pain.
-                auth = self.redis.hmget("auth", ["access_token", "instance_url", "token_type"])
+                auth = self.data_cache.redis.hmget("auth", ["access_token", "instance_url", "token_type"])
                 auth = {
                     "access_token": auth[0].decode("utf-8"),
                     "instance_url": auth[1].decode("utf-8"),
@@ -329,28 +379,7 @@ class SalesForce:
 
     # TODO / NOTE: Is it possible that different SF orgs have overlapping IDs? If this is possible, we should use a different
     #       database for each org, or add a prefix to keys to avoid conflicts.
-
-    def retrieve_cached_message_list(self, record_id):
-        cache_key_exists = self.redis.exists(record_id)
-        if cache_key_exists:
-            cached_messages = self.redis.lrange(record_id, 0, -1)
-            return cached_messages
-        else:
-            self.redis.rpush(record_id, 'init')
-            self.set_redis_expire(record_id)
-        return None
     
-    def check_cached_id(self, record_id):
-        if self.redis.exists(record_id):
-            return True
-        else:
-            self.redis.set(record_id, '')
-            self.set_redis_expire(record_id)
-            return False
-    
-    def set_redis_expire(self, key):
-        self.redis.expire(key, timedelta(days=self.redis_expire))
-
     def download_file(self, session, url):
         headers = {
             'Authorization': f'Bearer {self.auth.get_access_token()}'
@@ -369,16 +398,8 @@ class SalesForce:
         reader = csv.DictReader(content.splitlines())
         rows = []
         for row in reader:
-            row_id = row["REQUEST_ID"]
-            if self.redis:
-                if cached_messages is not None:
-                    row_id_b = row_id.encode('utf-8')
-                    if row_id_b in cached_messages:
-                        # print(f' debug: dropping message with REQUEST_ID: {row_id}')
-                        continue
-                    self.redis.rpush(record_id, row_id)
-                else:
-                    self.redis.rpush(record_id, row_id)
+            if self.data_cache.record_or_skip_row(record_id, row, cached_messages):
+                continue
             rows.append(row)
         return rows
     
@@ -389,14 +410,14 @@ class SalesForce:
             queries = self.make_multiple_queries(copy.deepcopy(self.query_template))
             response = self.fetch_logs_from_multiple_req(session, queries)
             self.slide_time_range()
-            #TODO: actual Redis cache
+            # TODO: send data from local cache to Redis
             return response
         else:
             # "query_template" contains a string with the SOQL to run.
             query = self.make_single_query(Query(self.query_template))
             response = self.fetch_logs_from_single_req(session, query)
             self.slide_time_range()
-            #TODO: actual Redis cache
+            # TODO: send data from local cache to Redis
             return response
         
     def fetch_logs_from_multiple_req(self, session, queries: list[Query]):
@@ -452,7 +473,7 @@ class SalesForce:
         for row in rows:
             record_id = row['Id']
 
-            if self.redis and self.check_cached_id(record_id):
+            if self.data_cache.check_cached_id(record_id):
                 # Record cached, skip it
                 continue
 
@@ -496,9 +517,7 @@ class SalesForce:
         record_id = str(record['Id'])
         record_event_type = query.get_env().get("event_type", record['EventType'])
 
-        cached_messages = None
-        if self.redis:
-            cached_messages = self.retrieve_cached_message_list(record_id)
+        cached_messages = self.data_cache.retrieve_cached_message_list(record_id)
 
         try:
             download_response = self.download_file(session, f'{self.auth.get_instance_url()}{record_file_name}')
