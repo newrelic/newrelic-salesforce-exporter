@@ -40,9 +40,6 @@ def main():
     with open(config_file) as stream:
         config = load(stream, Loader=Loader)
 
-    if 'queries' in config:
-        print("Queries: ", config['queries'])
-
     if not os.path.exists(event_mapping_file):
         print(f'event_mapping_file {event_mapping_file} not found, so event mapping will not be used')
         event_mapping = {}

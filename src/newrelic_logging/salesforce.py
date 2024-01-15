@@ -8,6 +8,7 @@ from cryptography.hazmat.primitives import serialization
 import pytz
 import redis
 from requests import RequestException
+import copy
 
 class LoginException(Exception):
     pass
@@ -382,17 +383,20 @@ class SalesForce:
         return rows
     
     def fetch_logs(self, session):
+        print(f"self.query_template = {self.query_template}")
         if type(self.query_template) is list:
             # "query_template" contains a list of objects, each one is a Query object
-            queries = self.make_multiple_queries(self.query_template.copy())
+            queries = self.make_multiple_queries(copy.deepcopy(self.query_template))
             response = self.fetch_logs_from_multiple_req(session, queries)
             self.slide_time_range()
+            #TODO: actual Redis cache
             return response
         else:
             # "query_template" contains a string with the SOQL to run.
             query = self.make_single_query(Query(self.query_template))
             response = self.fetch_logs_from_single_req(session, query)
             self.slide_time_range()
+            #TODO: actual Redis cache
             return response
         
     def fetch_logs_from_multiple_req(self, session, queries: list[Query]):

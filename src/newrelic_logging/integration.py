@@ -18,8 +18,11 @@ class Integration:
             instance_name = instance['name']
             labels = instance['labels']
             labels['nr-labs'] = 'data'
+            #TODO: get general api_ver that applies to all queries of one instance
             prefix = instance['arguments'].get('auth_env_prefix', '')
             auth_env = AuthEnv(prefix)
+            #TODO: move queries to the instance level, so we can have different queries for each instance.
+            #TODO: also keep general queries that apply to all instances.
             if 'queries' in config:
                 client = SalesForce(auth_env, instance_name, instance['arguments'], event_type_fields_mapping, initial_delay, config['queries'])
             else:
