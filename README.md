@@ -184,7 +184,7 @@ Queries for `EventLogFile` requiere the following fields to be present:
 - `LogDate`
 - `LogFile`
 
-For queries of other events only the `Id` field is requiered.
+For queries of other event types there is no minimum set of attributes requiered, but they will only be cached (when `cache_enabled` is `True`) if `Id` is present.
 
 ## Usage
 

@@ -38,6 +38,15 @@ queries: [
     rename_timestamp: actualTimestamp,
     api_ver: "58.0"
   },
+  {
+    query: "SELECT EventName, EventType, UsageType, Client, Value, StartDate, EndDate FROM PlatformEventUsageMetric WHERE TimeSegment='FifteenMinutes' AND StartDate >= {start_date} AND EndDate <= {now}",
+    env: {
+      now: "now()",
+      start_date: "now(timedelta(minutes=-60))"
+    },
+    api_ver: "58.0",
+    timestamp_attr: StartDate,
+  }
 ]
 newrelic:
   data_format: "events"

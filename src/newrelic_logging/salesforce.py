@@ -9,6 +9,9 @@ import pytz
 import redis
 from requests import RequestException
 import copy
+from .query_env import substitute
+from .auth_env import Auth
+from .query import Query
 
 class LoginException(Exception):
     pass
@@ -35,45 +38,6 @@ def base64_url_encode(json_obj):
     encoded_str = str(encoded_bytes, 'utf-8')
     return encoded_str
 
-class Query:
-    query = None
-    env = None
-
-    def __init__(self, query) -> None:
-        if type(query) == dict:
-            self.query = query.get("query", "")
-            query.pop('query', None)
-            self.env = query
-        elif type(query) == str:
-            self.query = query
-            self.env = {}
-
-    def get_query(self) -> str:
-        return self.query
-    
-    def set_query(self, query: str) -> None:
-        self.query = query
-    
-    def get_env(self) -> dict:
-        return self.env
-
-class Auth:
-    access_token = None
-    instance_url = None
-    # Never used, maybe in the future
-    token_type = None
-
-    def __init__(self, access_token: str, instance_url: str, token_type: str) -> None:
-        self.access_token = access_token
-        self.instance_url = instance_url
-        self.token_type = token_type
-
-    def get_access_token(self) -> str:
-        return self.access_token
-    
-    def get_instance_url(self) -> str:
-        return self.instance_url
-    
 # Local cache, to store data before sending it to Redis.
 class DataCache:
     redis = None
@@ -371,10 +335,16 @@ class SalesForce:
         to_timestamp = (datetime.utcnow() - timedelta(minutes=self.time_lag_minutes)).isoformat(
             timespec='milliseconds') + "Z"
         from_timestamp = self.last_to_timestamp
-        query_template = query_obj.get_query()
-        query = query_template.format(to_timestamp=to_timestamp, from_timestamp=from_timestamp,
-                                           log_interval_type=self.generation_interval)
+        
+        env = copy.deepcopy(query_obj.get_env().get('env', {}))
+        args = {
+            'to_timestamp': to_timestamp,
+            'from_timestamp': from_timestamp,
+            'log_interval_type': self.generation_interval
+        }
+        query = substitute(args, query_obj.get_query(), env)
         query = query.replace(' ', '+')
+        
         query_obj.set_query(query)
         return query_obj
     
@@ -495,11 +465,11 @@ class SalesForce:
     def pack_event_into_log(self, rows, query: Query):
         log_entries = []
         for row in rows:
-            record_id = row['Id']
-
-            if self.data_cache.check_cached_id(record_id):
-                # Record cached, skip it
-                continue
+            if 'Id' in row:
+                record_id = row['Id']
+                if self.data_cache.check_cached_id(record_id):
+                    # Record cached, skip it
+                    continue
 
             timestamp_attr = query.get_env().get("timestamp_attr", "CreatedDate")
             if timestamp_attr in row:

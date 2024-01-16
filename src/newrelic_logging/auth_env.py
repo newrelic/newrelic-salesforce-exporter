@@ -58,3 +58,20 @@ class AuthEnv:
             return os.environ[var_name]
         else:
             return os.environ.get(var_name, default)
+        
+class Auth:
+    access_token = None
+    instance_url = None
+    # Never used, maybe in the future
+    token_type = None
+
+    def __init__(self, access_token: str, instance_url: str, token_type: str) -> None:
+        self.access_token = access_token
+        self.instance_url = instance_url
+        self.token_type = token_type
+
+    def get_access_token(self) -> str:
+        return self.access_token
+    
+    def get_instance_url(self) -> str:
+        return self.instance_url

@@ -115,11 +115,11 @@ class Integration:
                 # Events
                 for log in log_entries:
                     log_id = log.get('attributes', {}).get('Id', '')
-                    print(f"---> ID OF EVENT = {log_id}")
+                    #print(f"---> ID OF EVENT = {log_id}")
                     data_cache.persist_event(log_id)
             else:
                 # Logs
-                print(f"---> ID OF LOG FILE = {log_file_id}")
+                #print(f"---> ID OF LOG FILE = {log_file_id}")
                 data_cache.persist_logs(log_file_id)
     
     @staticmethod
