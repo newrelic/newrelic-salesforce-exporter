@@ -109,7 +109,7 @@ class Integration:
         return logs == None or (len(logs) == 1 and len(logs[0].get("log_entries", [])) == 0)
     
     @staticmethod
-    def persist_data(log_file_id, log_entries, data_cache: DataCache):
+    def cache_processed_data(log_file_id, log_entries, data_cache: DataCache):
         if log_file_id == '':
             # Events
             for log in log_entries:
@@ -134,15 +134,11 @@ class Integration:
             log_file_id = log_file_obj.get('Id', '')
             
             status_code = NewRelic.post_logs(nr_session, payload)
-            
-            #TODO: remove this fake response
-            status_code = 202
-
             if status_code != 202:
                 print(f'newrelic logs api returned code- {status_code}')
             else:
                 print(f"sent {len(log_entries)} log messages from log file {log_type}/{log_file_id}")
-                Integration.persist_data(log_file_id, log_entries, data_cache)
+                Integration.cache_processed_data(log_file_id, log_entries, data_cache)
 
     @staticmethod
     def process_events(logs, labels, data_cache: DataCache):
@@ -179,20 +175,17 @@ class Integration:
                 log_event['eventType'] = event_type
                 log_events.append(log_event)
 
+            # NOTE: this is probably unnecessary now, because we already have a slicing method with a limit of 1000 in SalesForce.extract_row_slice
             # since the max number of events that can be posted in a single payload to New Relic is 2000
             max_events = 2000
             x = [log_events[i:i + max_events] for i in range(0, len(log_events), max_events)]
 
             for log_entries_slice in x:
                 status_code = NewRelic.post_events(nr_session, log_entries_slice)
-
-                #TODO: remove this fake response
-                status_code = 200
-
                 if status_code != 200:
                     print(f'newrelic events api returned code- {status_code}')
                 else:
                     log_type = log_file_obj.get('log_type', '')
                     log_file_id = log_file_obj.get('Id', '')
                     print(f"posted {len(log_entries_slice)} events from log file {log_type}/{log_file_id}")
-                    Integration.persist_data(log_file_id, log_entries, data_cache)
+                    Integration.cache_processed_data(log_file_id, log_entries, data_cache)
