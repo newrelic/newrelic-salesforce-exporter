@@ -76,11 +76,10 @@ class Auth:
     
 # Local cache, to store data before sending it to Redis.
 class DataCache:
-    redis_expire = None
     redis = None
-
-    #TODO: local cache structure
-    #TODO: methods to send data to Redis
+    redis_expire = None
+    cached_events = {}
+    cached_logs = {}
 
     def __init__(self) -> None:
         pass
@@ -89,39 +88,65 @@ class DataCache:
         self.redis_expire = redis_expire
         self.redis = redis
 
-    def retrieve_cached_message_list(self, record_id):
+    def persist_logs(self, record_id: str) -> bool:
+        if self.redis:
+            if record_id in self.cached_logs:
+                for row_id in self.cached_logs[record_id]:
+                    self.redis.rpush(record_id, row_id)
+                    if row_id == 'init':
+                        self.set_redis_expire(record_id)
+                del self.cached_logs[record_id]
+                return True
+            else:
+                return False
+        else:
+            return False
+    
+    def persist_event(self, record_id: str) -> bool:
+        if self.redis:
+            if record_id in self.cached_events:
+                self.redis.set(record_id, '')
+                self.set_redis_expire(record_id)
+                del self.cached_events[record_id]
+                return True
+            else:
+                return False
+        else:
+            return False
+
+    def retrieve_cached_message_list(self, record_id: str):
         if self.redis:
             cache_key_exists = self.redis.exists(record_id)
             if cache_key_exists:
                 cached_messages = self.redis.lrange(record_id, 0, -1)
                 return cached_messages
             else:
-                self.redis.rpush(record_id, 'init')
-                self.set_redis_expire(record_id)
+                self.cached_logs[record_id] = ['init']
         return None
     
-    def check_cached_id(self, record_id):
+    # Cache event
+    def check_cached_id(self, record_id: str):
         if self.redis:
             if self.redis.exists(record_id):
                 return True
             else:
-                self.redis.set(record_id, '')
-                self.set_redis_expire(record_id)
+                self.cached_events[record_id] = ''
                 return False
         else:
             return False
         
+    # Cache log
     def record_or_skip_row(self, record_id: str, row: dict, cached_messages: dict) -> bool:
-        row_id = row["REQUEST_ID"]
         if self.redis:
+            row_id = row["REQUEST_ID"]
             if cached_messages is not None:
                 row_id_b = row_id.encode('utf-8')
                 if row_id_b in cached_messages:
                     # print(f' debug: dropping message with REQUEST_ID: {row_id}')
                     return True
-                self.redis.rpush(record_id, row_id)
+                self.cached_logs[record_id].append(row_id)
             else:
-                self.redis.rpush(record_id, row_id)
+                self.cached_logs[record_id].append(row_id)
         return False
     
     def set_redis_expire(self, key):
@@ -404,20 +429,19 @@ class SalesForce:
         return rows
     
     def fetch_logs(self, session):
-        print(f"self.query_template = {self.query_template}")
+        print(f"Query object = {self.query_template}")
+
         if type(self.query_template) is list:
             # "query_template" contains a list of objects, each one is a Query object
             queries = self.make_multiple_queries(copy.deepcopy(self.query_template))
             response = self.fetch_logs_from_multiple_req(session, queries)
             self.slide_time_range()
-            # TODO: send data from local cache to Redis
             return response
         else:
             # "query_template" contains a string with the SOQL to run.
             query = self.make_single_query(Query(self.query_template))
             response = self.fetch_logs_from_single_req(session, query)
             self.slide_time_range()
-            # TODO: send data from local cache to Redis
             return response
         
     def fetch_logs_from_multiple_req(self, session, queries: list[Query]):

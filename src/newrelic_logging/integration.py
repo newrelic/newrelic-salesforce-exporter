@@ -1,7 +1,7 @@
 import sys
 from .http_session import new_retry_session
 from .newrelic import NewRelic
-from .salesforce import SalesForce, SalesforceApiException
+from .salesforce import SalesForce, SalesforceApiException, DataCache
 from .auth_env import AuthEnv
 from enum import Enum
 
@@ -75,9 +75,9 @@ class Integration:
                 continue
 
             if self.data_format == DataFormat.LOGS:
-                self.process_logs(logs, labels)
+                self.process_logs(logs, labels, client.data_cache)
             else:
-                self.process_events(logs, labels)
+                self.process_events(logs, labels, client.data_cache)
 
     def auth_and_fetch(self, retry, client, oauth_type, sfdc_session):
         if not client.authenticate(oauth_type, sfdc_session):
@@ -109,7 +109,20 @@ class Integration:
         return logs == None or (len(logs) == 1 and len(logs[0].get("log_entries", [])) == 0)
     
     @staticmethod
-    def process_logs(logs, labels):
+    def persist_data(log_file_id, log_entries, data_cache: DataCache):
+        if log_file_id == '':
+            # Events
+            for log in log_entries:
+                log_id = log.get('attributes', {}).get('Id', '')
+                print(f"---> ID OF EVENT = {log_id}")
+                data_cache.persist_event(log_id)
+        else:
+            # Logs
+            print(f"---> ID OF LOG FILE = {log_file_id}")
+            data_cache.persist_logs(log_file_id)
+    
+    @staticmethod
+    def process_logs(logs, labels, data_cache: DataCache):
         nr_session = new_retry_session()
         for log_file_obj in logs:
             log_entries = log_file_obj['log_entries']
@@ -119,17 +132,23 @@ class Integration:
             payload = [{'common': labels, 'logs': log_entries}]
             log_type = log_file_obj.get('log_type', '')
             log_file_id = log_file_obj.get('Id', '')
-
+            
             status_code = NewRelic.post_logs(nr_session, payload)
+            
+            #TODO: remove this fake response
+            status_code = 202
+
             if status_code != 202:
                 print(f'newrelic logs api returned code- {status_code}')
             else:
                 print(f"sent {len(log_entries)} log messages from log file {log_type}/{log_file_id}")
+                Integration.persist_data(log_file_id, log_entries, data_cache)
 
     @staticmethod
-    def process_events(logs, labels):
+    def process_events(logs, labels, data_cache: DataCache):
         nr_session = new_retry_session()
         for log_file_obj in logs:
+            log_file_id = log_file_obj.get('Id', '')
             log_entries = log_file_obj['log_entries']
             if len(log_entries) == 0:
                 continue
@@ -166,9 +185,14 @@ class Integration:
 
             for log_entries_slice in x:
                 status_code = NewRelic.post_events(nr_session, log_entries_slice)
+
+                #TODO: remove this fake response
+                status_code = 200
+
                 if status_code != 200:
                     print(f'newrelic events api returned code- {status_code}')
                 else:
                     log_type = log_file_obj.get('log_type', '')
                     log_file_id = log_file_obj.get('Id', '')
                     print(f"posted {len(log_entries_slice)} events from log file {log_type}/{log_file_id}")
+                    Integration.persist_data(log_file_id, log_entries, data_cache)
