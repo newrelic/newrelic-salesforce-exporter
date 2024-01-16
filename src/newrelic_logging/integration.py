@@ -110,16 +110,17 @@ class Integration:
     
     @staticmethod
     def cache_processed_data(log_file_id, log_entries, data_cache: DataCache):
-        if log_file_id == '':
-            # Events
-            for log in log_entries:
-                log_id = log.get('attributes', {}).get('Id', '')
-                print(f"---> ID OF EVENT = {log_id}")
-                data_cache.persist_event(log_id)
-        else:
-            # Logs
-            print(f"---> ID OF LOG FILE = {log_file_id}")
-            data_cache.persist_logs(log_file_id)
+        if data_cache.redis:
+            if log_file_id == '':
+                # Events
+                for log in log_entries:
+                    log_id = log.get('attributes', {}).get('Id', '')
+                    print(f"---> ID OF EVENT = {log_id}")
+                    data_cache.persist_event(log_id)
+            else:
+                # Logs
+                print(f"---> ID OF LOG FILE = {log_file_id}")
+                data_cache.persist_logs(log_file_id)
     
     @staticmethod
     def process_logs(logs, labels, data_cache: DataCache):
