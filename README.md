@@ -184,7 +184,18 @@ Queries for `EventLogFile` requiere the following fields to be present:
 - `LogDate`
 - `LogFile`
 
-For queries of other event types there is no minimum set of attributes requiered, but they will only be cached (when `cache_enabled` is `True`) if `Id` is present.
+For queries of other event types there is no minimum set of attributes requiered, but a unique identifier is requiered to be able to store the events on Redis (when `cache_enabled` is `True`). If the `Id` field is present, it will be used. Otherwise it will check for the id key in the query environment config:
+
+```yaml
+queries: [
+    {
+        query: "SELECT EventName, EventType, UsageType, Client, Value, StartDate, EndDate FROM PlatformEventUsageMetric ...",
+        id: ["Client", "Value", "StartDate", "EndDate"]
+    }
+]
+```
+
+In this case, the integration will combine the fields `Client`, `Value`, `StartDate`, and `EndDate` to form a unique identifier for each event of the type `PlatformEventUsageMetric`.
 
 ## Usage
 

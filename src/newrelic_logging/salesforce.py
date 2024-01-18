@@ -9,6 +9,7 @@ import pytz
 import redis
 from requests import RequestException
 import copy
+import hashlib
 from .query_env import substitute
 from .auth_env import Auth
 from .query import Query
@@ -344,7 +345,7 @@ class SalesForce:
         }
         query = substitute(args, query_obj.get_query(), env)
         query = query.replace(' ', '+')
-        
+
         query_obj.set_query(query)
         return query_obj
     
@@ -470,6 +471,19 @@ class SalesForce:
                 if self.data_cache.check_cached_id(record_id):
                     # Record cached, skip it
                     continue
+            else:
+                id_keys = query.get_env().get("id", [])
+                compound_id = ""
+                for key in id_keys:
+                    compound_id = compound_id + str(row.get(key, ""))
+                if compound_id != "":
+                    m = hashlib.sha3_256()
+                    m.update(compound_id.encode('utf-8'))
+                    row['Id'] = m.hexdigest()
+                    record_id = row['Id']
+                    if self.data_cache.check_cached_id(record_id):
+                        # Record cached, skip it
+                        continue
 
             timestamp_attr = query.get_env().get("timestamp_attr", "CreatedDate")
             if timestamp_attr in row:
