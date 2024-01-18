@@ -106,7 +106,13 @@ class Integration:
     
     @staticmethod
     def response_empty(logs):
-        return logs == None or (len(logs) == 1 and len(logs[0].get("log_entries", [])) == 0)
+        # Empty or None
+        if not logs:
+            return True
+        for l in logs:
+            if "log_entries" in l and l["log_entries"]:
+                return False
+        return True
     
     @staticmethod
     def cache_processed_data(log_file_id, log_entries, data_cache: DataCache):

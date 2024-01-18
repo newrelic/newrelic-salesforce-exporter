@@ -475,6 +475,8 @@ class SalesForce:
                 id_keys = query.get_env().get("id", [])
                 compound_id = ""
                 for key in id_keys:
+                    if key not in row:
+                        raise Exception(f"Error building compound id, key '{key}' not found")
                     compound_id = compound_id + str(row.get(key, ""))
                 if compound_id != "":
                     m = hashlib.sha3_256()
