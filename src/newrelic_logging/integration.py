@@ -4,6 +4,7 @@ from .newrelic import NewRelic
 from .salesforce import SalesForce, SalesforceApiException, DataCache
 from .auth_env import AuthEnv
 from enum import Enum
+from .telemetry import Telemetry
 
 class DataFormat(Enum):
     LOGS = 1
@@ -14,6 +15,7 @@ class Integration:
 
     def __init__(self, config, event_type_fields_mapping, initial_delay):
         self.instances = []
+        Telemetry(config["integration_name"])
         for instance in config['instances']:
             instance_name = instance['name']
             labels = instance['labels']
@@ -78,6 +80,10 @@ class Integration:
                 self.process_logs(logs, labels, client.data_cache)
             else:
                 self.process_events(logs, labels, client.data_cache)
+            
+            print("Telemetry data = ", Telemetry().logs)
+            self.process_logs(Telemetry().build_model(), {}, None)
+            Telemetry().clear()
 
     def auth_and_fetch(self, retry, client, oauth_type, sfdc_session):
         if not client.authenticate(oauth_type, sfdc_session):
@@ -91,6 +97,7 @@ class Integration:
                 if retry:
                     print("-----> Invalid token, retry auth and fetch...")
                     client.clear_auth()
+                    Telemetry().log_info("Retry fetching logs after token expire error")
                     return self.auth_and_fetch(False, client, oauth_type, sfdc_session)
                 else:
                     print("Exception while fetching data from SF: ", e)
@@ -116,7 +123,7 @@ class Integration:
     
     @staticmethod
     def cache_processed_data(log_file_id, log_entries, data_cache: DataCache):
-        if data_cache.redis:
+        if data_cache and data_cache.redis:
             if log_file_id == '':
                 # Events
                 for log in log_entries:
@@ -145,6 +152,10 @@ class Integration:
                 print(f'newrelic logs api returned code- {status_code}')
             else:
                 print(f"sent {len(log_entries)} log messages from log file {log_type}/{log_file_id}")
+                if log_type:
+                    Telemetry().log_info(f"Logs correctly processed: sent {len(log_entries)} log messages from log file {log_type}/{log_file_id}")
+                else:
+                    Telemetry().log_info(f"Logs correctly processed: sent {len(log_entries)} log messages")
                 Integration.cache_processed_data(log_file_id, log_entries, data_cache)
 
     @staticmethod
@@ -195,4 +206,8 @@ class Integration:
                     log_type = log_file_obj.get('log_type', '')
                     log_file_id = log_file_obj.get('Id', '')
                     print(f"posted {len(log_entries_slice)} events from log file {log_type}/{log_file_id}")
+                    if log_type:
+                        Telemetry().log_info(f"Logs correctly processed: sent {len(log_entries)} log messages from log file {log_type}/{log_file_id}")
+                    else:
+                        Telemetry().log_info(f"Logs correctly processed: sent {len(log_entries)} log messages")
                     Integration.cache_processed_data(log_file_id, log_entries, data_cache)

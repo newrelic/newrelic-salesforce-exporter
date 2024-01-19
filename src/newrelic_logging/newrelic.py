@@ -1,12 +1,10 @@
 import gzip
 import json
-
+from .telemetry import Telemetry
 from requests import RequestException
-
 
 class NewRelicApiException(Exception):
     pass
-
 
 class NewRelic:
     INGEST_SERVICE_VERSION = "v1"
@@ -32,6 +30,7 @@ class NewRelic:
         # print("----- POST DATA (LOGS) -----")
         # print(json_payload.decode("utf-8"))
         # print("----------------------------")
+        # return 202
 
         payload = gzip.compress(json_payload)
         headers = {
@@ -43,7 +42,8 @@ class NewRelic:
             r = session.post(cls.logs_api_endpoint, data=payload,
                              headers=headers)
         except RequestException as e:
-            raise NewRelicApiException(repr(e)) from e
+            Telemetry().log_err(f"Failed posting logs to New Relic: {repr(e)}")
+            return 0
         
         print("NR Log API response body = ", r.content.decode("utf-8"))
 
@@ -56,6 +56,7 @@ class NewRelic:
         # print("----- POST DATA (EVENTS) -----")
         # print(json_payload.decode("utf-8"))
         # print("------------------------------")
+        # return 200
 
         payload = gzip.compress(json_payload)
         headers = {
@@ -66,7 +67,8 @@ class NewRelic:
             r = session.post(cls.events_api_endpoint, data=payload,
                              headers=headers)
         except RequestException as e:
-            raise NewRelicApiException(repr(e)) from e
+            Telemetry().log_err(f"Failed posting events to New Relic: {repr(e)}")
+            return 0
         
         print("NR Event API response body = ", r.content.decode("utf-8"))
 
