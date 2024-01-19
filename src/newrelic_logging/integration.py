@@ -2,7 +2,7 @@ import sys
 from .http_session import new_retry_session
 from .newrelic import NewRelic
 from .salesforce import SalesForce, SalesforceApiException, DataCache
-from .auth_env import AuthEnv
+from .env import AuthEnv
 from enum import Enum
 from .telemetry import Telemetry
 
@@ -10,6 +10,10 @@ class DataFormat(Enum):
     LOGS = 1
     EVENTS = 2
 
+#TODO: get general api_ver that applies to all queries of one instance
+#TODO: move queries to the instance level, so we can have different queries for each instance.
+#TODO: also keep general queries that apply to all instances.
+    
 class Integration:
     numeric_fields_list = set()
 
@@ -20,11 +24,8 @@ class Integration:
             instance_name = instance['name']
             labels = instance['labels']
             labels['nr-labs'] = 'data'
-            #TODO: get general api_ver that applies to all queries of one instance
             prefix = instance['arguments'].get('auth_env_prefix', '')
             auth_env = AuthEnv(prefix)
-            #TODO: move queries to the instance level, so we can have different queries for each instance.
-            #TODO: also keep general queries that apply to all instances.
             if 'queries' in config:
                 client = SalesForce(auth_env, instance_name, instance['arguments'], event_type_fields_mapping, initial_delay, config['queries'])
             else:

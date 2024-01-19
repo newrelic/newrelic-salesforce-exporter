@@ -27,7 +27,7 @@ Then fill in the relevant information in the **config.yml** file in the root fol
   
  1. Update the service parameters 
 	 - **run_as_service**:  True or False. True will run this application as a service with an interval cron service on a schedule specified in *service_schedule* parameter. False is useful to setup this application up to be invoked by crontab. The crontab frequency should then be specified using the *cron_interval_minutes* parameter.
-	 - **cron_interval_minutes**:  Required only if *run_as_service* is False. 
+	 - **cron_interval_minutes**:  Required only if *run_as_service* is False. If not defined, it will try to read the `CRON_INTERVAL_MINUTES` environment variable.
 	 - **service_schedule**: Required only if *run_as_service* is True. The *hour* attribute specifies all the hours (0 - 23, comma separated) to invoke the application to fetch logs. Use * as wildcard to invoke the application every hour. The *minute* attribute specifies all the minutes (0 - 59, comma separated) at which invoke the application to fetch logs. For example { "hour" = "*", "minute" = "0, 15, 30, 45"}  will fetch logs every hour on the hour as well as the 15 minute, 30 minute and 45th minute past every hour. 
 	
  2. Update the **instances** section with the *name*, connection  

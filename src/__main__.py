@@ -8,7 +8,7 @@ from apscheduler.jobstores.memory import MemoryJobStore
 from apscheduler.schedulers.background import BlockingScheduler
 from pytz import utc
 from yaml import Loader, load
-
+from newrelic_logging.env import get_var, var_exists
 from newrelic_logging.integration import Integration
 
 config_dir = None
@@ -73,7 +73,13 @@ def main():
     run_as_service = config.get('run_as_service', False)
 
     if not run_as_service:
-        cron_interval = config.get('cron_interval_minutes', 60)
+        if 'cron_interval_minutes' in config:
+            cron_interval = config['cron_interval_minutes']
+        elif var_exists("CRON_INTERVAL_MINUTES"):
+            cron_interval = int(get_var("CRON_INTERVAL_MINUTES"))
+        else:
+            cron_interval = 60
+
         integration = Integration(config, event_mapping, cron_interval)
         integration.run()
     else:

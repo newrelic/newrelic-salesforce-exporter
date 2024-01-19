@@ -10,9 +10,8 @@ import redis
 from requests import RequestException
 import copy
 import hashlib
-from .query_env import substitute
-from .auth_env import Auth
-from .query import Query
+from .env import Auth
+from .query import Query, substitute
 from .telemetry import Telemetry
 
 class LoginException(Exception):

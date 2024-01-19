@@ -1,5 +1,15 @@
 import os
 
+def var_exists(var_name):
+    return var_name in os.environ
+
+def get_var(var_name, default = None):
+    if default == None:
+        # Can raise exception
+        return os.environ[var_name]
+    else:
+        return os.environ.get(var_name, default)
+
 class AuthEnv:
     SF_GRANT_TYPE = 'SF_GRANT_TYPE'
     SF_CLIENT_ID =  'SF_CLIENT_ID'
@@ -23,41 +33,34 @@ class AuthEnv:
         self.SF_AUDIENCE = prefix + self.SF_AUDIENCE
     
     def get_grant_type(self, default=None):
-        return self.get(self.SF_GRANT_TYPE, default)
+        return get_var(self.SF_GRANT_TYPE, default)
     
     def get_client_id(self, default=None):
-        return self.get(self.SF_CLIENT_ID, default)
+        return get_var(self.SF_CLIENT_ID, default)
     
     def get_client_secret(self, default=None):
-        return self.get(self.SF_CLIENT_SECRET, default)
+        return get_var(self.SF_CLIENT_SECRET, default)
     
     def get_username(self, default=None):
-        return self.get(self.SF_USERNAME, default)
+        return get_var(self.SF_USERNAME, default)
     
     def get_password(self, default=None):
-        return self.get(self.SF_PASSWORD, default)
+        return get_var(self.SF_PASSWORD, default)
     
     def get_private_key(self, default=None):
-        return self.get(self.SF_PRIVATE_KEY, default)
+        return get_var(self.SF_PRIVATE_KEY, default)
     
     def get_subject(self, default=None):
-        return self.get(self.SF_SUBJECT, default)
+        return get_var(self.SF_SUBJECT, default)
     
     def get_audience(self, default=None):
-        return self.get(self.SF_AUDIENCE, default)
+        return get_var(self.SF_AUDIENCE, default)
     
     def get_license_key(self, default=None):
-        return self.get(self.NR_LICENSE_KEY, default)
+        return get_var(self.NR_LICENSE_KEY, default)
     
     def get_account_id(self, default=None):
-        return self.get(self.NR_ACCOUNT_ID, default)
-
-    def get(self, var_name, default):
-        if default == None:
-            # Can raise exception
-            return os.environ[var_name]
-        else:
-            return os.environ.get(var_name, default)
+        return get_var(self.NR_ACCOUNT_ID, default)
         
 class Auth:
     access_token = None
