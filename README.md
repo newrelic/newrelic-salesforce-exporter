@@ -197,6 +197,29 @@ queries: [
 
 In this case, the integration will combine the fields `Client`, `Value`, `StartDate`, and `EndDate` to form a unique identifier for each event of the type `PlatformEventUsageMetric`.
 
+### Query env
+
+It's possible to define a set of environment variables for a specific query, we do it by setting the key `env`:
+
+```yaml
+queries: [
+    {
+        query: "SELECT EventName, EventType, UsageType, Client, Value, StartDate, EndDate FROM PlatformEventUsageMetric WHERE TimeSegment='FifteenMinutes' AND StartDate >= {start_date} AND EndDate <= {end_date}",
+        env: {
+            end_date: "now()",
+            start_date: "now(timedelta(minutes=-60))"
+        },
+    }
+]
+```
+
+In this example above we defined two variables: `end_date` and `start_date`. These variables contain python expressions that are evaluated to generate the data that is going to be susbtituted in the query. The following elements are supported:
+
+- `now()`: Get current time and generate an ISO formatted date-time. It can optionally take a timedelta as argument and add it to the current time.
+- `timedelta`: Generate a Python timedelta object.
+- `datetime`: Generate a Python datetime object.
+- `sf_time()`: Generate an ISO formatted date-time. Takes a Python datetime object as argument.
+
 ## Usage
 
 ### Locally
