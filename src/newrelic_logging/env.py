@@ -19,6 +19,7 @@ class AuthEnv:
     SF_PRIVATE_KEY = 'SF_PRIVATE_KEY'
     SF_SUBJECT = 'SF_SUBJECT'
     SF_AUDIENCE = 'SF_AUDIENCE'
+    SF_TOKEN_URL = 'SF_TOKEN_URL'
     NR_LICENSE_KEY = 'NR_LICENSE_KEY'
     NR_ACCOUNT_ID = 'NR_ACCOUNT_ID'
 
@@ -31,6 +32,7 @@ class AuthEnv:
         self.SF_PRIVATE_KEY = prefix + self.SF_PRIVATE_KEY
         self.SF_SUBJECT = prefix + self.SF_SUBJECT
         self.SF_AUDIENCE = prefix + self.SF_AUDIENCE
+        self.SF_TOKEN_URL = prefix + self.SF_TOKEN_URL
     
     def get_grant_type(self, default=None):
         return get_var(self.SF_GRANT_TYPE, default)
@@ -55,6 +57,9 @@ class AuthEnv:
     
     def get_audience(self, default=None):
         return get_var(self.SF_AUDIENCE, default)
+        
+    def get_token_url(self, default=None):
+        return get_var(self.SF_TOKEN_URL, default)
     
     def get_license_key(self, default=None):
         return get_var(self.NR_LICENSE_KEY, default)

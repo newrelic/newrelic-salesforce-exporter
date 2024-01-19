@@ -33,7 +33,7 @@ Then fill in the relevant information in the **config.yml** file in the root fol
  2. Update the **instances** section with the *name*, connection  
    *arguments* and *labels* for each salesforce instance from which to fetch event logs files.  
      
-	- **token_url**: The salesforce url to authenticate and obtain an *oauth access_token* and *sfdc_instance_url* for further queries  
+	- **token_url**: (optional) The salesforce URL to authenticate. If not defined, it will try to read it from an environment variable, see [Authentication](#authentication) section below.
 	- **auth**: (optional) Provide the oauth application credentials to use for authentication. See [Authentication](#authentication) section below.
 	- **auth_env_prefix**: (optional) Adds a prefix to the environment variables used to obtain [authentication](#authentication) credentials.
 	- **cache_enabled**: True or False. If True, you must provide a redis server to cache all log file ids and message ids processed by this application. This allows the application to perform log message deduplication so that previously processed logs are skipped.
@@ -90,6 +90,7 @@ Alternatively, authentication credentials can be set as environment variables.
 The following variable names are used for OAuth 2.0 Username Password Flow:
 
 ```
+SF_TOKEN_URL
 SF_GRANT_TYPE
 SF_CLIENT_ID
 SF_CLIENT_SECRET
@@ -100,6 +101,7 @@ SF_PASSWORD
 For OAuth 2.0 JWT Bearer Flow:
 
 ```
+SF_TOKEN_URL
 SF_GRANT_TYPE
 SF_CLIENT_ID
 SF_PRIVATE_KEY

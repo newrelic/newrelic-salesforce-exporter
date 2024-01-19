@@ -10,7 +10,7 @@ import redis
 from requests import RequestException
 import copy
 import hashlib
-from .env import Auth
+from .env import Auth, AuthEnv
 from .query import Query, substitute
 from .telemetry import Telemetry
 
@@ -124,7 +124,7 @@ class SalesForce:
     query_template = None
     data_cache = None
 
-    def __init__(self, auth_env, instance_name, config, event_type_fields_mapping, initial_delay, queries=[]):
+    def __init__(self, auth_env: AuthEnv, instance_name, config, event_type_fields_mapping, initial_delay, queries=[]):
         self.instance_name = instance_name
         if 'auth' in config:
             self.auth_data = config['auth']
@@ -154,8 +154,12 @@ class SalesForce:
                 print(f'Wrong or missing grant_type')
                 sys.exit(1)
         
-        try:
+        if 'token_url' in config:
             self.token_url = config['token_url']
+        else:
+            self.token_url = auth_env.get_token_url()
+
+        try:
             self.time_lag_minutes = config['time_lag_minutes']
             self.generation_interval = config['generation_interval']
             self.date_field = config['date_field']
