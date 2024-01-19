@@ -55,7 +55,7 @@ Then fill in the relevant information in the **config.yml** file in the root fol
     - **account_id**: (optional, see [Authentication](#authentication)) Required only when `data_format` is `events`
     - **license_key**: (optional, see [Authentication](#authentication)) New Relic account license key
 
-Check `config.yml.sample` for a configuration example.
+Check `config_sample.yml` for a configuration example.
 
 ## Authentication
 
