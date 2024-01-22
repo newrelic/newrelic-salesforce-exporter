@@ -155,7 +155,7 @@ This integration provides default queries to obtain logs from Salesforce, but it
 ```yaml
 queries: [
     {
-        query: "SELECT Id,EventType,CreatedDate,LogDate,LogFile FROM EventLogFile WHERE CreatedDate>={from_timestamp} AND EventType='API' AND Interval='{log_interval_type}'",
+        query: "SELECT Id,EventType,CreatedDate,LogDate,LogFile,Interval FROM EventLogFile WHERE CreatedDate>={from_timestamp} AND EventType='API' AND Interval='{log_interval_type}'",
     },
     {
         query: "SELECT Id,Action,CreatedDate,DelegateUser,Display FROM SetupAuditTrail WHERE CreatedDate>={from_timestamp}",
@@ -185,6 +185,7 @@ Queries for `EventLogFile` requiere the following fields to be present:
 - `CreatedDate`
 - `LogDate`
 - `LogFile`
+- `Interval`
 
 For queries of other event types there is no minimum set of attributes requiered, but a unique identifier is requiered to be able to store the events on Redis (when `cache_enabled` is `True`). If the `Id` field is present, it will be used. Otherwise it will check for the id key in the query environment config:
 

@@ -30,7 +30,7 @@ instances:
       environment: production
 queries: [
   {
-    query: "SELECT Id,EventType,CreatedDate,LogDate,LogFile FROM EventLogFile WHERE CreatedDate>={from_timestamp} AND EventType='API' AND Interval='{log_interval_type}'"
+    query: "SELECT Id,EventType,CreatedDate,LogDate,LogFile,Interval FROM EventLogFile WHERE CreatedDate>={from_timestamp} AND EventType='API' AND Interval='{log_interval_type}'"
   },
   {
     query: "SELECT Id,Action,CreatedDate,DelegateUser,Display FROM SetupAuditTrail WHERE CreatedDate>={from_timestamp}",

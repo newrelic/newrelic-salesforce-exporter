@@ -58,6 +58,7 @@ class DataCache:
             if record_id in self.cached_logs:
                 for row_id in self.cached_logs[record_id]:
                     self.redis.rpush(record_id, row_id)
+                    # Set expire date for the whole list only once, when it find the first entry ('init')
                     if row_id == 'init':
                         self.set_redis_expire(record_id)
                 del self.cached_logs[record_id]
@@ -79,7 +80,7 @@ class DataCache:
         else:
             return False
 
-    def record_cached(self, record_id: str) -> bool:
+    def can_skip_downloading_record(self, record_id: str) -> bool:
         if self.redis:
             if self.redis.exists(record_id):
                 return self.redis.llen(record_id) > 1
@@ -548,9 +549,10 @@ class SalesForce:
     def build_log_from_logfile(self, retry, session, record, query: Query):
         record_file_name = record['LogFile']
         record_id = str(record['Id'])
+        interval = record['Interval']
         record_event_type = query.get_env().get("event_type", record['EventType'])
 
-        if self.data_cache.record_cached(record_id):
+        if interval == 'Hourly' and self.data_cache.can_skip_downloading_record(record_id):
             print(f"----> Record {record_id} already cached, skip downloading CSV")
             return None
 
