@@ -79,6 +79,12 @@ class DataCache:
         else:
             return False
 
+    def record_cached(self, record_id: str) -> bool:
+        if self.redis:
+            if self.redis.exists(record_id):
+                return self.redis.llen(record_id) > 1
+        return False
+    
     def retrieve_cached_message_list(self, record_id: str):
         if self.redis:
             cache_key_exists = self.redis.exists(record_id)
@@ -389,6 +395,8 @@ class SalesForce:
     #       database for each org, or add a prefix to keys to avoid conflicts.
     
     def download_file(self, session, url):
+        print("Downloading CSV file: ", url)
+
         headers = {
             'Authorization': f'Bearer {self.auth.get_access_token()}'
         }
@@ -541,6 +549,10 @@ class SalesForce:
         record_file_name = record['LogFile']
         record_id = str(record['Id'])
         record_event_type = query.get_env().get("event_type", record['EventType'])
+
+        if self.data_cache.record_cached(record_id):
+            print(f"----> Record {record_id} already cached, skip downloading CSV")
+            return None
 
         cached_messages = self.data_cache.retrieve_cached_message_list(record_id)
 
