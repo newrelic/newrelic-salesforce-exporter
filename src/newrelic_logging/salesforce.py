@@ -552,6 +552,7 @@ class SalesForce:
         interval = record['Interval']
         record_event_type = query.get_env().get("event_type", record['EventType'])
 
+        # NOTE: only Hourly logs can be skipped, because Daily logs can change and the same record_id can contain different data.
         if interval == 'Hourly' and self.data_cache.can_skip_downloading_record(record_id):
             print(f"----> Record {record_id} already cached, skip downloading CSV")
             return None
