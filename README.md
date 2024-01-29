@@ -41,6 +41,7 @@ Then fill in the relevant information in the **config.yml** file in the root fol
 	- **date_field**: The date to use in salesforce query for fetching event log files. It can be *LogDate* or *CreatedDate*. See note below regarding best practice on setting this field.
 	- **generation_interval**: The frequency at which salesforce is configured to generate log files. It can be "Hourly" or "Daily".
 	- **time_lag_minutes**: A time lag to use when this application queries salesforce for event log files. See note below regarding best practice on setting this field.
+    - **api_ver**: Default API version. If not specified, default is `52.0`.
 
 	**Note about cache_enabled, date_field and time_lag_minutes arguments**
 	
@@ -167,7 +168,7 @@ queries: [
 
 Each custom query is encapsulated in an object with a set of optional config keys:
 
-- `api_ver`: Salesforce API version to use. Default `52.0`.
+- `api_ver`: Salesforce API version to use for current query. It has prevalence over the default version.
 - `event_type`: New Relic event type to record. Default, the event type reported in the response.
 - `timestamp_attr`: Attribute top use as timestamp from the SF response. Default `CreatedDate`. Ignored for `EventLogFile` queries.
 - `rename_timestamp`: If present, the New Relic timestamp attribute will be renamed, from `timestamp` to the provided name. The default timestamp will be left empty and will become the time of ingestion.
@@ -222,6 +223,10 @@ In this example above we defined two variables: `end_date` and `start_date`. The
 - `timedelta`: Generate a Python timedelta object.
 - `datetime`: Generate a Python datetime object.
 - `sf_time()`: Generate an ISO formatted date-time. Takes a Python datetime object as argument.
+
+**TODO: telemetry**
+
+**TODO: event_type_fields.yml and numeric_fields.yml**
 
 ## Usage
 

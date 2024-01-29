@@ -127,9 +127,11 @@ class SalesForce:
     token_url = ''
     query_template = None
     data_cache = None
+    default_api_ver = ''
 
     def __init__(self, auth_env: AuthEnv, instance_name, config, event_type_fields_mapping, initial_delay, queries=[]):
         self.instance_name = instance_name
+        self.default_api_ver = config.get('api_ver', '52.0')
         if 'auth' in config:
             self.auth_data = config['auth']
         else:
@@ -368,7 +370,7 @@ class SalesForce:
             timespec='milliseconds') + "Z"
 
     def execute_query(self, query: Query, session):
-        api_ver = query.get_env().get("api_ver", "52.0")
+        api_ver = query.get_env().get("api_ver", self.default_api_ver)
         url = f'{self.auth.get_instance_url()}/services/data/v{api_ver}/query?q={query.get_query()}'
 
         try:
