@@ -224,9 +224,25 @@ In this example above we defined two variables: `end_date` and `start_date`. The
 - `datetime`: Generate a Python datetime object.
 - `sf_time()`: Generate an ISO formatted date-time. Takes a Python datetime object as argument.
 
-**TODO: telemetry**
+## Field mapping
 
-**TODO: event_type_fields.yml and numeric_fields.yml**
+EventLogFile data contains a lot of attributes. We can't control which attributes we get because they come in the CSV file, not in the response of the SOQL query. For this purpose we have the `event_type_fields.yml` file. This file contains, for each event type, which fields we want to report. The file looks like:
+
+```yaml
+mapping: {
+    'Login': [ 'FIELD_A', 'FIELD_B' ],
+    'API': [ 'FIELD_A', 'FIELD_B' ],
+    'OTHER EVENT TYPES': [ 'OTHER FIELDS' ],
+}
+```
+
+## Numeric fields
+
+Fields in the CSV come as strings, but some of them are actually numeric and we may want to convert them to numbers. For this prupose we have the `numeric_fields.yml` file. This file defines the set of numeric fields for each event type. The format is the same as [Field mapping](#field-mapping).
+
+## Telemetry
+
+This integration automatically generates New Relic logs to trace its health state and correct functioning. It generates two kinds of logs: Info and Error. Info are things like, "Logs processed" or "Correctly authenticated". Errors are things like "Failed posting logs to New Relic" or "SOQL query failed".
 
 ## Usage
 
