@@ -46,10 +46,7 @@ class DataCache:
     cached_events = {}
     cached_logs = {}
 
-    def __init__(self) -> None:
-        pass
-
-    def __init__(self, redis, redis_expire) -> None:
+    def __init__(self, redis = None, redis_expire = None) -> None:
         self.redis_expire = redis_expire
         self.redis = redis
 
