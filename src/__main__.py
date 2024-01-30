@@ -37,8 +37,7 @@ event_mapping_file = f'{config_dir}/event_type_fields.yml'
 numeric_fields_file = f'{config_dir}/numeric_fields.yml'
 
 def main():
-    with open(config_file) as stream:
-        config = load(stream, Loader=Loader)
+    config = load_config(config_file)
 
     if not os.path.exists(event_mapping_file):
         print(f'event_mapping_file {event_mapping_file} not found, so event mapping will not be used')
@@ -102,6 +101,27 @@ def main():
 
         print('Press Ctrl+{0} to exit'.format('Break' if os.name == 'nt' else 'C'))
         scheduler.start()
+
+def load_config(config_file: str):
+    with open(config_file) as stream:
+        config = load(stream, Loader=Loader)
+    new_queries = []
+    if 'queries' in config:
+        for query in config['queries']:
+            if type(query) is str:
+                with open(query) as stream:
+                    sub_query_config = load(stream, Loader=Loader)
+                if 'queries' in sub_query_config and type(sub_query_config['queries']) is list:
+                    new_queries = new_queries + sub_query_config['queries']
+                else:
+                    print("Malformed subconfig file. Ignoring")
+            elif type(query) is dict:
+                new_queries.append(query)
+            else:
+                print("Malformed 'queries' member in config, expected either dictionaries or strings in the array. Ignoring.")
+                pass
+    config['queries'] = new_queries
+    return config
 
 if __name__ == "__main__":
     main()

@@ -201,6 +201,20 @@ queries: [
 
 In this case, the integration will combine the fields `Client`, `Value`, `StartDate`, and `EndDate` to form a unique identifier for each event of the type `PlatformEventUsageMetric`.
 
+The `queries` key can also contain references to other YAML files. Like so:
+
+```yaml
+queries: [
+    "my_file_1.yml",
+    "my_file_2.yml",
+    {
+        query: "...",
+    }
+]
+```
+
+These files must contain a `queries` key with the same format already explained. With the limitation that these sub-config files can't contain references to other files, only query objects.
+
 ### Query env
 
 It's possible to define a set of environment variables for a specific query, we do it by setting the key `env`:
@@ -242,7 +256,7 @@ Fields in the CSV come as strings, but some of them are actually numeric and we 
 
 ## Telemetry
 
-This integration automatically generates New Relic logs to trace its health state and correct functioning. It generates two kinds of logs: Info and Error. Info are things like, "Logs processed" or "Correctly authenticated". Errors are things like "Failed posting logs to New Relic" or "SOQL query failed".
+This integration automatically generates New Relic logs to trace its health state and correct functioning. It generates two diffeerent levels of logs: info and error. Info are things like, "Logs processed" or "Correctly authenticated". Errors are things like "Failed posting logs to New Relic" or "SOQL query failed".
 
 ## Usage
 

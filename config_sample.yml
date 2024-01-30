@@ -47,7 +47,8 @@ queries: [
     },
     api_ver: "58.0",
     timestamp_attr: StartDate,
-  }
+  },
+  "other_queries.yml"
 ]
 newrelic:
   data_format: "events"

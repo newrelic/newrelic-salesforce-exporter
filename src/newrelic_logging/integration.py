@@ -10,10 +10,9 @@ class DataFormat(Enum):
     LOGS = 1
     EVENTS = 2
 
-#TODO: get general api_ver that applies to all queries of one instance
 #TODO: move queries to the instance level, so we can have different queries for each instance.
 #TODO: also keep general queries that apply to all instances.
-    
+
 class Integration:
     numeric_fields_list = set()
 

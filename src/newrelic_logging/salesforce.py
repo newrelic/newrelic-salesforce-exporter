@@ -391,7 +391,7 @@ class SalesForce:
             Telemetry().log_err(f"Error while trying SOQL query: {repr(e)}")
             raise SalesforceApiException(-1, f'error when trying to run SOQL query. cause: {e}') from e
 
-    # TODO / NOTE: Is it possible that different SF orgs have overlapping IDs? If this is possible, we should use a different
+    # NOTE: Is it possible that different SF orgs have overlapping IDs? If this is possible, we should use a different
     #       database for each org, or add a prefix to keys to avoid conflicts.
     
     def download_file(self, session, url):
@@ -469,11 +469,6 @@ class SalesForce:
             return 'LogFile' in records[0]
         else:
             return True
-    
-    # TODO: Remaining NR API limits to ensure:
-    #  - Check attribute key and value size limits (255 and 4094 bytes respectively).
-    #  - Check max number of attributes per event (255).
-    # Action: crop.
 
     def build_log_from_event(self, records, query: Query):
         logs = []
