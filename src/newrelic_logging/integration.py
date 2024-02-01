@@ -89,9 +89,12 @@ class Integration:
             self.process_telemetry()
 
     def process_telemetry(self):
-        print_info("Sending telemetry data")
-        self.process_logs(Telemetry().build_model(), {}, None)
-        Telemetry().clear()
+        if not Telemetry().is_empty():
+            print_info("Sending telemetry data")
+            self.process_logs(Telemetry().build_model(), {}, None)
+            Telemetry().clear()
+        else:
+            print_info("No telemetry data")
 
     def auth_and_fetch(self, retry, client, oauth_type, sfdc_session):
         if not client.authenticate(oauth_type, sfdc_session):
@@ -105,7 +108,6 @@ class Integration:
                 if retry:
                     print_err("Invalid token, retry auth and fetch...")
                     client.clear_auth()
-                    Telemetry().log_info("Retry fetching logs after token expire error")
                     return self.auth_and_fetch(False, client, oauth_type, sfdc_session)
                 else:
                     print_err(f"Exception while fetching data from SF: {e}")
@@ -158,10 +160,6 @@ class Integration:
                 print_err(f'newrelic logs api returned code- {status_code}')
             else:
                 print_info(f"Sent {len(log_entries)} log messages from log file {log_type}/{log_file_id}")
-                if log_type:
-                    Telemetry().log_info(f"Logs correctly processed: sent {len(log_entries)} log messages from log file {log_type}/{log_file_id}")
-                else:
-                    Telemetry().log_info(f"Logs correctly processed: sent {len(log_entries)} log messages")
                 Integration.cache_processed_data(log_file_id, log_entries, data_cache)
 
     @staticmethod
@@ -212,8 +210,4 @@ class Integration:
                     log_type = log_file_obj.get('log_type', '')
                     log_file_id = log_file_obj.get('Id', '')
                     print_info(f"Posted {len(log_entries_slice)} events from log file {log_type}/{log_file_id}")
-                    if log_type:
-                        Telemetry().log_info(f"Logs correctly processed: sent {len(log_entries)} log messages from log file {log_type}/{log_file_id}")
-                    else:
-                        Telemetry().log_info(f"Logs correctly processed: sent {len(log_entries)} log messages")
                     Integration.cache_processed_data(log_file_id, log_entries, data_cache)

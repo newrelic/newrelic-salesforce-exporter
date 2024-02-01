@@ -293,12 +293,12 @@ class SalesForce:
             if not self.authenticate_with_password(session):
                 print_err(f"Error authenticating with {self.token_url}")
                 return False
-            Telemetry().log_info("Correctly authenticated with user/pass flow")
+            print_info("Correctly authenticated with user/pass flow")
         else:
             if not self.authenticate_with_jwt(session):
                 print_err(f"Error authenticating with {self.token_url}")
                 return False
-            Telemetry().log_info("Correctly authenticated with JWT flow")
+            print_info("Correctly authenticated with JWT flow")
         return True
 
     def authenticate_with_jwt(self, session):
@@ -354,10 +354,10 @@ class SalesForce:
             self.store_auth(resp.json())
             return True
         except ConnectionError as e:
-            Telemetry().log_err(f"SFDC auth failed for instance {self.instance_name}: {repr(e)}")
+            print_err(f"SFDC auth failed for instance {self.instance_name}: {repr(e)}")
             raise LoginException(f'authentication failed for sfdc instance {self.instance_name}') from e
         except RequestException as e:
-            Telemetry().log_err(f"SFDC auth failed for instance {self.instance_name}: {repr(e)}")
+            print_err(f"SFDC auth failed for instance {self.instance_name}: {repr(e)}")
             raise LoginException(f'authentication failed for sfdc instance {self.instance_name}') from e
 
     def authenticate_with_password(self, session):
@@ -390,10 +390,10 @@ class SalesForce:
             self.store_auth(resp.json())
             return True
         except ConnectionError as e:
-            Telemetry().log_err(f"SFDC auth failed for instance {self.instance_name}: {repr(e)}")
+            print_err(f"SFDC auth failed for instance {self.instance_name}: {repr(e)}")
             raise LoginException(f'authentication failed for sfdc instance {self.instance_name}') from e
         except RequestException as e:
-            Telemetry().log_err(f"SFDC auth failed for instance {self.instance_name}: {repr(e)}")
+            print_err(f"SFDC auth failed for instance {self.instance_name}: {repr(e)}")
             raise LoginException(f'authentication failed for sfdc instance {self.instance_name}') from e
 
     def make_multiple_queries(self, query_objects) -> list[Query]:
@@ -435,11 +435,11 @@ class SalesForce:
                                 f'reason: {query_response.reason} ' \
                                 f'response: {query_response.text} '
 
-                Telemetry().log_err(f"SOQL query failed with code {query_response.status_code}: {error_message}")
+                print_err(f"SOQL query failed with code {query_response.status_code}: {error_message}")
                 raise SalesforceApiException(query_response.status_code, f'error when trying to run SOQL query. message: {error_message}')
             return query_response.json()
         except RequestException as e:
-            Telemetry().log_err(f"Error while trying SOQL query: {repr(e)}")
+            print_err(f"Error while trying SOQL query: {repr(e)}")
             raise SalesforceApiException(-1, f'error when trying to run SOQL query. cause: {e}') from e
 
     # NOTE: Is it possible that different SF orgs have overlapping IDs? If this is possible, we should use a different
@@ -457,7 +457,7 @@ class SalesForce:
                             f'status-code: {response.status_code}, ' \
                             f'reason: {response.reason} ' \
                             f'response: {response.text}'
-            Telemetry().log_err(error_message)
+            print_err(error_message)
             raise SalesforceApiException(response.status_code, error_message)
         return response
 
@@ -496,7 +496,6 @@ class SalesForce:
 
     def fetch_logs_from_single_req(self, session, query: Query):
         print_info(f'Running query {query.get_query()}')
-        Telemetry().log_info(f'Running query: {query.get_query()}')
         response = self.execute_query(query, session)
 
         # Show query response
@@ -544,7 +543,7 @@ class SalesForce:
                 compound_id = ""
                 for key in id_keys:
                     if key not in row:
-                        Telemetry().log_err(f"Error building compound id, key '{key}' not found")
+                        print_err(f"Error building compound id, key '{key}' not found")
                         raise Exception(f"Error building compound id, key '{key}' not found")
                     compound_id = compound_id + str(row.get(key, ""))
                 if compound_id != "":

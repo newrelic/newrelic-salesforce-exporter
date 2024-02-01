@@ -19,6 +19,9 @@ class Telemetry:
     def __init__(self, integration_name: str) -> None:
         self.integration_name = integration_name
     
+    def is_empty(self):
+        return len(self.logs) == 0
+    
     def log_info(self, msg: str):
         self.record_log(msg, "info")
     

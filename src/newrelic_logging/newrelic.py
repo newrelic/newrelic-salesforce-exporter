@@ -42,7 +42,7 @@ class NewRelic:
             r = session.post(cls.logs_api_endpoint, data=payload,
                              headers=headers)
         except RequestException as e:
-            Telemetry().log_err(f"Failed posting logs to New Relic: {repr(e)}")
+            print_err(f"Failed posting logs to New Relic: {repr(e)}")
             return 0
         
         response = r.content.decode("utf-8")
@@ -68,7 +68,7 @@ class NewRelic:
             r = session.post(cls.events_api_endpoint, data=payload,
                              headers=headers)
         except RequestException as e:
-            Telemetry().log_err(f"Failed posting events to New Relic: {repr(e)}")
+            print_err(f"Failed posting events to New Relic: {repr(e)}")
             return 0
         
         response = r.content.decode("utf-8")
