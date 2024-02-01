@@ -1,6 +1,6 @@
 import gzip
 import json
-from .telemetry import Telemetry
+from .telemetry import Telemetry, print_info, print_err, print_warn
 from requests import RequestException
 
 class NewRelicApiException(Exception):
@@ -45,7 +45,8 @@ class NewRelic:
             Telemetry().log_err(f"Failed posting logs to New Relic: {repr(e)}")
             return 0
         
-        print("NR Log API response body = ", r.content.decode("utf-8"))
+        response = r.content.decode("utf-8")
+        print_info(f"NR Log API response body = {response}")
 
         return r.status_code
 
@@ -70,7 +71,8 @@ class NewRelic:
             Telemetry().log_err(f"Failed posting events to New Relic: {repr(e)}")
             return 0
         
-        print("NR Event API response body = ", r.content.decode("utf-8"))
+        response = r.content.decode("utf-8")
+        print_info(f"NR Event API response body = {response}")
 
         return r.status_code
 

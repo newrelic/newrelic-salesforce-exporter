@@ -4,7 +4,7 @@ from .newrelic import NewRelic
 from .salesforce import SalesForce, SalesforceApiException, DataCache
 from .env import AuthEnv
 from enum import Enum
-from .telemetry import Telemetry
+from .telemetry import Telemetry, print_info, print_err, print_warn
 
 class DataFormat(Enum):
     LOGS = 1
@@ -40,32 +40,36 @@ class Integration:
         newrelic_config = config['newrelic']
         data_format = newrelic_config['data_format']
         auth_env = AuthEnv('')
+
         if data_format.lower() == "logs":
             self.data_format = DataFormat.LOGS
-            if 'license_key' in newrelic_config:
-                NewRelic.logs_license_key = newrelic_config['license_key']
-            else:
-                NewRelic.logs_license_key = auth_env.get_license_key()
-            NewRelic.set_logs_endpoint(newrelic_config['api_endpoint'])
         elif data_format.lower() == "events":
             self.data_format = DataFormat.EVENTS
-            if 'license_key' in newrelic_config:
-                NewRelic.events_api_key = newrelic_config['license_key']
-            else:
-                NewRelic.events_api_key = auth_env.get_license_key()
+        else:
+            sys.exit(f'invalid data_format specified. valid values are "logs" or "events"')
+
+        # Fill credentials for NR APIs
+        if 'license_key' in newrelic_config:
+            NewRelic.logs_license_key = newrelic_config['license_key']
+            NewRelic.events_api_key = newrelic_config['license_key']
+        else:
+            NewRelic.logs_license_key = auth_env.get_license_key()
+            NewRelic.events_api_key = auth_env.get_license_key()
+
+        if self.data_format == DataFormat.EVENTS:
             if 'account_id' in newrelic_config:
                 account_id = newrelic_config['account_id']
             else:
                 account_id = auth_env.get_account_id()
-            NewRelic.set_api_endpoint(newrelic_config['api_endpoint'], account_id)
-        else:
-            sys.exit(f'invalid data_format specified. valid values are "logs" or "events"')
+
+        NewRelic.set_logs_endpoint(newrelic_config['api_endpoint'])
+        NewRelic.set_api_endpoint(newrelic_config['api_endpoint'], account_id)
 
     def run(self):
         sfdc_session = new_retry_session()
 
         for instance in self.instances:
-            print("Running instance '" + instance['name'] + "'")
+            print_info(f"Running instance '{instance['name']}'")
 
             labels = instance['labels']
             client = instance['client']
@@ -73,7 +77,8 @@ class Integration:
             
             logs = self.auth_and_fetch(True, client, oauth_type, sfdc_session)
             if self.response_empty(logs):
-                print("------ NO DATA TO BE SENT ------")
+                print_info("No data to be sent")
+                self.process_telemetry()
                 continue
 
             if self.data_format == DataFormat.LOGS:
@@ -81,9 +86,12 @@ class Integration:
             else:
                 self.process_events(logs, labels, client.data_cache)
             
-            print("Telemetry data = ", Telemetry().logs)
-            self.process_logs(Telemetry().build_model(), {}, None)
-            Telemetry().clear()
+            self.process_telemetry()
+
+    def process_telemetry(self):
+        print_info("Sending telemetry data")
+        self.process_logs(Telemetry().build_model(), {}, None)
+        Telemetry().clear()
 
     def auth_and_fetch(self, retry, client, oauth_type, sfdc_session):
         if not client.authenticate(oauth_type, sfdc_session):
@@ -95,18 +103,18 @@ class Integration:
         except SalesforceApiException as e:
             if e.err_code == 401:
                 if retry:
-                    print("-----> Invalid token, retry auth and fetch...")
+                    print_err("Invalid token, retry auth and fetch...")
                     client.clear_auth()
                     Telemetry().log_info("Retry fetching logs after token expire error")
                     return self.auth_and_fetch(False, client, oauth_type, sfdc_session)
                 else:
-                    print("Exception while fetching data from SF: ", e)
+                    print_err(f"Exception while fetching data from SF: {e}")
                     return None
             else:
-                print("Exception while fetching data from SF: ", e)
+                print_err(f"Exception while fetching data from SF: {e}")
                 return None
         except Exception as e:
-            print("Exception while fetching data from SF: ", e)
+            print_err(f"Exception while fetching data from SF: {e}")
             return None
         
         return logs
@@ -128,11 +136,9 @@ class Integration:
                 # Events
                 for log in log_entries:
                     log_id = log.get('attributes', {}).get('Id', '')
-                    #print(f"---> ID OF EVENT = {log_id}")
                     data_cache.persist_event(log_id)
             else:
                 # Logs
-                #print(f"---> ID OF LOG FILE = {log_file_id}")
                 data_cache.persist_logs(log_file_id)
     
     @staticmethod
@@ -149,9 +155,9 @@ class Integration:
             
             status_code = NewRelic.post_logs(nr_session, payload)
             if status_code != 202:
-                print(f'newrelic logs api returned code- {status_code}')
+                print_err(f'newrelic logs api returned code- {status_code}')
             else:
-                print(f"sent {len(log_entries)} log messages from log file {log_type}/{log_file_id}")
+                print_info(f"Sent {len(log_entries)} log messages from log file {log_type}/{log_file_id}")
                 if log_type:
                     Telemetry().log_info(f"Logs correctly processed: sent {len(log_entries)} log messages from log file {log_type}/{log_file_id}")
                 else:
@@ -182,7 +188,7 @@ class Integration:
                                 try:
                                     log_event[modified_event_name] = float(event_value)
                                 except (TypeError, ValueError) as e:
-                                    print(f'type conversion error for {event_name}[{event_value}]')
+                                    print_err(f'Type conversion error for {event_name}[{event_value}]')
                                     log_event[modified_event_name] = event_value
                         else:
                             log_event[modified_event_name] = 0
@@ -201,11 +207,11 @@ class Integration:
             for log_entries_slice in x:
                 status_code = NewRelic.post_events(nr_session, log_entries_slice)
                 if status_code != 200:
-                    print(f'newrelic events api returned code- {status_code}')
+                    print_err(f'newrelic events api returned code- {status_code}')
                 else:
                     log_type = log_file_obj.get('log_type', '')
                     log_file_id = log_file_obj.get('Id', '')
-                    print(f"posted {len(log_entries_slice)} events from log file {log_type}/{log_file_id}")
+                    print_info(f"Posted {len(log_entries_slice)} events from log file {log_type}/{log_file_id}")
                     if log_type:
                         Telemetry().log_info(f"Logs correctly processed: sent {len(log_entries)} log messages from log file {log_type}/{log_file_id}")
                     else:

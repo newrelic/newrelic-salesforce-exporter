@@ -10,10 +10,11 @@ from pytz import utc
 from yaml import Loader, load
 from newrelic_logging.env import get_var, var_exists
 from newrelic_logging.integration import Integration
+from newrelic_logging.telemetry import print_info, print_warn, print_err
 
 config_dir = None
 argv = sys.argv[1:]
-print(f'using program arguments {argv}')
+print_info(f'Integration start. Using program arguments {argv}')
 try:
     opts, args = getopt.getopt(argv, 'c:', ['config_dir='])
     for opt, arg in opts:
@@ -40,14 +41,14 @@ def main():
     config = load_config(config_file)
 
     if not os.path.exists(event_mapping_file):
-        print(f'event_mapping_file {event_mapping_file} not found, so event mapping will not be used')
+        print_info(f'event_mapping_file {event_mapping_file} not found, so event mapping will not be used')
         event_mapping = {}
     else:
         with open(event_mapping_file) as stream:
             event_mapping = load(stream, Loader=Loader)['mapping']
 
     if not os.path.exists(numeric_fields_file):
-        print(f'numeric_fields_file {numeric_fields_file} not found')
+        print_info(f'numeric_fields_file {numeric_fields_file} not found')
         numeric_fields_mapping = {"Common",
                                   ['EXEC_TIME', 'RUN_TIME', 'NUMBER_OF_INTERVIEWS', 'NUMBER_COLUMNS', 'NUM_SESSIONS',
                                    'CPU_TIME', 'EPT', 'DB_CPU_TIME', 'VIEW_STATE_SIZE', 'ROWS_PROCESSED',
@@ -99,7 +100,7 @@ def main():
         scheduler = BlockingScheduler(jobstores=jobstores, executors=executors, job_defaults=job_defaults, timezone=utc)
         scheduler.add_job(integration.run, trigger='cron', hour=service_hour, minute=service_minute, second='0')
 
-        print('Press Ctrl+{0} to exit'.format('Break' if os.name == 'nt' else 'C'))
+        print_info('Press Ctrl+{0} to exit'.format('Break' if os.name == 'nt' else 'C'))
         scheduler.start()
 
 def load_config(config_file: str):
@@ -114,11 +115,11 @@ def load_config(config_file: str):
                 if 'queries' in sub_query_config and type(sub_query_config['queries']) is list:
                     new_queries = new_queries + sub_query_config['queries']
                 else:
-                    print("Malformed subconfig file. Ignoring")
+                    print_warn("Malformed subconfig file. Ignoring")
             elif type(query) is dict:
                 new_queries.append(query)
             else:
-                print("Malformed 'queries' member in config, expected either dictionaries or strings in the array. Ignoring.")
+                print_warn("Malformed 'queries' member in config, expected either dictionaries or strings in the array. Ignoring.")
                 pass
     config['queries'] = new_queries
     return config

@@ -12,7 +12,7 @@ import copy
 import hashlib
 from .env import Auth, AuthEnv
 from .query import Query, substitute
-from .telemetry import Telemetry
+from .telemetry import Telemetry, print_info, print_err, print_warn
 
 class LoginException(Exception):
     pass
@@ -54,7 +54,11 @@ class DataCache:
         if self.redis:
             if record_id in self.cached_logs:
                 for row_id in self.cached_logs[record_id]:
-                    self.redis.rpush(record_id, row_id)
+                    try:
+                        self.redis.rpush(record_id, row_id)
+                    except Exception as e:
+                        print_err(f"Failed pushing record {record_id}: {e}")
+                        exit(1)
                     # Set expire date for the whole list only once, when it find the first entry ('init')
                     if row_id == 'init':
                         self.set_redis_expire(record_id)
@@ -68,7 +72,11 @@ class DataCache:
     def persist_event(self, record_id: str) -> bool:
         if self.redis:
             if record_id in self.cached_events:
-                self.redis.set(record_id, '')
+                try:
+                    self.redis.set(record_id, '')
+                except Exception as e:
+                    print_err(f"Failed setting record {record_id}: {e}")
+                    exit(1)
                 self.set_redis_expire(record_id)
                 del self.cached_events[record_id]
                 return True
@@ -79,15 +87,32 @@ class DataCache:
 
     def can_skip_downloading_record(self, record_id: str) -> bool:
         if self.redis:
-            if self.redis.exists(record_id):
-                return self.redis.llen(record_id) > 1
+            try:
+                does_exist = self.redis.exists(record_id)
+            except Exception as e:
+                print_err(f"Failed checking record {record_id}: {e}")
+                exit(1)
+            if does_exist:
+                try:
+                    return self.redis.llen(record_id) > 1
+                except Exception as e:
+                    print_err(f"Failed checking len for record {record_id}: {e}")
+                    exit(1)
         return False
     
     def retrieve_cached_message_list(self, record_id: str):
         if self.redis:
-            cache_key_exists = self.redis.exists(record_id)
+            try:
+                cache_key_exists = self.redis.exists(record_id)
+            except Exception as e:
+                print_err(f"Failed checking record {record_id}: {e}")
+                exit(1)
             if cache_key_exists:
-                cached_messages = self.redis.lrange(record_id, 0, -1)
+                try:
+                    cached_messages = self.redis.lrange(record_id, 0, -1)
+                except Exception as e:
+                    print_err(f"Failed getting list range for record {record_id}: {e}")
+                    exit(1)
                 return cached_messages
             else:
                 self.cached_logs[record_id] = ['init']
@@ -96,7 +121,12 @@ class DataCache:
     # Cache event
     def check_cached_id(self, record_id: str):
         if self.redis:
-            if self.redis.exists(record_id):
+            try:
+                does_exist = self.redis.exists(record_id)
+            except Exception as e:
+                print_err(f"Failed checking record {record_id}: {e}")
+                exit(1)
+            if does_exist:
                 return True
             else:
                 self.cached_events[record_id] = ''
@@ -111,7 +141,6 @@ class DataCache:
             if cached_messages is not None:
                 row_id_b = row_id.encode('utf-8')
                 if row_id_b in cached_messages:
-                    # print(f' debug: dropping message with REQUEST_ID: {row_id}')
                     return True
                 self.cached_logs[record_id].append(row_id)
             else:
@@ -119,7 +148,11 @@ class DataCache:
         return False
     
     def set_redis_expire(self, key):
-        self.redis.expire(key, timedelta(days=self.redis_expire))
+        try:
+            self.redis.expire(key, timedelta(days=self.redis_expire))
+        except Exception as e:
+            print_err(f"Failed setting expire time for key {key}: {e}")
+            exit(1)
 
 class SalesForce:
     auth = None
@@ -144,7 +177,7 @@ class SalesForce:
                     self.auth_data["username"] = auth_env.get_username()
                     self.auth_data["password"] = auth_env.get_password()
                 except:
-                    print(f'Missing credentials for user/pass flow')
+                    print_err(f'Missing credentials for user/pass flow')
                     sys.exit(1)
             elif self.auth_data['grant_type'] == 'urn:ietf:params:oauth:grant-type:jwt-bearer':
                 # jwt flow
@@ -154,10 +187,10 @@ class SalesForce:
                     self.auth_data["subject"] = auth_env.get_subject()
                     self.auth_data["audience"] = auth_env.get_audience()
                 except:
-                    print(f'Missing credentials for JWT flow')
+                    print_err(f'Missing credentials for JWT flow')
                     sys.exit(1)
             else:
-                print(f'Wrong or missing grant_type')
+                print_err(f'Wrong or missing grant_type')
                 sys.exit(1)
         
         if 'token_url' in config:
@@ -171,7 +204,7 @@ class SalesForce:
             self.date_field = config['date_field']
             self.cache_enabled = config['cache_enabled']
         except KeyError as e:
-            print(f'Please specify a "{e.args[0]}" parameter for sfdc instance "{instance_name}" in config.yml')
+            print_err(f'Please specify a "{e.args[0]}" parameter for sfdc instance "{instance_name}" in config.yml')
             sys.exit(1)
 
         self.last_to_timestamp = (datetime.utcnow() - timedelta(
@@ -190,7 +223,7 @@ class SalesForce:
                 redis_config = config['redis']
                 redis_expire = redis_config.get('expire_days', 7)
             except KeyError as e:
-                print(f'Please specify a "{e.args[0]}" parameter for sfdc instance "{instance_name}" in config.yml')
+                print_err(f'Please specify a "{e.args[0]}" parameter for sfdc instance "{instance_name}" in config.yml')
                 sys.exit(1)
             r = redis.Redis(host=redis_config['host'], port=redis_config['port'], db=redis_config['db_number'],
                             password=redis_config.get('password', None),
@@ -203,7 +236,11 @@ class SalesForce:
 
     def clear_auth(self):
         if self.data_cache.redis:
-            self.data_cache.redis.delete("auth")
+            try:
+                self.data_cache.redis.delete("auth")
+            except Exception as e:
+                print_err(f"Failed deleting 'auth' key from Redis: {e}")
+                exit(1)
         self.auth = None
 
     def store_auth(self, auth_resp):
@@ -211,41 +248,55 @@ class SalesForce:
         instance_url = auth_resp['instance_url']
         token_type = auth_resp['token_type']
         if self.data_cache.redis:
-            print("--> Storing credentials on Redis.")
+            print_info("Storing credentials on Redis.")
             auth = {
                 "access_token": access_token,
                 "instance_url": instance_url,
                 "token_type": token_type
             }
-            self.data_cache.redis.hmset("auth", auth)
+            try:
+                self.data_cache.redis.hmset("auth", auth)
+            except Exception as e:
+                print_err(f"Failed setting 'auth' key: {e}")
+                exit(1)
         self.auth = Auth(access_token, instance_url, token_type)
 
     def authenticate(self, oauth_type, session):
         self.oauth_type = oauth_type
         if self.data_cache.redis:
-            if self.data_cache.redis.exists("auth"):
-                print("--> Retrieving credentials from Redis.")
+            try:
+                auth_exists = self.data_cache.redis.exists("auth")
+            except Exception as e:
+                print_err(f"Failed checking 'auth' key: {e}")
+                exit(1)
+            if auth_exists:
+                print_info("Retrieving credentials from Redis.")
                 #NOTE: hmget and hgetall both return byte arrays, not strings. We have to convert.
                 # We could fix it by adding the argument "decode_responses=True" to Redis constructor,
                 # but then we would have to change all places where we assume a byte array instead of a string,
                 # and refactoring in a language without static types is a pain.
-                auth = self.data_cache.redis.hmget("auth", ["access_token", "instance_url", "token_type"])
-                auth = {
-                    "access_token": auth[0].decode("utf-8"),
-                    "instance_url": auth[1].decode("utf-8"),
-                    "token_type": auth[2].decode("utf-8")
-                }
-                self.store_auth(auth)
+                try:
+                    auth = self.data_cache.redis.hmget("auth", ["access_token", "instance_url", "token_type"])
+                    auth = {
+                        "access_token": auth[0].decode("utf-8"),
+                        "instance_url": auth[1].decode("utf-8"),
+                        "token_type": auth[2].decode("utf-8")
+                    }
+                    self.store_auth(auth)
+                except Exception as e:
+                    print_err(f"Failed getting 'auth' key: {e}")
+                    exit(1)
+
                 return True
 
         if oauth_type == 'password':
             if not self.authenticate_with_password(session):
-                print(f"error authenticating with {self.token_url}")
+                print_err(f"Error authenticating with {self.token_url}")
                 return False
             Telemetry().log_info("Correctly authenticated with user/pass flow")
         else:
             if not self.authenticate_with_jwt(session):
-                print(f"error authenticating with {self.token_url}")
+                print_err(f"Error authenticating with {self.token_url}")
                 return False
             Telemetry().log_info("Correctly authenticated with JWT flow")
         return True
@@ -257,7 +308,7 @@ class SalesForce:
             subject = self.auth_data['subject']
             audience = self.auth_data['audience']
         except KeyError as e:
-            print(f'Please specify a "{e.args[0]}" parameter under "auth" section '
+            print_err(f'Please specify a "{e.args[0]}" parameter under "auth" section '
                   'of salesforce instance in config.yml')
             sys.exit(1)
 
@@ -267,7 +318,7 @@ class SalesForce:
         try:
             key = serialization.load_ssh_private_key(private_key.encode(), password=b'')
         except ValueError as e:
-            print(f'authentication failed for {self.instance_name}. error message: {str(e)}')
+            print_err(f'Authentication failed for {self.instance_name}. error message: {str(e)}')
             return False
 
         jwt_claim_set = {"iss": client_id,
@@ -297,7 +348,7 @@ class SalesForce:
                                 headers=headers)
             if resp.status_code != 200:
                 error_message = f'sfdc token request failed. http-status-code:{resp.status_code}, reason: {resp.text}'
-                print(f'authentication failed for {self.instance_name}. message: {error_message}', file=sys.stderr)
+                print_err(f'Authentication failed for {self.instance_name}. message: {error_message}', file=sys.stderr)
                 return False
             
             self.store_auth(resp.json())
@@ -333,7 +384,7 @@ class SalesForce:
                                 headers=headers)
             if resp.status_code != 200:
                 error_message = f'salesforce token request failed. status-code:{resp.status_code}, reason: {resp.reason}'
-                print(error_message, file=sys.stderr)
+                print_err(error_message)
                 return False
             
             self.store_auth(resp.json())
@@ -395,7 +446,7 @@ class SalesForce:
     #       database for each org, or add a prefix to keys to avoid conflicts.
     
     def download_file(self, session, url):
-        print("Downloading CSV file: ", url)
+        print_info(f"Downloading CSV file: {url}")
 
         headers = {
             'Authorization': f'Bearer {self.auth.get_access_token()}'
@@ -421,7 +472,7 @@ class SalesForce:
         return rows
     
     def fetch_logs(self, session):
-        print(f"Query object = {self.query_template}")
+        print_info(f"Query object = {self.query_template}")
 
         if type(self.query_template) is list:
             # "query_template" contains a list of objects, each one is a Query object
@@ -444,12 +495,12 @@ class SalesForce:
         return logs
 
     def fetch_logs_from_single_req(self, session, query: Query):
-        print(f'Running query {query.get_query()}')
+        print_info(f'Running query {query.get_query()}')
         Telemetry().log_info(f'Running query: {query.get_query()}')
         response = self.execute_query(query, session)
 
-        #TODO: remove print
-        print("Response = ", response)
+        # Show query response
+        #print("Response = ", response)
 
         records = response['records']
         if self.is_logfile_response(records):
@@ -548,7 +599,7 @@ class SalesForce:
 
         # NOTE: only Hourly logs can be skipped, because Daily logs can change and the same record_id can contain different data.
         if interval == 'Hourly' and self.data_cache.can_skip_downloading_record(record_id):
-            print(f"----> Record {record_id} already cached, skip downloading CSV")
+            print_info(f"Record {record_id} already cached, skip downloading CSV")
             return None
 
         cached_messages = self.data_cache.retrieve_cached_message_list(record_id)
@@ -560,28 +611,25 @@ class SalesForce:
         except SalesforceApiException as e:
             if e.err_code == 401:
                 if retry:
-                    print("-----> Invalid token while downloading CSV file, retry auth and download...")
+                    print_err("invalid token while downloading CSV file, retry auth and download...")
                     self.clear_auth()
                     if self.authenticate(self.oauth_type, session):
                         return self.build_log_from_logfile(False, session, record, query)
                     else:
                         return None
                 else:
-                    print(f'salesforce event log file "{record_file_name}" download failed')
-                    print(e)
+                    print_err(f'salesforce event log file "{record_file_name}" download failed: {e}')
                     return None
             else:
-                print(f'salesforce event log file "{record_file_name}" download failed')
-                print(e)
+                print_err(f'salesforce event log file "{record_file_name}" download failed: {e}')
                 return None                
         except RequestException as e:
-            print(f'salesforce event log file "{record_file_name}" download failed')
-            print(e)
+            print_err(f'salesforce event log file "{record_file_name}" download failed: {e}')
             return None
 
         csv_rows = self.parse_csv(download_response, record_id, record_event_type, cached_messages)
 
-        print("CSV ROWS = ", len(csv_rows))
+        print_info(f"CSV rows = {len(csv_rows)}")
 
         # Split CSV rows into smaller chunks to avoid hitting API payload limits
         logs = []

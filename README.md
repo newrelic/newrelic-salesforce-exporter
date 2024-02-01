@@ -256,7 +256,7 @@ Fields in the CSV come as strings, but some of them are actually numeric and we 
 
 ## Telemetry
 
-This integration automatically generates New Relic logs to trace its health state and correct functioning. It generates two diffeerent levels of logs: info and error. Info are things like, "Logs processed" or "Correctly authenticated". Errors are things like "Failed posting logs to New Relic" or "SOQL query failed".
+This integration automatically generates New Relic logs to trace its health state and correct functioning. It generates two diffeerent levels of logs: info and error. Info are things like, "Logs processed" or "Correctly authenticated". Errors are things like "Failed posting logs to New Relic" or "SOQL query failed". To find this data, filter by attribute `service`, that will have the value from the `integration_name` field in the config.yml file.
 
 ## Usage
 

@@ -1,6 +1,7 @@
 # Integration Telemetry
 
 import time
+import json
 
 def singleton(class_):
     instances = {}
@@ -45,3 +46,18 @@ class Telemetry:
         return [{
             "log_entries": self.logs
         }]
+    
+def print_log(msg: str, level: str):
+    print(json.dumps({
+        "message": msg,
+        "level": level
+    }))
+
+def print_info(msg: str):
+    print_log(msg, "info")
+
+def print_err(msg: str):
+    print_log(msg, "error")
+
+def print_warn(msg: str):
+    print_log(msg, "warn")
