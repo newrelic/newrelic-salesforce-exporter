@@ -126,3 +126,4 @@ def load_config(config_file: str):
 
 if __name__ == "__main__":
     main()
+    print_info("Integration end.")
