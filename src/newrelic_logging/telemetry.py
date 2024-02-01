@@ -53,6 +53,7 @@ class Telemetry:
 def print_log(msg: str, level: str):
     print(json.dumps({
         "message": msg,
+        "timestamp": round(time.time() * 1000),
         "level": level
     }))
 
