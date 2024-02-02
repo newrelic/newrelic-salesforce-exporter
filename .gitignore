@@ -184,3 +184,6 @@ config.yml
 
 #logs
 logs/**
+
+#scripts
+run.sh

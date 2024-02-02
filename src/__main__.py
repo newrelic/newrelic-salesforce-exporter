@@ -8,12 +8,13 @@ from apscheduler.jobstores.memory import MemoryJobStore
 from apscheduler.schedulers.background import BlockingScheduler
 from pytz import utc
 from yaml import Loader, load
-
+from newrelic_logging.env import get_var, var_exists
 from newrelic_logging.integration import Integration
+from newrelic_logging.telemetry import print_info, print_warn
 
 config_dir = None
 argv = sys.argv[1:]
-print(f'using program arguments {argv}')
+print_info(f'Integration start. Using program arguments {argv}')
 try:
     opts, args = getopt.getopt(argv, 'c:', ['config_dir='])
     for opt, arg in opts:
@@ -36,20 +37,18 @@ if not os.path.exists(config_file):
 event_mapping_file = f'{config_dir}/event_type_fields.yml'
 numeric_fields_file = f'{config_dir}/numeric_fields.yml'
 
-
 def main():
-    with open(config_file) as stream:
-        config = load(stream, Loader=Loader)
+    config = load_config(config_file)
 
     if not os.path.exists(event_mapping_file):
-        print(f'event_mapping_file {event_mapping_file} not found, so event mapping will not be used')
+        print_info(f'event_mapping_file {event_mapping_file} not found, so event mapping will not be used')
         event_mapping = {}
     else:
         with open(event_mapping_file) as stream:
             event_mapping = load(stream, Loader=Loader)['mapping']
 
     if not os.path.exists(numeric_fields_file):
-        print(f'numeric_fields_file {numeric_fields_file} not found')
+        print_info(f'numeric_fields_file {numeric_fields_file} not found')
         numeric_fields_mapping = {"Common",
                                   ['EXEC_TIME', 'RUN_TIME', 'NUMBER_OF_INTERVIEWS', 'NUMBER_COLUMNS', 'NUM_SESSIONS',
                                    'CPU_TIME', 'EPT', 'DB_CPU_TIME', 'VIEW_STATE_SIZE', 'ROWS_PROCESSED',
@@ -74,7 +73,13 @@ def main():
     run_as_service = config.get('run_as_service', False)
 
     if not run_as_service:
-        cron_interval = config.get('cron_interval_minutes', 60)
+        if 'cron_interval_minutes' in config:
+            cron_interval = config['cron_interval_minutes']
+        elif var_exists("CRON_INTERVAL_MINUTES"):
+            cron_interval = int(get_var("CRON_INTERVAL_MINUTES"))
+        else:
+            cron_interval = 60
+
         integration = Integration(config, event_mapping, cron_interval)
         integration.run()
     else:
@@ -94,9 +99,31 @@ def main():
         }
         scheduler = BlockingScheduler(jobstores=jobstores, executors=executors, job_defaults=job_defaults, timezone=utc)
         scheduler.add_job(integration.run, trigger='cron', hour=service_hour, minute=service_minute, second='0')
-        scheduler.start()
-        print('Press Ctrl+{0} to exit'.format('Break' if os.name == 'nt' else 'C'))
 
+        print_info('Press Ctrl+{0} to exit'.format('Break' if os.name == 'nt' else 'C'))
+        scheduler.start()
+
+def load_config(config_file: str):
+    with open(config_file) as stream:
+        config = load(stream, Loader=Loader)
+    new_queries = []
+    if 'queries' in config:
+        for query in config['queries']:
+            if type(query) is str:
+                with open(query) as stream:
+                    sub_query_config = load(stream, Loader=Loader)
+                if 'queries' in sub_query_config and type(sub_query_config['queries']) is list:
+                    new_queries = new_queries + sub_query_config['queries']
+                else:
+                    print_warn("Malformed subconfig file. Ignoring")
+            elif type(query) is dict:
+                new_queries.append(query)
+            else:
+                print_warn("Malformed 'queries' member in config, expected either dictionaries or strings in the array. Ignoring.")
+                pass
+    config['queries'] = new_queries
+    return config
 
 if __name__ == "__main__":
     main()
+    print_info("Integration end.")

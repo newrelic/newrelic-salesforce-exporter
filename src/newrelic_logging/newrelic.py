@@ -1,12 +1,11 @@
 import gzip
 import json
-
+from .telemetry import print_info, print_err
 from requests import RequestException
-
+from newrelic_logging import VERSION, NAME, PROVIDER, COLLECTOR_NAME
 
 class NewRelicApiException(Exception):
     pass
-
 
 class NewRelic:
     INGEST_SERVICE_VERSION = "v1"
@@ -27,7 +26,23 @@ class NewRelic:
 
     @classmethod
     def post_logs(cls, session, data):
-        payload = gzip.compress(json.dumps(data).encode())
+        # Append integration attributes
+        for log in data[0]['logs']:
+            if not 'attributes' in log:
+                log['attributes'] = {}
+            log['attributes']['instrumentation.name'] = NAME
+            log['attributes']['instrumentation.provider'] = PROVIDER
+            log['attributes']['instrumentation.version'] = VERSION
+            log['attributes']['collector.name'] = COLLECTOR_NAME
+
+        json_payload = json.dumps(data).encode()
+        
+        # print("----- POST DATA (LOGS) -----")
+        # print(json_payload.decode("utf-8"))
+        # print("----------------------------")
+        # return 202
+
+        payload = gzip.compress(json_payload)
         headers = {
             "X-License-Key": cls.logs_license_key,
             "X-Event-Source": cls.LOGS_EVENT_SOURCE,
@@ -37,12 +52,31 @@ class NewRelic:
             r = session.post(cls.logs_api_endpoint, data=payload,
                              headers=headers)
         except RequestException as e:
-            raise NewRelicApiException(repr(e)) from e
+            print_err(f"Failed posting logs to New Relic: {repr(e)}")
+            return 0
+        
+        response = r.content.decode("utf-8")
+        print_info(f"NR Log API response body = {response}")
+
         return r.status_code
 
     @classmethod
     def post_events(cls, session, data):
-        payload = gzip.compress(json.dumps(data).encode())
+        # Append integration attributes
+        for event in data:
+            event['instrumentation.name'] = NAME
+            event['instrumentation.provider'] = PROVIDER
+            event['instrumentation.version'] = VERSION
+            event['collector.name'] = COLLECTOR_NAME
+
+        json_payload = json.dumps(data).encode()
+
+        # print("----- POST DATA (EVENTS) -----")
+        # print(json_payload.decode("utf-8"))
+        # print("------------------------------")
+        # return 200
+
+        payload = gzip.compress(json_payload)
         headers = {
             "Api-Key": cls.events_api_key,
             "Content-Encoding": cls.CONTENT_ENCODING,
@@ -51,7 +85,12 @@ class NewRelic:
             r = session.post(cls.events_api_endpoint, data=payload,
                              headers=headers)
         except RequestException as e:
-            raise NewRelicApiException(repr(e)) from e
+            print_err(f"Failed posting events to New Relic: {repr(e)}")
+            return 0
+        
+        response = r.content.decode("utf-8")
+        print_info(f"NR Event API response body = {response}")
+
         return r.status_code
 
     @classmethod
