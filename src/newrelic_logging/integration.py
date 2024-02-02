@@ -4,7 +4,7 @@ from .newrelic import NewRelic
 from .salesforce import SalesForce, SalesforceApiException, DataCache
 from .env import AuthEnv
 from enum import Enum
-from .telemetry import Telemetry, print_info, print_err, print_warn
+from .telemetry import Telemetry, print_info, print_err
 
 class DataFormat(Enum):
     LOGS = 1
@@ -61,9 +61,9 @@ class Integration:
                 account_id = newrelic_config['account_id']
             else:
                 account_id = auth_env.get_account_id()
+            NewRelic.set_api_endpoint(newrelic_config['api_endpoint'], account_id)
 
         NewRelic.set_logs_endpoint(newrelic_config['api_endpoint'])
-        NewRelic.set_api_endpoint(newrelic_config['api_endpoint'], account_id)
 
     def run(self):
         sfdc_session = new_retry_session()

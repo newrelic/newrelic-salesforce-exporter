@@ -1,7 +1,7 @@
 # CHANGELOG
 All notable changes to this project will be documented in this file.
 
-## [1.0.0] - 2024/02/01
+## [1.0.0] - 2024/02/02
 ### Add
 - Accept arbitrary event log queries.
 - Accept queries of any type of event, not only event logs.
@@ -15,6 +15,7 @@ All notable changes to this project will be documented in this file.
 - Configure the SF API version to use.
 - Configure the NR eventType to report.
 - Dynamic SOQL query generation.
+- Instrumentation attributes.
 ### Update
 - Improve NR API interaction.
 - Improve cache (redis) usage.

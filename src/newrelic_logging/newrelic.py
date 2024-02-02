@@ -1,7 +1,8 @@
 import gzip
 import json
-from .telemetry import Telemetry, print_info, print_err, print_warn
+from .telemetry import print_info, print_err
 from requests import RequestException
+from newrelic_logging import VERSION, NAME, PROVIDER, COLLECTOR_NAME
 
 class NewRelicApiException(Exception):
     pass
@@ -25,6 +26,15 @@ class NewRelic:
 
     @classmethod
     def post_logs(cls, session, data):
+        # Append integration attributes
+        for log in data[0]['logs']:
+            if not 'attributes' in log:
+                log['attributes'] = {}
+            log['attributes']['instrumentation.name'] = NAME
+            log['attributes']['instrumentation.provider'] = PROVIDER
+            log['attributes']['instrumentation.version'] = VERSION
+            log['attributes']['collector.name'] = COLLECTOR_NAME
+
         json_payload = json.dumps(data).encode()
         
         # print("----- POST DATA (LOGS) -----")
@@ -52,6 +62,13 @@ class NewRelic:
 
     @classmethod
     def post_events(cls, session, data):
+        # Append integration attributes
+        for event in data:
+            event['instrumentation.name'] = NAME
+            event['instrumentation.provider'] = PROVIDER
+            event['instrumentation.version'] = VERSION
+            event['collector.name'] = COLLECTOR_NAME
+
         json_payload = json.dumps(data).encode()
 
         # print("----- POST DATA (EVENTS) -----")

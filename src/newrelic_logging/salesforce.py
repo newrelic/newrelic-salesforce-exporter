@@ -12,7 +12,7 @@ import copy
 import hashlib
 from .env import Auth, AuthEnv
 from .query import Query, substitute
-from .telemetry import Telemetry, print_info, print_err, print_warn
+from .telemetry import print_info, print_err
 
 class LoginException(Exception):
     pass

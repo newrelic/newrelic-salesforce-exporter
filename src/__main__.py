@@ -10,7 +10,7 @@ from pytz import utc
 from yaml import Loader, load
 from newrelic_logging.env import get_var, var_exists
 from newrelic_logging.integration import Integration
-from newrelic_logging.telemetry import print_info, print_warn, print_err
+from newrelic_logging.telemetry import print_info, print_warn
 
 config_dir = None
 argv = sys.argv[1:]
