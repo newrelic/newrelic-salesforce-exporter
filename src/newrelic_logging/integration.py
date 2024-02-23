@@ -1,10 +1,17 @@
 import sys
 from .http_session import new_retry_session
 from .newrelic import NewRelic
-from .salesforce import SalesForce, SalesforceApiException, DataCache
+from .cache import DataCache
+from .salesforce import SalesForce, SalesforceApiException
 from .env import AuthEnv
 from enum import Enum
+from .config import Config, getenv
 from .telemetry import Telemetry, print_info, print_err
+
+
+NR_LICENSE_KEY = 'NR_LICENSE_KEY'
+NR_ACCOUNT_ID = 'NR_ACCOUNT_ID'
+
 
 class DataFormat(Enum):
     LOGS = 1
@@ -21,46 +28,51 @@ class Integration:
         Telemetry(config["integration_name"])
         for instance in config['instances']:
             instance_name = instance['name']
+            arguments = instance['arguments'] if 'arguments' in instance else {}
             labels = instance['labels']
             labels['nr-labs'] = 'data'
-            prefix = instance['arguments'].get('auth_env_prefix', '')
-            auth_env = AuthEnv(prefix)
+            prefix = arguments['auth_env_prefix'] if 'auth_env_prefix' in arguments else ''
+            instance_config = Config(arguments, prefix)
+            auth_env = AuthEnv(instance_config)
+
             if 'queries' in config:
-                client = SalesForce(auth_env, instance_name, instance['arguments'], event_type_fields_mapping, initial_delay, config['queries'])
+                client = SalesForce(auth_env, instance_name, instance_config, event_type_fields_mapping, initial_delay, config['queries'])
             else:
-                client = SalesForce(auth_env, instance_name, instance['arguments'], event_type_fields_mapping, initial_delay)
-            if 'auth' in instance['arguments']:
-                if 'grant_type' in instance['arguments']['auth']:
-                    oauth_type = instance['arguments']['auth']['grant_type']
+                client = SalesForce(auth_env, instance_name, instance_config, event_type_fields_mapping, initial_delay)
+
+            if 'auth' in arguments:
+                auth = arguments['auth']
+                if 'grant_type' in auth:
+                    oauth_type = auth['grant_type']
                 else:
                     sys.exit("No 'grant_type' specified under 'auth' section in config.yml for instance '" + instance_name + "'")
             else:
-                oauth_type = auth_env.get_grant_type('')
-            self.instances.append({'labels': labels, 'client': client, "oauth_type": oauth_type, 'name': instance_name})
-        newrelic_config = config['newrelic']
-        data_format = newrelic_config['data_format']
-        auth_env = AuthEnv('')
+                oauth_type = auth_env.get_grant_type()
 
-        if data_format.lower() == "logs":
+            self.instances.append({'labels': labels, 'client': client, "oauth_type": oauth_type, 'name': instance_name})
+
+        newrelic_config = config['newrelic']
+        data_format = newrelic_config['data_format'].lower() \
+            if 'data_format' in newrelic_config else 'logs'
+
+        if data_format == "logs":
             self.data_format = DataFormat.LOGS
-        elif data_format.lower() == "events":
+        elif data_format == "events":
             self.data_format = DataFormat.EVENTS
         else:
             sys.exit(f'invalid data_format specified. valid values are "logs" or "events"')
 
         # Fill credentials for NR APIs
         if 'license_key' in newrelic_config:
-            NewRelic.logs_license_key = newrelic_config['license_key']
-            NewRelic.events_api_key = newrelic_config['license_key']
+            NewRelic.logs_license_key = NewRelic.events_api_key = newrelic_config['license_key']
         else:
-            NewRelic.logs_license_key = auth_env.get_license_key()
-            NewRelic.events_api_key = auth_env.get_license_key()
+            NewRelic.logs_license_key = NewRelic.events_api_key = getenv(NR_LICENSE_KEY)
 
         if self.data_format == DataFormat.EVENTS:
             if 'account_id' in newrelic_config:
                 account_id = newrelic_config['account_id']
             else:
-                account_id = auth_env.get_account_id()
+                account_id = getenv(NR_ACCOUNT_ID)
             NewRelic.set_api_endpoint(newrelic_config['api_endpoint'], account_id)
 
         NewRelic.set_logs_endpoint(newrelic_config['api_endpoint'])
@@ -74,7 +86,7 @@ class Integration:
             labels = instance['labels']
             client = instance['client']
             oauth_type = instance['oauth_type']
-            
+
             logs = self.auth_and_fetch(True, client, oauth_type, sfdc_session)
             if self.response_empty(logs):
                 print_info("No data to be sent")
@@ -85,7 +97,7 @@ class Integration:
                 self.process_logs(logs, labels, client.data_cache)
             else:
                 self.process_events(logs, labels, client.data_cache)
-            
+
             self.process_telemetry()
 
     def process_telemetry(self):
@@ -99,7 +111,7 @@ class Integration:
     def auth_and_fetch(self, retry, client, oauth_type, sfdc_session):
         if not client.authenticate(oauth_type, sfdc_session):
             return None
-        
+
         logs = None
         try:
             logs = client.fetch_logs(sfdc_session)
@@ -118,9 +130,9 @@ class Integration:
         except Exception as e:
             print_err(f"Exception while fetching data from SF: {e}")
             return None
-        
+
         return logs
-    
+
     @staticmethod
     def response_empty(logs):
         # Empty or None
@@ -130,7 +142,7 @@ class Integration:
             if "log_entries" in l and l["log_entries"]:
                 return False
         return True
-    
+
     @staticmethod
     def cache_processed_data(log_file_id, log_entries, data_cache: DataCache):
         if data_cache and data_cache.redis:
@@ -142,7 +154,7 @@ class Integration:
             else:
                 # Logs
                 data_cache.persist_logs(log_file_id)
-    
+
     @staticmethod
     def process_logs(logs, labels, data_cache: DataCache):
         nr_session = new_retry_session()
@@ -154,7 +166,7 @@ class Integration:
             payload = [{'common': labels, 'logs': log_entries}]
             log_type = log_file_obj.get('log_type', '')
             log_file_id = log_file_obj.get('Id', '')
-            
+
             status_code = NewRelic.post_logs(nr_session, payload)
             if status_code != 202:
                 print_err(f'newrelic logs api returned code- {status_code}')
