@@ -1,72 +1,45 @@
-import os
-
-def var_exists(var_name):
-    return var_name in os.environ
-
-def get_var(var_name, default = None):
-    if default == None:
-        # Can raise exception
-        return os.environ[var_name]
-    else:
-        return os.environ.get(var_name, default)
+SF_GRANT_TYPE = 'SF_GRANT_TYPE'
+SF_CLIENT_ID =  'SF_CLIENT_ID'
+SF_CLIENT_SECRET = 'SF_CLIENT_SECRET'
+SF_USERNAME = 'SF_USERNAME'
+SF_PASSWORD = 'SF_PASSWORD'
+SF_PRIVATE_KEY = 'SF_PRIVATE_KEY'
+SF_SUBJECT = 'SF_SUBJECT'
+SF_AUDIENCE = 'SF_AUDIENCE'
+SF_TOKEN_URL = 'SF_TOKEN_URL'
 
 class AuthEnv:
-    SF_GRANT_TYPE = 'SF_GRANT_TYPE'
-    SF_CLIENT_ID =  'SF_CLIENT_ID'
-    SF_CLIENT_SECRET = 'SF_CLIENT_SECRET'
-    SF_USERNAME = 'SF_USERNAME'
-    SF_PASSWORD = 'SF_PASSWORD'
-    SF_PRIVATE_KEY = 'SF_PRIVATE_KEY'
-    SF_SUBJECT = 'SF_SUBJECT'
-    SF_AUDIENCE = 'SF_AUDIENCE'
-    SF_TOKEN_URL = 'SF_TOKEN_URL'
-    NR_LICENSE_KEY = 'NR_LICENSE_KEY'
-    NR_ACCOUNT_ID = 'NR_ACCOUNT_ID'
+    def __init__(self, config):
+        self.config = config
 
-    def __init__(self, prefix):
-        self.SF_GRANT_TYPE = prefix + self.SF_GRANT_TYPE
-        self.SF_CLIENT_ID =  prefix + self.SF_CLIENT_ID
-        self.SF_CLIENT_SECRET = prefix + self.SF_CLIENT_SECRET
-        self.SF_USERNAME = prefix + self.SF_USERNAME
-        self.SF_PASSWORD = prefix + self.SF_PASSWORD
-        self.SF_PRIVATE_KEY = prefix + self.SF_PRIVATE_KEY
-        self.SF_SUBJECT = prefix + self.SF_SUBJECT
-        self.SF_AUDIENCE = prefix + self.SF_AUDIENCE
-        self.SF_TOKEN_URL = prefix + self.SF_TOKEN_URL
-    
-    def get_grant_type(self, default=None):
-        return get_var(self.SF_GRANT_TYPE, default)
-    
-    def get_client_id(self, default=None):
-        return get_var(self.SF_CLIENT_ID, default)
-    
-    def get_client_secret(self, default=None):
-        return get_var(self.SF_CLIENT_SECRET, default)
-    
-    def get_username(self, default=None):
-        return get_var(self.SF_USERNAME, default)
-    
-    def get_password(self, default=None):
-        return get_var(self.SF_PASSWORD, default)
-    
-    def get_private_key(self, default=None):
-        return get_var(self.SF_PRIVATE_KEY, default)
-    
-    def get_subject(self, default=None):
-        return get_var(self.SF_SUBJECT, default)
-    
-    def get_audience(self, default=None):
-        return get_var(self.SF_AUDIENCE, default)
-        
-    def get_token_url(self, default=None):
-        return get_var(self.SF_TOKEN_URL, default)
-    
-    def get_license_key(self, default=None):
-        return get_var(self.NR_LICENSE_KEY, default)
-    
-    def get_account_id(self, default=None):
-        return get_var(self.NR_ACCOUNT_ID, default)
-        
+    def get_grant_type(self):
+        return self.config.getenv(SF_GRANT_TYPE)
+
+    def get_client_id(self):
+        return self.config.getenv(SF_CLIENT_ID)
+
+    def get_client_secret(self):
+        return self.config.getenv(SF_CLIENT_SECRET)
+
+    def get_username(self):
+        return self.config.getenv(SF_USERNAME)
+
+    def get_password(self):
+        return self.config.getenv(SF_PASSWORD)
+
+    def get_private_key(self):
+        return self.config.getenv(SF_PRIVATE_KEY)
+
+    def get_subject(self):
+        return self.config.getenv(SF_SUBJECT)
+
+    def get_audience(self):
+        return self.config.getenv(SF_AUDIENCE)
+
+    def get_token_url(self):
+        return self.config.getenv(SF_TOKEN_URL)
+
+
 class Auth:
     access_token = None
     instance_url = None
@@ -80,6 +53,6 @@ class Auth:
 
     def get_access_token(self) -> str:
         return self.access_token
-    
+
     def get_instance_url(self) -> str:
         return self.instance_url

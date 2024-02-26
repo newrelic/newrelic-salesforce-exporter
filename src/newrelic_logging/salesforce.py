@@ -6,10 +6,10 @@ from datetime import datetime, timedelta
 import jwt
 from cryptography.hazmat.primitives import serialization
 import pytz
-import redis
 from requests import RequestException
 import copy
 import hashlib
+from .cache import make_cache
 from .env import Auth, AuthEnv
 from .query import Query, substitute
 from .telemetry import print_info, print_err
@@ -39,121 +39,6 @@ def base64_url_encode(json_obj):
     encoded_str = str(encoded_bytes, 'utf-8')
     return encoded_str
 
-# Local cache, to store data before sending it to Redis.
-class DataCache:
-    redis = None
-    redis_expire = None
-    cached_events = {}
-    cached_logs = {}
-
-    def __init__(self, redis = None, redis_expire = None) -> None:
-        self.redis_expire = redis_expire
-        self.redis = redis
-
-    def persist_logs(self, record_id: str) -> bool:
-        if self.redis:
-            if record_id in self.cached_logs:
-                for row_id in self.cached_logs[record_id]:
-                    try:
-                        self.redis.rpush(record_id, row_id)
-                    except Exception as e:
-                        print_err(f"Failed pushing record {record_id}: {e}")
-                        exit(1)
-                    # Set expire date for the whole list only once, when it find the first entry ('init')
-                    if row_id == 'init':
-                        self.set_redis_expire(record_id)
-                del self.cached_logs[record_id]
-                return True
-            else:
-                return False
-        else:
-            return False
-    
-    def persist_event(self, record_id: str) -> bool:
-        if self.redis:
-            if record_id in self.cached_events:
-                try:
-                    self.redis.set(record_id, '')
-                except Exception as e:
-                    print_err(f"Failed setting record {record_id}: {e}")
-                    exit(1)
-                self.set_redis_expire(record_id)
-                del self.cached_events[record_id]
-                return True
-            else:
-                return False
-        else:
-            return False
-
-    def can_skip_downloading_record(self, record_id: str) -> bool:
-        if self.redis:
-            try:
-                does_exist = self.redis.exists(record_id)
-            except Exception as e:
-                print_err(f"Failed checking record {record_id}: {e}")
-                exit(1)
-            if does_exist:
-                try:
-                    return self.redis.llen(record_id) > 1
-                except Exception as e:
-                    print_err(f"Failed checking len for record {record_id}: {e}")
-                    exit(1)
-        return False
-    
-    def retrieve_cached_message_list(self, record_id: str):
-        if self.redis:
-            try:
-                cache_key_exists = self.redis.exists(record_id)
-            except Exception as e:
-                print_err(f"Failed checking record {record_id}: {e}")
-                exit(1)
-            if cache_key_exists:
-                try:
-                    cached_messages = self.redis.lrange(record_id, 0, -1)
-                except Exception as e:
-                    print_err(f"Failed getting list range for record {record_id}: {e}")
-                    exit(1)
-                return cached_messages
-            else:
-                self.cached_logs[record_id] = ['init']
-        return None
-    
-    # Cache event
-    def check_cached_id(self, record_id: str):
-        if self.redis:
-            try:
-                does_exist = self.redis.exists(record_id)
-            except Exception as e:
-                print_err(f"Failed checking record {record_id}: {e}")
-                exit(1)
-            if does_exist:
-                return True
-            else:
-                self.cached_events[record_id] = ''
-                return False
-        else:
-            return False
-        
-    # Cache log
-    def record_or_skip_row(self, record_id: str, row: dict, cached_messages: dict) -> bool:
-        if self.redis:
-            row_id = row["REQUEST_ID"]
-            if cached_messages is not None:
-                row_id_b = row_id.encode('utf-8')
-                if row_id_b in cached_messages:
-                    return True
-                self.cached_logs[record_id].append(row_id)
-            else:
-                self.cached_logs[record_id].append(row_id)
-        return False
-    
-    def set_redis_expire(self, key):
-        try:
-            self.redis.expire(key, timedelta(days=self.redis_expire))
-        except Exception as e:
-            print_err(f"Failed setting expire time for key {key}: {e}")
-            exit(1)
-
 class SalesForce:
     auth = None
     oauth_type = None
@@ -168,7 +53,7 @@ class SalesForce:
         if 'auth' in config:
             self.auth_data = config['auth']
         else:
-            self.auth_data = {'grant_type': auth_env.get_grant_type('')}
+            self.auth_data = {'grant_type': auth_env.get_grant_type()}
             if self.auth_data['grant_type'] == 'password':
                 # user/pass flow
                 try:
@@ -192,7 +77,7 @@ class SalesForce:
             else:
                 print_err(f'Wrong or missing grant_type')
                 sys.exit(1)
-        
+
         if 'token_url' in config:
             self.token_url = config['token_url']
         else:
@@ -202,7 +87,6 @@ class SalesForce:
             self.time_lag_minutes = config['time_lag_minutes']
             self.generation_interval = config['generation_interval']
             self.date_field = config['date_field']
-            self.cache_enabled = config['cache_enabled']
         except KeyError as e:
             print_err(f'Please specify a "{e.args[0]}" parameter for sfdc instance "{instance_name}" in config.yml')
             sys.exit(1)
@@ -217,25 +101,12 @@ class SalesForce:
                 self.query_template = SALESFORCE_LOG_DATE_QUERY
             else:
                 self.query_template = SALESFORCE_CREATED_DATE_QUERY
-        
-        if self.cache_enabled:
-            try:
-                redis_config = config['redis']
-                redis_expire = redis_config.get('expire_days', 7)
-            except KeyError as e:
-                print_err(f'Please specify a "{e.args[0]}" parameter for sfdc instance "{instance_name}" in config.yml')
-                sys.exit(1)
-            r = redis.Redis(host=redis_config['host'], port=redis_config['port'], db=redis_config['db_number'],
-                            password=redis_config.get('password', None),
-                            ssl=redis_config.get('ssl', False))
-            self.data_cache = DataCache(r, redis_expire)
-        else:
-            self.data_cache = DataCache()
 
+        self.data_cache = make_cache(config)
         self.event_type_fields_mapping = event_type_fields_mapping
 
     def clear_auth(self):
-        if self.data_cache.redis:
+        if self.data_cache:
             try:
                 self.data_cache.redis.delete("auth")
             except Exception as e:
@@ -247,7 +118,7 @@ class SalesForce:
         access_token = auth_resp['access_token']
         instance_url = auth_resp['instance_url']
         token_type = auth_resp['token_type']
-        if self.data_cache.redis:
+        if self.data_cache:
             print_info("Storing credentials on Redis.")
             auth = {
                 "access_token": access_token,
@@ -263,7 +134,7 @@ class SalesForce:
 
     def authenticate(self, oauth_type, session):
         self.oauth_type = oauth_type
-        if self.data_cache.redis:
+        if self.data_cache:
             try:
                 auth_exists = self.data_cache.redis.exists("auth")
             except Exception as e:
@@ -344,13 +215,14 @@ class SalesForce:
         }
 
         try:
+            print_info(f'retrieving salesforce token at {self.token_url}')
             resp = session.post(self.token_url, params=params,
                                 headers=headers)
             if resp.status_code != 200:
                 error_message = f'sfdc token request failed. http-status-code:{resp.status_code}, reason: {resp.text}'
                 print_err(f'Authentication failed for {self.instance_name}. message: {error_message}', file=sys.stderr)
                 return False
-            
+
             self.store_auth(resp.json())
             return True
         except ConnectionError as e:
@@ -380,13 +252,14 @@ class SalesForce:
         }
 
         try:
+            print_info(f'retrieving salesforce token at {self.token_url}')
             resp = session.post(self.token_url, params=params,
                                 headers=headers)
             if resp.status_code != 200:
                 error_message = f'salesforce token request failed. status-code:{resp.status_code}, reason: {resp.reason}'
                 print_err(error_message)
                 return False
-            
+
             self.store_auth(resp.json())
             return True
         except ConnectionError as e:
@@ -403,7 +276,7 @@ class SalesForce:
         to_timestamp = (datetime.utcnow() - timedelta(minutes=self.time_lag_minutes)).isoformat(
             timespec='milliseconds') + "Z"
         from_timestamp = self.last_to_timestamp
-        
+
         env = copy.deepcopy(query_obj.get_env().get('env', {}))
         args = {
             'to_timestamp': to_timestamp,
@@ -415,7 +288,7 @@ class SalesForce:
 
         query_obj.set_query(query)
         return query_obj
-    
+
     def slide_time_range(self):
         self.last_to_timestamp = (datetime.utcnow() - timedelta(minutes=self.time_lag_minutes)).isoformat(
             timespec='milliseconds') + "Z"
@@ -444,7 +317,7 @@ class SalesForce:
 
     # NOTE: Is it possible that different SF orgs have overlapping IDs? If this is possible, we should use a different
     #       database for each org, or add a prefix to keys to avoid conflicts.
-    
+
     def download_file(self, session, url):
         print_info(f"Downloading CSV file: {url}")
 
@@ -466,11 +339,11 @@ class SalesForce:
         reader = csv.DictReader(content.splitlines())
         rows = []
         for row in reader:
-            if self.data_cache.record_or_skip_row(record_id, row, cached_messages):
+            if self.data_cache and self.data_cache.record_or_skip_row(record_id, row, cached_messages):
                 continue
             rows.append(row)
         return rows
-    
+
     def fetch_logs(self, session):
         print_info(f"Query object = {self.query_template}")
 
@@ -486,7 +359,7 @@ class SalesForce:
             response = self.fetch_logs_from_single_req(session, query)
             self.slide_time_range()
             return response
-        
+
     def fetch_logs_from_multiple_req(self, session, queries: list[Query]):
         logs = []
         for query in queries:
@@ -511,9 +384,9 @@ class SalesForce:
                         logs.extend(log)
         else:
             logs = self.build_log_from_event(records, query)
-            
+
         return logs
-    
+
     def is_logfile_response(self, records):
         if len(records) > 0:
             return 'LogFile' in records[0]
@@ -529,13 +402,13 @@ class SalesForce:
             else:
                 break
         return logs
-    
+
     def pack_event_into_log(self, rows, query: Query):
         log_entries = []
         for row in rows:
             if 'Id' in row:
                 record_id = row['Id']
-                if self.data_cache.check_cached_id(record_id):
+                if self.data_cache and self.data_cache.check_cached_id(record_id):
                     # Record cached, skip it
                     continue
             else:
@@ -551,7 +424,7 @@ class SalesForce:
                     m.update(compound_id.encode('utf-8'))
                     row['Id'] = m.hexdigest()
                     record_id = row['Id']
-                    if self.data_cache.check_cached_id(record_id):
+                    if self.data_cache and self.data_cache.check_cached_id(record_id):
                         # Record cached, skip it
                         continue
 
@@ -570,7 +443,7 @@ class SalesForce:
                     event_type_attr_name = query.get_env().get("event_type", attributes['type'])
                     message = event_type_attr_name
                     row['EVENT_TYPE'] = event_type_attr_name
-            
+
             if created_date != "":
                 message = message + " " + created_date
 
@@ -581,7 +454,7 @@ class SalesForce:
                 'message': message,
                 'attributes': row,
             }
-            
+
             if timestamp_field_name == 'timestamp':
                 log_entry[timestamp_field_name] = timestamp
 
@@ -597,11 +470,13 @@ class SalesForce:
         record_event_type = query.get_env().get("event_type", record['EventType'])
 
         # NOTE: only Hourly logs can be skipped, because Daily logs can change and the same record_id can contain different data.
-        if interval == 'Hourly' and self.data_cache.can_skip_downloading_record(record_id):
+        if interval == 'Hourly' and self.data_cache and \
+            self.data_cache.can_skip_downloading_record(record_id):
             print_info(f"Record {record_id} already cached, skip downloading CSV")
             return None
 
-        cached_messages = self.data_cache.retrieve_cached_message_list(record_id)
+        cached_messages = None if not self.data_cache else \
+            self.data_cache.retrieve_cached_message_list(record_id)
 
         try:
             download_response = self.download_file(session, f'{self.auth.get_instance_url()}{record_file_name}')
@@ -621,7 +496,7 @@ class SalesForce:
                     return None
             else:
                 print_err(f'salesforce event log file "{record_file_name}" download failed: {e}')
-                return None                
+                return None
         except RequestException as e:
             print_err(f'salesforce event log file "{record_file_name}" download failed: {e}')
             return None
@@ -641,7 +516,7 @@ class SalesForce:
                 row_offset += part_rows_len
             else:
                 break
-        
+
         return logs
 
     def pack_csv_into_log(self, record, row_offset, csv_rows, query: Query):

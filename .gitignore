@@ -187,3 +187,6 @@ logs/**
 
 #scripts
 run.sh
+
+#local files
+*.local.*
