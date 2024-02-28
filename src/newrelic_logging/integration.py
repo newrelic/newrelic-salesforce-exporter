@@ -17,22 +17,32 @@ class DataFormat(Enum):
     LOGS = 1
     EVENTS = 2
 
-#TODO: move queries to the instance level, so we can have different queries for each instance.
-#TODO: also keep general queries that apply to all instances.
+# TODO: move queries to the instance level, so we can have different queries for
+# each instance.
+# TODO: also keep general queries that apply to all instances.
 
 class Integration:
     numeric_fields_list = set()
 
-    def __init__(self, config, event_type_fields_mapping, initial_delay):
+    def __init__(
+        self,
+        config: Config,
+        event_type_fields_mapping: dict = {},
+        numeric_fields_list: set = set(),
+        initial_delay: int = 0,
+    ):
+        Integration.numeric_fields_list = numeric_fields_list
         self.instances = []
         Telemetry(config["integration_name"])
-        for instance in config['instances']:
+        for count, instance in enumerate(config['instances']):
             instance_name = instance['name']
-            arguments = instance['arguments'] if 'arguments' in instance else {}
             labels = instance['labels']
             labels['nr-labs'] = 'data'
-            prefix = arguments['auth_env_prefix'] if 'auth_env_prefix' in arguments else ''
-            instance_config = Config(arguments, prefix)
+            instance_config = config.sub(f'instances.{count}.arguments')
+            instance_config.set_prefix(
+                instance_config['auth_env_prefix'] \
+                if 'auth_env_prefix' in instance_config else ''
+            )
             auth_env = AuthEnv(instance_config)
 
             if 'queries' in config:
@@ -40,8 +50,8 @@ class Integration:
             else:
                 client = SalesForce(auth_env, instance_name, instance_config, event_type_fields_mapping, initial_delay)
 
-            if 'auth' in arguments:
-                auth = arguments['auth']
+            if 'auth' in instance_config:
+                auth = instance_config['auth']
                 if 'grant_type' in auth:
                     oauth_type = auth['grant_type']
                 else:

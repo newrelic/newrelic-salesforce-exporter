@@ -15,13 +15,17 @@ def _get_nested_helper(val: Any, arr: list[str] = [], index: int = 0) -> Any:
         key = arr[index]
         if index == len(arr) - 1:
             return val[key] if key in val else NOT_FOUND
-        return _get_nested_helper(val[key], arr, index + 1) if key in val else NOT_FOUND
+        return _get_nested_helper(val[key], arr, index + 1) \
+            if key in val else NOT_FOUND
     elif type(val) is list:
         key = arr[index]
-        if type(key) is int and key >= 0:
+        if key.isdigit():
+            arr_index = int(key)
+            if arr_index < 0 or arr_index >= len(val):
+                return NOT_FOUND
             if index == len(arr) - 1:
-                return val[key] if key < len(val) else NOT_FOUND
-            return _get_nested_helper(val[key], arr, index + 1) if key < len(val) else NOT_FOUND
+                return val[arr_index]
+            return _get_nested_helper(val[arr_index], arr, index + 1)
 
     return NOT_FOUND
 
@@ -48,7 +52,7 @@ def tobool(s):
 
 
 class Config:
-    def __init__(self, config: dict, prefix: str):
+    def __init__(self, config: dict, prefix: str = ''):
         self.config = config
         self.prefix = prefix
 
@@ -70,17 +74,15 @@ class Config:
     def getenv(self, env_var_name: str, default = None) -> str:
         return getenv(env_var_name, default, self.prefix)
 
-    def get(self, key: str, default = None) -> Any:
+    def get(self, key: str, default = None, allow_none = False) -> Any:
         val = get_nested(self.config, key)
-        if not val == NOT_FOUND:
+        if not val == NOT_FOUND and not allow_none and not val == None:
             return val
 
-        env_var_name = re.sub(r'[^a-zA-Z0-9_]', '_', key.upper())
-        val = self.getenv(env_var_name, default)
-        if not val is False and not val is None:
-            return val
-
-        return default
+        return self.getenv(
+            re.sub(r'[^a-zA-Z0-9_]', '_', key.upper()),
+            default,
+        )
 
     def get_int(self, key: str, default = None) -> int:
         val = self.get(key, default)
@@ -88,3 +90,13 @@ class Config:
 
     def get_bool(self, key: str, default = None) -> bool:
         return tobool(self.get(key, default))
+
+    def sub(self, key: str, default: dict = {}, prefix: str = None):
+        val = get_nested(self.config, key)
+        if val == None or val == NOT_FOUND:
+            return Config(default, self.prefix if prefix == None else prefix )
+
+        if not type(val) is dict:
+            raise Exception(f'can not create sub config for property {key} of type {type(val)} because it is not a dictionary')
+
+        return Config(val, self.prefix if prefix == None else prefix)

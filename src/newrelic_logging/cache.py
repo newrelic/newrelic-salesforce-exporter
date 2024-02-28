@@ -141,7 +141,7 @@ def make_cache(config: Config):
         password_display = "XXXXXX" if password != None else None
 
         print_info(
-            f'cache enabled, connecting to redis instance {host}:{port}:{db}, ssl={ssl}, password={password_display}'
+            f'Cache enabled, connecting to redis instance {host}:{port}:{db}, ssl={ssl}, password={password_display}'
         )
 
         return DataCache(redis.Redis(
@@ -152,6 +152,6 @@ def make_cache(config: Config):
             ssl=ssl
         ), expire_days)
 
-    print_info('cache disabled')
+    print_info('Cache disabled')
 
     return None
