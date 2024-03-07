@@ -1,31 +1,45 @@
 import gzip
 import json
-from .telemetry import print_info, print_err
-from requests import RequestException
-from newrelic_logging import VERSION, NAME, PROVIDER, COLLECTOR_NAME
+from requests import RequestException, Session
 
-class NewRelicApiException(Exception):
-    pass
+from . import \
+    VERSION, \
+    NAME, \
+    PROVIDER, \
+    COLLECTOR_NAME, \
+    NewRelicApiException
+from .config import Config
+from .telemetry import print_info
+
+
+NR_LICENSE_KEY = 'NR_LICENSE_KEY'
+NR_ACCOUNT_ID = 'NR_ACCOUNT_ID'
+
+US_LOGGING_ENDPOINT = 'https://log-api.newrelic.com/log/v1'
+EU_LOGGING_ENDPOINT = 'https://log-api.eu.newrelic.com/log/v1'
+LOGS_EVENT_SOURCE = 'logs'
+
+US_EVENTS_ENDPOINT = 'https://insights-collector.newrelic.com/v1/accounts/{account_id}/events'
+EU_EVENTS_ENDPOINT = 'https://insights-collector.eu01.nr-data.net/v1/accounts/{account_id}/events'
+
+CONTENT_ENCODING = 'gzip'
+MAX_EVENTS = 2000
+
 
 class NewRelic:
-    INGEST_SERVICE_VERSION = "v1"
-    US_LOGGING_ENDPOINT = "https://log-api.newrelic.com/log/v1"
-    EU_LOGGING_ENDPOINT = "https://log-api.eu.newrelic.com/log/v1"
-    LOGS_EVENT_SOURCE = 'logs'
+    def __init__(
+        self,
+        logs_api_endpoint,
+        logs_license_key,
+        events_api_endpoint,
+        events_api_key,
+    ):
+        self.logs_api_endpoint = logs_api_endpoint
+        self.logs_license_key = logs_license_key
+        self.events_api_endpoint = events_api_endpoint
+        self.events_api_key = events_api_key
 
-    US_EVENTS_ENDPOINT = "https://insights-collector.newrelic.com/v1/accounts/{account_id}/events"
-    EU_EVENTS_ENDPOINT = "https://insights-collector.eu01.nr-data.net/v1/accounts/{account_id}/events"
-
-    CONTENT_ENCODING = 'gzip'
-
-    logs_api_endpoint = US_LOGGING_ENDPOINT
-    logs_license_key = ''
-
-    events_api_endpoint = US_EVENTS_ENDPOINT
-    events_api_key = ''
-
-    @classmethod
-    def post_logs(cls, session, data):
+    def post_logs(self, session: Session, data: list[dict]) -> None:
         # Append integration attributes
         for log in data[0]['logs']:
             if not 'attributes' in log:
@@ -35,77 +49,87 @@ class NewRelic:
             log['attributes']['instrumentation.version'] = VERSION
             log['attributes']['collector.name'] = COLLECTOR_NAME
 
-        json_payload = json.dumps(data).encode()
-        
-        # print("----- POST DATA (LOGS) -----")
-        # print(json_payload.decode("utf-8"))
-        # print("----------------------------")
-        # return 202
-
-        payload = gzip.compress(json_payload)
-        headers = {
-            "X-License-Key": cls.logs_license_key,
-            "X-Event-Source": cls.LOGS_EVENT_SOURCE,
-            "Content-Encoding": cls.CONTENT_ENCODING,
-        }
         try:
-            r = session.post(cls.logs_api_endpoint, data=payload,
-                             headers=headers)
-        except RequestException as e:
-            print_err(f"Failed posting logs to New Relic: {repr(e)}")
-            return 0
-        
-        response = r.content.decode("utf-8")
-        print_info(f"NR Log API response body = {response}")
+            r = session.post(
+                self.logs_api_endpoint,
+                data=gzip.compress(json.dumps(data).encode()),
+                headers={
+                    'X-License-Key': self.logs_license_key,
+                    'X-Event-Source': LOGS_EVENT_SOURCE,
+                    'Content-Encoding': CONTENT_ENCODING,
+                },
+            )
 
-        return r.status_code
+            if r.status_code != 202:
+                raise NewRelicApiException(
+                    f'newrelic logs api returned code {r.status_code}'
+                )
 
-    @classmethod
-    def post_events(cls, session, data):
+            response = r.content.decode("utf-8")
+            print_info(f"NR Log API response body = {response}")
+        except RequestException:
+            raise NewRelicApiException('newrelic logs api request failed')
+
+    def post_events(self, session: Session, events: list[dict]) -> None:
         # Append integration attributes
-        for event in data:
+        for event in events:
             event['instrumentation.name'] = NAME
             event['instrumentation.provider'] = PROVIDER
             event['instrumentation.version'] = VERSION
             event['collector.name'] = COLLECTOR_NAME
 
-        json_payload = json.dumps(data).encode()
+        # This funky code produces an array of arrays where each one will be at most
+        # length 2000 with the last one being <= 2000. This is done to account for
+        # the fact that only 2000 events can be posted at a time.
 
-        # print("----- POST DATA (EVENTS) -----")
-        # print(json_payload.decode("utf-8"))
-        # print("------------------------------")
-        # return 200
+        slices = [events[i:(i + MAX_EVENTS)] \
+            for i in range(0, len(events), MAX_EVENTS)]
 
-        payload = gzip.compress(json_payload)
-        headers = {
-            "Api-Key": cls.events_api_key,
-            "Content-Encoding": cls.CONTENT_ENCODING,
-        }
-        try:
-            r = session.post(cls.events_api_endpoint, data=payload,
-                             headers=headers)
-        except RequestException as e:
-            print_err(f"Failed posting events to New Relic: {repr(e)}")
-            return 0
-        
-        response = r.content.decode("utf-8")
-        print_info(f"NR Event API response body = {response}")
+        for slice in slices:
+            try:
+                r = session.post(
+                    self.events_api_endpoint,
+                    data=gzip.compress(json.dumps(slice).encode()),
+                    headers={
+                        'Api-Key': self.events_api_key,
+                        'Content-Encoding': CONTENT_ENCODING,
+                    },
+                )
 
-        return r.status_code
+                if r.status_code != 200:
+                    raise NewRelicApiException(
+                        f'newrelic events api returned code {r.status_code}'
+                    )
 
-    @classmethod
-    def set_api_endpoint(cls, api_endpoint, account_id):
-        if api_endpoint == "US":
-            api_endpoint = NewRelic.US_EVENTS_ENDPOINT;
-        elif api_endpoint == "EU":
-            api_endpoint = NewRelic.EU_EVENTS_ENDPOINT
-        NewRelic.events_api_endpoint = api_endpoint.format(account_id='account_id')
+                response = r.content.decode("utf-8")
+                print_info(f"NR Event API response body = {response}")
+            except RequestException:
+                raise NewRelicApiException('newrelic events api request failed')
 
-    @classmethod
-    def set_logs_endpoint(cls, api_endpoint):
-        if api_endpoint == "US":
-            NewRelic.logs_api_endpoint = NewRelic.US_LOGGING_ENDPOINT
-        elif api_endpoint == "EU":
-            NewRelic.logs_api_endpoint = NewRelic.EU_LOGGING_ENDPOINT
-        else:
-            NewRelic.logs_api_endpoint = api_endpoint
+
+def New(
+    config: Config,
+):
+    license_key = config.get(
+        'newrelic.license_key',
+        env_var_name=NR_LICENSE_KEY,
+    )
+
+    region = config.get('newrelic.api_endpoint')
+    account_id = config.get('newrelic.account_id', env_var_name=NR_ACCOUNT_ID)
+
+    if region == "US":
+        logs_api_endpoint = US_LOGGING_ENDPOINT
+        events_api_endpoint = US_EVENTS_ENDPOINT.format(account_id=account_id)
+    elif region == "EU":
+        logs_api_endpoint = EU_LOGGING_ENDPOINT
+        events_api_endpoint = EU_EVENTS_ENDPOINT.format(account_id=account_id)
+    else:
+        raise NewRelicApiException(f'Invalid region {region}')
+
+    return NewRelic(
+        logs_api_endpoint,
+        license_key,
+        events_api_endpoint,
+        license_key,
+    )

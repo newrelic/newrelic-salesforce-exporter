@@ -1,8 +1,10 @@
+import gc
 import redis
 from datetime import timedelta
 
+from . import CacheException
 from .config import Config
-from .telemetry import print_err, print_info
+from .telemetry import print_info
 
 
 CONFIG_CACHE_ENABLED = 'cache_enabled'
@@ -20,117 +22,113 @@ DEFAULT_REDIS_EXPIRE_DAYS = 2
 DEFAULT_REDIS_SSL = False
 
 
-# Local cache, to store data before sending it to Redis.
-class DataCache:
-    redis = None
-    redis_expire = None
-    cached_events = {}
-    cached_logs = {}
-
-    def __init__(self, redis, redis_expire) -> None:
+class RedisBackend:
+    def __init__(self, redis):
         self.redis = redis
-        self.redis_expire = redis_expire
 
-    def set_redis_expire(self, key):
+    def exists(self, key):
+        return self.redis.exists(key)
+
+    def put(self, key, item):
+        self.redis.set(key, item)
+
+    def list_length(self, key):
+        return self.redis.llen(key)
+
+    def list_slice(self, key, start, end):
+        return self.redis.lrange(key, start, end)
+
+    def list_append(self, key, item):
+        self.redis.rpush(key, item)
+
+    def set_expiry(self, key, days):
+        self.redis.expire(key, timedelta(days=days))
+
+
+class DataCache:
+    def __init__(self, backend, expiry):
+        self.backend = backend
+        self.expiry = expiry
+        self.cached_events = {}
+        self.cached_logs = {}
+
+    def can_skip_downloading_logfile(self, record_id: str) -> bool:
         try:
-            self.redis.expire(key, timedelta(days=self.redis_expire))
+            return self.backend.exists(record_id) and \
+                self.backend.list_length(record_id) > 1
         except Exception as e:
-            print_err(f"Failed setting expire time for key {key}: {e}")
-            exit(1)
+            raise CacheException(f'failed checking record {record_id}: {e}')
 
-    def persist_logs(self, record_id: str) -> bool:
-        if record_id in self.cached_logs:
-            for row_id in self.cached_logs[record_id]:
-                try:
-                    self.redis.rpush(record_id, row_id)
-                except Exception as e:
-                    print_err(f"Failed pushing record {record_id}: {e}")
-                    exit(1)
-                # Set expire date for the whole list only once, when it find the first entry ('init')
-                if row_id == 'init':
-                    self.set_redis_expire(record_id)
-            del self.cached_logs[record_id]
-            return True
-        else:
-            return False
-
-    def persist_event(self, record_id: str) -> bool:
-        if record_id in self.cached_events:
-            try:
-                self.redis.set(record_id, '')
-            except Exception as e:
-                print_err(f"Failed setting record {record_id}: {e}")
-                exit(1)
-            self.set_redis_expire(record_id)
-            del self.cached_events[record_id]
-            return True
-        else:
-            return False
-
-    def can_skip_downloading_record(self, record_id: str) -> bool:
+    def load_cached_log_lines(self, record_id: str) -> None:
         try:
-            does_exist = self.redis.exists(record_id)
-        except Exception as e:
-            print_err(f"Failed checking record {record_id}: {e}")
-            exit(1)
-        if does_exist:
-            try:
-                return self.redis.llen(record_id) > 1
-            except Exception as e:
-                print_err(f"Failed checking len for record {record_id}: {e}")
-                exit(1)
+            if self.backend.exists(record_id):
+                    self.cached_logs[record_id] = \
+                        self.backend.list_slice(record_id, 0, -1)
+                    return
 
-        return False
-
-    def retrieve_cached_message_list(self, record_id: str):
-        try:
-            cache_key_exists = self.redis.exists(record_id)
-        except Exception as e:
-            print_err(f"Failed checking record {record_id}: {e}")
-            exit(1)
-
-        if cache_key_exists:
-            try:
-                cached_messages = self.redis.lrange(record_id, 0, -1)
-            except Exception as e:
-                print_err(f"Failed getting list range for record {record_id}: {e}")
-                exit(1)
-            return cached_messages
-        else:
             self.cached_logs[record_id] = ['init']
-
-        return None
-
-    # Cache event
-    def check_cached_id(self, record_id: str):
-        try:
-            does_exist = self.redis.exists(record_id)
         except Exception as e:
-            print_err(f"Failed checking record {record_id}: {e}")
-            exit(1)
-
-        if does_exist:
-            return True
-        else:
-            self.cached_events[record_id] = ''
-            return False
+            raise CacheException(f'failed checking log record {record_id}: {e}')
 
     # Cache log
-    def record_or_skip_row(self, record_id: str, row: dict, cached_messages: dict) -> bool:
+    def check_and_set_log_line(self, record_id: str, row: dict) -> bool:
         row_id = row["REQUEST_ID"]
 
-        if cached_messages is not None:
-            row_id_b = row_id.encode('utf-8')
-            if row_id_b in cached_messages:
-                return True
-            self.cached_logs[record_id].append(row_id)
-        else:
-            self.cached_logs[record_id].append(row_id)
+        row_id_b = row_id.encode('utf-8')
+        if row_id_b in self.cached_logs[record_id]:
+            return True
+
+        self.cached_logs[record_id].append(row_id)
 
         return False
 
+    # Cache event
+    def check_and_set_event_id(self, record_id: str) -> bool:
+        try:
+            if self.backend.exists(record_id):
+                return True
 
-def make_cache(config: Config):
+            self.cached_events[record_id] = ''
+
+            return False
+        except Exception as e:
+            raise CacheException(f'failed checking record {record_id}: {e}')
+
+    def flush(self) -> None:
+        # Flush cached log line ids for each log record
+        for record_id in self.cached_logs:
+            for row_id in self.cached_logs[record_id]:
+                try:
+                    self.backend.list_append(record_id, row_id)
+
+                    # Set expire date for the whole list only once, when we find
+                    # the first entry ('init')
+                    if row_id == 'init':
+                        self.backend.set_expiry(record_id, self.expiry)
+                except Exception as e:
+                    raise CacheException(
+                        f'failed pushing row {row_id} for record {record_id}: {e}'
+                    )
+
+        # Attempt to release memory
+        del self.cached_logs[record_id]
+
+        # Flush any cached event record ids
+        for record_id in self.cached_events:
+            try:
+                self.backend.put(record_id, '')
+                self.backend.set_expiry(record_id, self.expiry)
+
+                # Attempt to release memory
+                del self.cached_events[record_id]
+            except Exception as e:
+                raise CacheException(f"failed setting record {record_id}: {e}")
+
+        # Run a gc in an attempt to reclaim memory
+        gc.collect()
+
+
+def New(config: Config):
     if config.get_bool(CONFIG_CACHE_ENABLED, DEFAULT_CACHE_ENABLED):
         host = config.get(CONFIG_REDIS_HOST, DEFAULT_REDIS_HOST)
         port = config.get_int(CONFIG_REDIS_PORT, DEFAULT_REDIS_PORT)
@@ -144,13 +142,16 @@ def make_cache(config: Config):
             f'Cache enabled, connecting to redis instance {host}:{port}:{db}, ssl={ssl}, password={password_display}'
         )
 
-        return DataCache(redis.Redis(
-            host=host,
-            port=port,
-            db=db,
-            password=password,
-            ssl=ssl
-        ), expire_days)
+        return DataCache(
+            RedisBackend(
+                redis.Redis(
+                host=host,
+                port=port,
+                db=db,
+                password=password,
+                ssl=ssl
+            ), expire_days)
+        )
 
     print_info('Cache disabled')
 

@@ -1,55 +1,83 @@
+import copy
+from datetime import datetime, timedelta
+from requests import RequestException, Session
+
+from . import SalesforceApiException
+from .config import Config
+from .telemetry import print_info
+from .util import substitute
+
 class Query:
-    query = None
-    env = None
-
-    def __init__(self, query) -> None:
-        if type(query) == dict:
-            self.query = query.get("query", "")
-            query.pop('query', None)
-            self.env = query
-        elif type(query) == str:
-            self.query = query
-            self.env = {}
-
-    def get_query(self) -> str:
-        return self.query
-    
-    def set_query(self, query: str) -> None:
+    def __init__(
+        self,
+        query: str,
+        config: Config,
+        api_ver: str,
+    ):
         self.query = query
-    
-    def get_env(self) -> dict:
-        return self.env
+        self.config = config
+        self.api_ver = api_ver
 
-# NOTE: this sandbox can be jailbroken using the trick to exec statements inside an exec block, and run an import (and other tricks):
-# https://book.hacktricks.xyz/generic-methodologies-and-resources/python/bypass-python-sandboxes#operators-and-short-tricks
-# https://stackoverflow.com/a/3068475/2076108
-# Would be better to use a real sandbox like https://pypi.org/project/RestrictedPython/ or https://doc.pypy.org/en/latest/sandbox.html
-# or parse a small language that only supports funcion calls and binary expressions.
-def sandbox(code):
-    __import__ = None
-    __loader__ = None
-    __build_class__ = None
-    exec = None
-    
-    from datetime import datetime, timedelta
+    def get(self, key: str, default = None):
+        return self.config.get(key, default)
 
-    def sf_time(t: datetime):
-        return t.isoformat(timespec='milliseconds') + "Z"
-    
-    def now(delta: timedelta = None):
-        if delta:
-            return sf_time(datetime.utcnow() + delta)
-        else:
-            return sf_time(datetime.utcnow())
-    
-    try:
-        return eval(code)
-    except Exception as e:
-        return e
+    def get_config(self):
+        return self.config
 
-def substitute(args: dict, query_template: str, env: dict) -> str:
-    for key, command in env.items():
-        args[key] = sandbox(command)
-    for key, val in args.items():
-        query_template = query_template.replace('{' + key + '}', val)
-    return query_template
+    def execute(
+        self,
+        session: Session,
+        instance_url: str,
+        access_token: str,
+    ):
+        url = f'{instance_url}/services/data/v{self.api_ver}/query?q={self.query}'
+
+        try:
+            print_info(f'Running query {self.query} using url {url}')
+
+            query_response = session.get(url, headers={
+                'Authorization': f'Bearer {access_token}'
+            })
+            if query_response.status_code != 200:
+                raise SalesforceApiException(
+                    query_response.status_code,
+                    f'error when trying to run SOQL query. ' \
+                    f'status-code:{query_response.status_code}, ' \
+                    f'reason: {query_response.reason} ' \
+                    f'response: {query_response.text} '
+                )
+
+            return query_response.json()
+        except RequestException as e:
+            raise SalesforceApiException(
+                -1,
+                f'error when trying to run SOQL query. cause: {e}',
+            ) from e
+
+
+def New(
+    q: dict,
+    time_lag_minutes: int,
+    last_to_timestamp: str,
+    generation_interval: str,
+    default_api_ver: str,
+) -> Query:
+    to_timestamp = (
+        datetime.utcnow() - timedelta(minutes=time_lag_minutes)
+    ).isoformat(timespec='milliseconds') + "Z"
+    from_timestamp = last_to_timestamp
+
+    qp = copy.deepcopy(q)
+    qq = qp.pop('query', '')
+
+    args = {
+        'to_timestamp': to_timestamp,
+        'from_timestamp': from_timestamp,
+        'log_interval_type': generation_interval,
+    }
+
+    return Query(
+        substitute(args, qq, qp).replace(' ', '+'),
+        Config(qp),
+        qp.get('api_ver', default_api_ver)
+    )
