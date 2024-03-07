@@ -1,4 +1,7 @@
 #!/usr/bin/env python
+import newrelic.agent
+newrelic.agent.initialize('./newrelic.ini')
+
 import optparse
 import os
 import sys
@@ -179,7 +182,7 @@ def run(
 
     run_as_service(config, event_type_fields_mapping, numeric_fields_list)
 
-
+@newrelic.agent.background_task()
 def main():
     print_info(f'Integration start. Using program arguments {sys.argv[1:]}')
 
