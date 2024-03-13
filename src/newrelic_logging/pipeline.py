@@ -1,7 +1,8 @@
 from copy import deepcopy
 import csv
-import datetime
+from datetime import datetime
 import gc
+import pytz
 from requests import Session
 
 from . import DataFormat, SalesforceApiException
@@ -10,49 +11,76 @@ from .config import Config
 from .http_session import new_retry_session
 from .newrelic import NewRelic
 from .query import Query
-from .telemetry import print_err, print_info
-from .util import generate_record_id, get_row_timestamp, is_logfile_response
+from .telemetry import print_info
+from .util import generate_record_id, \
+    is_logfile_response, \
+    maybe_convert_str_to_num
 
 
 DEFAULT_CHUNK_SIZE = 4096
 DEFAULT_MAX_ROWS = 1000
 MAX_ROWS = 2000
 
+def init_fields_from_log_line(
+    record_event_type: str,
+    log_line: dict,
+    event_type_fields_mapping: dict,
+) -> dict:
+    if record_event_type in event_type_fields_mapping:
+        attrs = {}
 
-def pack_csv_into_log(
+        for field in event_type_fields_mapping[record_event_type]:
+            attrs[field] = log_line[field]
+
+        return attrs
+
+    return deepcopy(log_line)
+
+
+def get_log_line_timestamp(log_line: dict) -> float:
+    epoch = log_line.get('TIMESTAMP')
+
+    if epoch:
+        return pytz.utc.localize(
+            datetime.strptime(epoch, '%Y%m%d%H%M%S.%f')
+        ).replace(microsecond=0).timestamp()
+
+    return datetime.utcnow().replace(microsecond=0).timestamp()
+
+
+def pack_log_line_into_log(
     query: Query,
     record_id: str,
     record_event_type: str,
-    row: dict,
-    row_index: int,
+    log_line: dict,
+    line_no: int,
     event_type_fields_mapping: dict,
 ) -> dict:
-    attrs = {}
-    if record_event_type in event_type_fields_mapping:
-        for field in event_type_fields_mapping[record_event_type]:
-            attrs[field] = row[field]
-    else:
-        attrs = row
+    attrs = init_fields_from_log_line(
+        record_event_type,
+        log_line,
+        event_type_fields_mapping,
+    )
 
-    timestamp = get_row_timestamp(row)
+    timestamp = int(get_log_line_timestamp(log_line))
     attrs.pop('TIMESTAMP', None)
 
     attrs['LogFileId'] = record_id
 
-    actual_event_type = attrs.pop('EVENT_TYPE', "SFEvent")
-    new_event_type = query.get("event_type", actual_event_type)
+    actual_event_type = attrs.pop('EVENT_TYPE', 'SFEvent')
+    new_event_type = query.get('event_type', actual_event_type)
     attrs['EVENT_TYPE'] = new_event_type
 
-    timestamp_field_name = query.get("rename_timestamp", "timestamp")
-    attrs[timestamp_field_name] = int(timestamp)
+    timestamp_field_name = query.get('rename_timestamp', 'timestamp')
+    attrs[timestamp_field_name] = timestamp
 
     log_entry = {
-        'message': "LogFile " + record_id + " row " + str(row_index),
+        'message': f'LogFile {record_id} row {str(line_no)}',
         'attributes': attrs
     }
 
     if timestamp_field_name == 'timestamp':
-        log_entry[timestamp_field_name] = int(timestamp)
+        log_entry[timestamp_field_name] = timestamp
 
     return log_entry
 
@@ -108,7 +136,7 @@ def transform_log_lines(
             continue
 
         # Otherwise, pack it up for shipping and yield it for consumption
-        yield pack_csv_into_log(
+        yield pack_log_line_into_log(
             query,
             record_id,
             record_event_type,
@@ -120,36 +148,34 @@ def transform_log_lines(
         row_index += 1
 
 
-def pack_event_into_log(
+def pack_event_record_into_log(
     query: Query,
     record_id: str,
-    row: dict,
-):
+    record: dict,
+) -> dict:
     # Make a copy of it so we aren't modifying the row passed by the caller, and
     # set attributes appropriately
-    attrs = deepcopy(row)
+    attrs = deepcopy(record)
     if record_id:
         attrs['Id'] = record_id
 
-    timestamp_attr = query.get('timestamp_attr', 'CreatedDate')
-    if timestamp_attr in attrs:
-        created_date = attrs[timestamp_attr]
-        timestamp = int(datetime.strptime(
-            created_date, '%Y-%m-%dT%H:%M:%S.%f%z').timestamp() * 1000
-        )
-    else:
-        created_date = ""
-        timestamp = int(datetime.now().timestamp() * 1000)
-
     message = query.get('event_type', 'SFEvent')
     if 'attributes' in attrs and type(attrs['attributes']) == dict:
-        attributes = attrs.pop('attributes', [])
+        attributes = attrs.pop('attributes')
         if 'type' in attributes and type(attributes['type']) == str:
             attrs['EVENT_TYPE'] = message = \
                 query.get('event_type', attributes['type'])
 
-    if created_date != "":
-        message = message + " " + created_date
+    timestamp_attr = query.get('timestamp_attr', 'CreatedDate')
+    if timestamp_attr in attrs:
+        created_date = attrs[timestamp_attr]
+        message += f' {created_date}'
+        timestamp = int(datetime.strptime(
+            created_date,
+            '%Y-%m-%dT%H:%M:%S.%f%z').timestamp() * 1000,
+        )
+    else:
+        timestamp = int(datetime.now().timestamp() * 1000)
 
     timestamp_field_name = query.get('rename_timestamp', 'timestamp')
     attrs[timestamp_field_name] = int(timestamp)
@@ -167,26 +193,35 @@ def pack_event_into_log(
 
 def transform_event_records(iter, query: Query, data_cache: DataCache):
     # iter here is a list which does mean it's entirely held in memory but these
-    # are event records not log lines so hopefully it is # not as bad.
+    # are event records not log lines so hopefully it is not as bad.
     # @TODO figure out if we can stream event records
-    for row in iter:
-        record_id = row['Id'] if 'Id' in row \
-            else generate_record_id(query.get('id', []), row)
+    for record in iter:
+        config = query.get_config()
+
+        record_id = record['Id'] if 'Id' in record \
+            else generate_record_id(
+                config['id'] if 'id' in config else [],
+                record,
+            )
 
         # If we've already seen this event record, skip it.
         if data_cache and data_cache.check_and_set_event_id(record_id):
-            return None
+            continue
 
         # Build a New Relic log record from the SF event record
-        yield pack_event_into_log(
+        yield pack_event_record_into_log(
             query,
             record_id,
-            row,
-            data_cache,
+            record,
         )
 
 
-def load_as_logs(iter, new_relic: NewRelic, labels: dict, max_rows: int):
+def load_as_logs(
+    iter,
+    new_relic: NewRelic,
+    labels: dict,
+    max_rows: int,
+) -> None:
     nr_session = new_retry_session()
 
     logs = []
@@ -224,29 +259,24 @@ def load_as_logs(iter, new_relic: NewRelic, labels: dict, max_rows: int):
     gc.collect()
 
 
-def pack_log_into_event(log: dict, labels: dict, numeric_fields_list: set):
+def pack_log_into_event(
+    log: dict,
+    labels: dict,
+    numeric_fields_list: set,
+) -> dict:
     log_event = {}
 
     attributes = log['attributes']
-    for event_name in attributes:
-        # currently no need to modify as we did not see any special chars
-        # that need to be removed
-        modified_event_name = event_name
-        event_value = attributes[event_name]
-        if event_name in numeric_fields_list:
-            if event_value:
-                try:
-                    log_event[modified_event_name] = int(event_value)
-                except (TypeError, ValueError) as _:
-                    try:
-                        log_event[modified_event_name] = float(event_value)
-                    except (TypeError, ValueError) as _:
-                        print_err(f'Type conversion error for {event_name}[{event_value}]')
-                        log_event[modified_event_name] = event_value
-            else:
-                log_event[modified_event_name] = 0
-        else:
-            log_event[modified_event_name] = event_value
+    for key in attributes:
+        value = attributes[key]
+
+        if key in numeric_fields_list:
+            log_event[key] = \
+                maybe_convert_str_to_num(value) if value \
+                else 0
+            continue
+
+        log_event[key] = value
 
     log_event.update(labels)
     log_event['eventType'] = log_event.get('EVENT_TYPE', "UnknownSFEvent")
@@ -260,7 +290,7 @@ def load_as_events(
     labels: dict,
     max_rows: int,
     numeric_fields_list: set,
-):
+) -> None:
     nr_session = new_retry_session()
 
     events = []
@@ -304,7 +334,7 @@ def load_as_events(
 
 
 def load_data(
-    logs: dict,
+    logs,
     new_relic: NewRelic,
     data_format: DataFormat,
     labels: dict,
@@ -407,7 +437,6 @@ class Pipeline:
                 records,
                 query,
                 self.data_cache,
-                self.config.get('max_rows', DEFAULT_MAX_ROWS)
             ),
             self.new_relic,
             self.data_format,
@@ -435,12 +464,16 @@ class Pipeline:
                         record,
                     )
 
+            if self.data_cache:
+                self.data_cache.flush()
+
             return
 
         self.process_event_records(query, records)
 
         # Flush the cache
-        self.data_cache.flush()
+        if self.data_cache:
+            self.data_cache.flush()
 
 def New(
     config: Config,

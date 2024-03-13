@@ -1,34 +1,26 @@
 from datetime import datetime, timedelta
 import hashlib
-import pytz
+from typing import Union
+
+from .telemetry import print_warn
+
 
 def is_logfile_response(records):
     if len(records) > 0:
         return 'LogFile' in records[0]
-    else:
-        return True
+
+    return True
 
 
-def get_row_timestamp(row):
-    epoch = row.get('TIMESTAMP')
-
-    if epoch:
-        return pytz.utc.localize(
-            datetime.strptime(epoch, '%Y%m%d%H%M%S.%f')
-        ).replace(microsecond=0).timestamp()
-
-    return datetime.utcnow().replace(microsecond=0).timestamp()
-
-
-def generate_record_id(id_keys: list[str], row: dict) -> str:
+def generate_record_id(id_keys: list[str], record: dict) -> str:
     compound_id = ''
     for key in id_keys:
-        if key not in row:
+        if key not in record:
             raise Exception(
                 f'error building compound id, key \'{key}\' not found'
             )
 
-        compound_id = compound_id + str(row.get(key, ''))
+        compound_id = compound_id + str(record.get(key, ''))
 
     if compound_id != '':
         m = hashlib.sha3_256()
@@ -36,6 +28,17 @@ def generate_record_id(id_keys: list[str], row: dict) -> str:
         return m.hexdigest()
 
     return ''
+
+
+def maybe_convert_str_to_num(val: str) -> Union[int, str, float]:
+    try:
+        return int(val)
+    except (TypeError, ValueError) as _:
+        try:
+            return float(val)
+        except (TypeError, ValueError) as _:
+            print_warn(f'Type conversion error for "{val}"')
+            return val
 
 
 # NOTE: this sandbox can be jailbroken using the trick to exec statements inside

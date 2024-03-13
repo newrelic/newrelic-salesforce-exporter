@@ -62,20 +62,21 @@ class DataCache:
     def load_cached_log_lines(self, record_id: str) -> None:
         try:
             if self.backend.exists(record_id):
-                    self.cached_logs[record_id] = \
-                        self.backend.list_slice(record_id, 0, -1)
-                    return
+                self.cached_logs[record_id] = \
+                    self.backend.list_slice(record_id, 0, -1)
+                return
 
             self.cached_logs[record_id] = ['init']
         except Exception as e:
             raise CacheException(f'failed checking log record {record_id}: {e}')
 
     # Cache log
+    # @TODO this function assumes you have called load_cached_log_lines
+    # which isn't obvious.
     def check_and_set_log_line(self, record_id: str, row: dict) -> bool:
         row_id = row["REQUEST_ID"]
 
-        row_id_b = row_id.encode('utf-8')
-        if row_id_b in self.cached_logs[record_id]:
+        if row_id.encode('utf-8') in self.cached_logs[record_id]:
             return True
 
         self.cached_logs[record_id].append(row_id)
