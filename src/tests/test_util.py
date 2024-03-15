@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta
 import hashlib
 import unittest
 
@@ -132,6 +133,87 @@ class TestUtilities(unittest.TestCase):
         # verify
         self.assertTrue(type(val) is str)
         self.assertEqual(val, 'not a number')
+
+    def test_get_iso_date_with_offset(self):
+        _now = datetime.utcnow()
+
+        def _utcnow():
+            nonlocal _now
+            return _now
+
+        util._UTCNOW = _utcnow
+
+        '''
+        given: a time lag and initial delay
+        when: neither are specified (both default to 0)
+        then: return the current time in iso format
+        '''
+
+        # setup
+        val = _now.isoformat(timespec='milliseconds') + 'Z'
+
+        # execute
+        isonow = util.get_iso_date_with_offset()
+
+        # verify
+        self.assertEqual(val, isonow)
+
+        '''
+        given: a time lag and initial delay
+        when: time lag is specified
+        then: return the current time minus the time lag in iso format
+        '''
+
+        # setup
+        time_lag_minutes = 412
+        val = (_now - timedelta(minutes=time_lag_minutes)) \
+            .isoformat(timespec='milliseconds') + 'Z'
+
+        # execute
+        isonow = util.get_iso_date_with_offset(
+            time_lag_minutes=time_lag_minutes
+        )
+
+        # verify
+        self.assertEqual(val, isonow)
+
+        '''
+        given: a time lag and initial delay
+        when: initial delay is specified
+        then: return the current time minus the initial delay in iso format
+        '''
+
+        # setup
+        initial_delay = 678
+        val = (_now - timedelta(minutes=initial_delay)) \
+            .isoformat(timespec='milliseconds') + 'Z'
+
+        # execute
+        isonow = util.get_iso_date_with_offset(initial_delay=initial_delay)
+
+        # verify
+        self.assertEqual(val, isonow)
+
+        '''
+        given: a time lag and initial delay
+        when: both are specified
+        then: return the current time minus the sum of the time lag and initial
+              delay in iso format
+        '''
+
+             # setup
+        initial_delay = 678
+        val = (_now - timedelta(minutes=(time_lag_minutes + initial_delay))) \
+            .isoformat(timespec='milliseconds') + 'Z'
+
+        # execute
+        isonow = util.get_iso_date_with_offset(
+            time_lag_minutes,
+            initial_delay,
+        )
+
+        # verify
+        self.assertEqual(val, isonow)
 
 
 if __name__ == '__main__':

@@ -107,29 +107,31 @@ class NewRelic:
                 raise NewRelicApiException('newrelic events api request failed')
 
 
-def New(
-    config: Config,
-):
-    license_key = config.get(
-        'newrelic.license_key',
-        env_var_name=NR_LICENSE_KEY,
-    )
+class NewRelicFactory:
+    def __init__(self):
+        pass
 
-    region = config.get('newrelic.api_endpoint')
-    account_id = config.get('newrelic.account_id', env_var_name=NR_ACCOUNT_ID)
+    def new(self, config: Config):
+        license_key = config.get(
+            'newrelic.license_key',
+            env_var_name=NR_LICENSE_KEY,
+        )
 
-    if region == "US":
-        logs_api_endpoint = US_LOGGING_ENDPOINT
-        events_api_endpoint = US_EVENTS_ENDPOINT.format(account_id=account_id)
-    elif region == "EU":
-        logs_api_endpoint = EU_LOGGING_ENDPOINT
-        events_api_endpoint = EU_EVENTS_ENDPOINT.format(account_id=account_id)
-    else:
-        raise NewRelicApiException(f'Invalid region {region}')
+        region = config.get('newrelic.api_endpoint')
+        account_id = config.get('newrelic.account_id', env_var_name=NR_ACCOUNT_ID)
 
-    return NewRelic(
-        logs_api_endpoint,
-        license_key,
-        events_api_endpoint,
-        license_key,
-    )
+        if region == "US":
+            logs_api_endpoint = US_LOGGING_ENDPOINT
+            events_api_endpoint = US_EVENTS_ENDPOINT.format(account_id=account_id)
+        elif region == "EU":
+            logs_api_endpoint = EU_LOGGING_ENDPOINT
+            events_api_endpoint = EU_EVENTS_ENDPOINT.format(account_id=account_id)
+        else:
+            raise NewRelicApiException(f'Invalid region {region}')
+
+        return NewRelic(
+            logs_api_endpoint,
+            license_key,
+            events_api_endpoint,
+            license_key,
+        )

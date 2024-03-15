@@ -13,7 +13,14 @@ from apscheduler.jobstores.memory import MemoryJobStore
 from apscheduler.schedulers.background import BlockingScheduler
 from pytz import utc
 from yaml import Loader, load
+from newrelic_logging.auth import AuthenticatorFactory
+from newrelic_logging.cache import CacheFactory
 from newrelic_logging.config import Config, getenv
+from newrelic_logging.newrelic import NewRelicFactory
+from newrelic_logging.pipeline import PipelineFactory
+from newrelic_logging.query import QueryFactory
+from newrelic_logging.salesforce import SalesForceFactory
+
 from newrelic_logging.integration import Integration
 from newrelic_logging.telemetry import print_info, print_warn
 
@@ -127,8 +134,15 @@ def run_once(
     event_type_fields_mapping: dict,
     numeric_fields_list: set
 ):
+
     Integration(
         config,
+        AuthenticatorFactory(),
+        CacheFactory(),
+        PipelineFactory(),
+        SalesForceFactory(),
+        QueryFactory(),
+        NewRelicFactory(),
         event_type_fields_mapping,
         numeric_fields_list,
         config.get_int(CRON_INTERVAL_MINUTES, 60),
@@ -157,6 +171,12 @@ def run_as_service(
     scheduler.add_job(
         Integration(
             config,
+            AuthenticatorFactory(),
+            CacheFactory(),
+            PipelineFactory(),
+            SalesForceFactory(),
+            QueryFactory(),
+            NewRelicFactory(),
             event_type_fields_mapping,
             numeric_fields_list,
             0

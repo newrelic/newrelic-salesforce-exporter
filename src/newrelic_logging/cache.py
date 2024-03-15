@@ -129,31 +129,35 @@ class DataCache:
         gc.collect()
 
 
-def New(config: Config):
-    if config.get_bool(CONFIG_CACHE_ENABLED, DEFAULT_CACHE_ENABLED):
-        host = config.get(CONFIG_REDIS_HOST, DEFAULT_REDIS_HOST)
-        port = config.get_int(CONFIG_REDIS_PORT, DEFAULT_REDIS_PORT)
-        db = config.get_int(CONFIG_REDIS_DB_NUMBER, DEFAULT_REDIS_DB_NUMBER)
-        password = config.get(CONFIG_REDIS_PASSWORD)
-        ssl = config.get_bool(CONFIG_REDIS_USE_SSL, DEFAULT_REDIS_SSL)
-        expire_days = config.get_int(CONFIG_REDIS_EXPIRE_DAYS)
-        password_display = "XXXXXX" if password != None else None
+class CacheFactory:
+    def __init__(self):
+        pass
 
-        print_info(
-            f'Cache enabled, connecting to redis instance {host}:{port}:{db}, ssl={ssl}, password={password_display}'
-        )
+    def new(self, config: Config):
+        if config.get_bool(CONFIG_CACHE_ENABLED, DEFAULT_CACHE_ENABLED):
+            host = config.get(CONFIG_REDIS_HOST, DEFAULT_REDIS_HOST)
+            port = config.get_int(CONFIG_REDIS_PORT, DEFAULT_REDIS_PORT)
+            db = config.get_int(CONFIG_REDIS_DB_NUMBER, DEFAULT_REDIS_DB_NUMBER)
+            password = config.get(CONFIG_REDIS_PASSWORD)
+            ssl = config.get_bool(CONFIG_REDIS_USE_SSL, DEFAULT_REDIS_SSL)
+            expire_days = config.get_int(CONFIG_REDIS_EXPIRE_DAYS)
+            password_display = "XXXXXX" if password != None else None
 
-        return DataCache(
-            RedisBackend(
-                redis.Redis(
-                host=host,
-                port=port,
-                db=db,
-                password=password,
-                ssl=ssl
-            ), expire_days)
-        )
+            print_info(
+                f'Cache enabled, connecting to redis instance {host}:{port}:{db}, ssl={ssl}, password={password_display}'
+            )
 
-    print_info('Cache disabled')
+            return DataCache(
+                RedisBackend(
+                    redis.Redis(
+                    host=host,
+                    port=port,
+                    db=db,
+                    password=password,
+                    ssl=ssl
+                ), expire_days)
+            )
 
-    return None
+        print_info('Cache disabled')
+
+        return None

@@ -192,7 +192,7 @@ class TestPipeline(unittest.TestCase):
         '''
 
         # setup
-        session = SessionStub([])
+        session = SessionStub()
         session.response = ResponseStub(500, 'Error', '', [])
 
         # execute/verify
@@ -277,7 +277,7 @@ class TestPipeline(unittest.TestCase):
             QueryStub({}),
             '00001111AAAABBBB',
             'ApexCallout',
-            DataCacheStub({
+            DataCacheStub(cached_logs={
                 '00001111AAAABBBB': [ 'YYZ:abcdef123456' ]
             }),
             {},
@@ -612,8 +612,8 @@ class TestPipeline(unittest.TestCase):
             self.event_records,
             QueryStub({}),
             DataCacheStub(
-                {},
-                [ '000012345', '000054321' ]
+                cached_logs={},
+                cached_events=[ '000012345', '000054321' ]
             ),
         )
 
@@ -1023,7 +1023,7 @@ class TestPipeline(unittest.TestCase):
 
         # setup
         cfg = config.Config({})
-        session = SessionStub([])
+        session = SessionStub()
         session.response = ResponseStub(200, 'OK', '', self.log_rows)
         newrelic = NewRelicStub()
         query = QueryStub({})
@@ -1330,7 +1330,7 @@ class TestPipeline(unittest.TestCase):
 
         # setup
         cfg = config.Config({})
-        session = SessionStub([])
+        session = SessionStub()
         session.response = ResponseStub(200, 'OK', '', self.log_rows)
         newrelic = NewRelicStub()
         query = QueryStub({})

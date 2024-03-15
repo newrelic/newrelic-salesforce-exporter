@@ -5,7 +5,7 @@ from requests import RequestException, Session
 from . import SalesforceApiException
 from .config import Config
 from .telemetry import print_info
-from .util import substitute
+from .util import get_iso_date_with_offset, substitute
 
 class Query:
     def __init__(
@@ -55,29 +55,34 @@ class Query:
             ) from e
 
 
-def New(
-    q: dict,
-    time_lag_minutes: int,
-    last_to_timestamp: str,
-    generation_interval: str,
-    default_api_ver: str,
-) -> Query:
-    to_timestamp = (
-        datetime.utcnow() - timedelta(minutes=time_lag_minutes)
-    ).isoformat(timespec='milliseconds') + "Z"
-    from_timestamp = last_to_timestamp
+class QueryFactory:
+    def __init__(self):
+        pass
 
-    qp = copy.deepcopy(q)
-    qq = qp.pop('query', '')
+    def new(
+        self,
+        q: dict,
+        time_lag_minutes: int,
+        last_to_timestamp: str,
+        generation_interval: str,
+        default_api_ver: str,
+    ) -> Query:
+        to_timestamp = get_iso_date_with_offset(time_lag_minutes)
+        from_timestamp = last_to_timestamp
 
-    args = {
-        'to_timestamp': to_timestamp,
-        'from_timestamp': from_timestamp,
-        'log_interval_type': generation_interval,
-    }
+        qp = copy.deepcopy(q)
+        qq = qp.pop('query', '')
 
-    return Query(
-        substitute(args, qq, qp).replace(' ', '+'),
-        Config(qp),
-        qp.get('api_ver', default_api_ver)
-    )
+        args = {
+            'to_timestamp': to_timestamp,
+            'from_timestamp': from_timestamp,
+            'log_interval_type': generation_interval,
+        }
+
+        env = qp['env'] if 'env' in qp and type(qp['env']) is dict else {}
+
+        return Query(
+            substitute(args, qq, env).replace(' ', '+'),
+            Config(qp),
+            qp.get('api_ver', default_api_ver)
+        )

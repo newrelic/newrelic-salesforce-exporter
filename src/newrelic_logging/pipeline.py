@@ -475,21 +475,26 @@ class Pipeline:
         if self.data_cache:
             self.data_cache.flush()
 
-def New(
-    config: Config,
-    data_cache: DataCache,
-    new_relic: NewRelic,
-    data_format: DataFormat,
-    labels: dict,
-    event_type_field_mappings: dict,
-    numeric_fields_list: set,
-):
-    return Pipeline(
-        config,
-        data_cache,
-        new_relic,
-        data_format,
-        labels,
-        event_type_field_mappings,
-        numeric_fields_list,
-    )
+class PipelineFactory:
+    def __init__(self):
+        pass
+
+    def new(
+        self,
+        config: Config,
+        data_cache: DataCache,
+        new_relic: NewRelic,
+        data_format: DataFormat,
+        labels: dict,
+        event_type_field_mappings: dict,
+        numeric_fields_list: set,
+    ):
+        return Pipeline(
+            config,
+            data_cache,
+            new_relic,
+            data_format,
+            labels,
+            event_type_field_mappings,
+            numeric_fields_list,
+        )

@@ -1,49 +1,85 @@
 from requests import Session
 
+from newrelic_logging import DataFormat
+from newrelic_logging.auth import Authenticator
+from newrelic_logging.cache import DataCache
 from newrelic_logging.config import Config
+from newrelic_logging.newrelic import NewRelic
+from newrelic_logging.pipeline import Pipeline
+from newrelic_logging.query import Query, QueryFactory
 
 
-class QueryStub:
-    def __init__(self, config: dict):
-        self.config = Config(config)
+class AuthenticatorStub:
+    def __init__(
+        self,
+        config: Config = None,
+        data_cache: DataCache = None,
+        token_url: str = '',
+        access_token: str = '',
+        instance_url: str = '',
+        grant_type: str = '',
+        authenticate_called: bool = False,
+    ):
+        self.config = config
+        self.data_cache = data_cache
+        self.token_url = token_url
+        self.access_token = access_token
+        self.instance_url = instance_url
+        self.grant_type = grant_type
+        self.authenticate_called = authenticate_called
 
-    def get(self, key: str, default = None):
-        return self.config.get(key, default)
+    def get_access_token(self) -> str:
+        return self.access_token
 
-    def get_config(self):
-        return self.config
+    def get_instance_url(self) -> str:
+        return self.instance_url
 
-    def execute():
+    def get_grant_type(self) -> str:
+        return self.grant_type
+
+    def set_auth_data(self, access_token: str, instance_url: str) -> None:
+        pass
+
+    def clear_auth(self) -> None:
+        pass
+
+    def load_auth_from_cache(self) -> bool:
+        return False
+
+    def store_auth(self, auth_resp: dict) -> None:
+        pass
+
+    def authenticate(
+        self,
+        session: Session,
+    ) -> None:
+        self.authenticate_called = True
+
+    def authenticate_with_jwt(self, session: Session) -> None:
+        pass
+
+    def authenticate_with_password(self, session: Session) -> None:
         pass
 
 
-class ResponseStub:
-    def __init__(self, status_code, reason, text, lines):
-        self.status_code = status_code
-        self.reason = reason
-        self.text = text
-        self.lines = lines
+class AuthenticatorFactoryStub:
+    def __init__(self):
+        pass
 
-    def iter_lines(self, *args, **kwargs):
-        yield from self.lines
-
-
-class SessionStub:
-    def __init__(self, lines):
-        self.response = None
-
-    def get(self, *args, **kwargs):
-        return self.response
+    def new(self, config: Config, data_cache: DataCache) -> Authenticator:
+        return AuthenticatorStub(config, data_cache)
 
 
 class DataCacheStub:
     def __init__(
         self,
+        config: Config = None,
         cached_logs = {},
         cached_events = [],
         skip_record_ids = [],
         cached_log_lines = {},
     ):
+        self.config = config
         self.cached_logs = cached_logs
         self.cached_events = cached_events
         self.skip_record_ids = skip_record_ids
@@ -68,8 +104,17 @@ class DataCacheStub:
         self.flush_called = True
 
 
-class NewRelicStub:
+class CacheFactoryStub:
     def __init__(self):
+        pass
+
+    def new(self, config: Config):
+        return DataCacheStub(config)
+
+
+class NewRelicStub:
+    def __init__(self, config: Config = None):
+        self.config = config
         self.logs = []
         self.events = []
 
@@ -78,3 +123,189 @@ class NewRelicStub:
 
     def post_events(self, session: Session, events: list[dict]) -> None:
         self.events.append(events)
+
+
+class NewRelicFactoryStub:
+    def __init__(self):
+        pass
+
+    def new(self, config: Config):
+        return NewRelicStub(config)
+
+
+class QueryStub:
+    def __init__(
+        self,
+        config: Config = Config({}),
+        api_ver: str = '',
+        result: dict = { 'records': [] },
+        query: str = '',
+    ):
+        self.query = query
+        self.config = config
+        self.api_ver = api_ver
+        self.executed = False
+        self.result = result
+
+    def get(self, key: str, default = None):
+        return self.config.get(key, default)
+
+    def get_config(self):
+        return self.config
+
+    def execute(
+        self,
+        session: Session = None,
+        instance_url: str = '',
+        access_token: str = '',
+    ):
+        self.executed = True
+        return self.result
+
+
+class QueryFactoryStub:
+    def __init__(self, query: QueryStub = None ):
+        self.query = query
+        self.queries = [] if not query else None
+        pass
+
+    def new(
+        self,
+        q: dict,
+        time_lag_minutes: int = 0,
+        last_to_timestamp: str = '',
+        generation_interval: str = '',
+        default_api_ver: str = '',
+    ) -> Query:
+        if self.query:
+            return self.query
+
+        qq = QueryStub(q, default_api_ver, query=q['query'])
+        self.queries.append(qq)
+        return qq
+
+
+class PipelineStub:
+    def __init__(
+        self,
+        config: Config = Config({}),
+        data_cache: DataCache = None,
+        new_relic: NewRelic = None,
+        data_format: DataFormat = DataFormat.LOGS,
+        labels: dict = {},
+        event_type_fields_mapping: dict = {},
+        numeric_fields_list: set = set(),
+    ):
+        self.config = config
+        self.data_cache = data_cache
+        self.new_relic = new_relic
+        self.data_format = data_format
+        self.labels = labels
+        self.event_type_fields_mapping = event_type_fields_mapping
+        self.numeric_fields_list = numeric_fields_list
+        self.queries = []
+        self.executed = False
+
+    def execute(
+        self,
+        session: Session,
+        query: Query,
+        instance_url: str,
+        access_token: str,
+        records: list[dict],
+    ):
+        self.queries.append(query)
+        self.executed = True
+
+
+class PipelineFactoryStub:
+    def __init__(self):
+        pass
+
+    def new(
+        self,
+        config: Config,
+        data_cache: DataCache,
+        new_relic: NewRelic,
+        data_format: DataFormat,
+        labels: dict,
+        event_type_fields_mapping: dict,
+        numeric_fields_list: set,
+    ):
+        return PipelineStub(
+            config,
+            data_cache,
+            new_relic,
+            data_format,
+            labels,
+            event_type_fields_mapping,
+            numeric_fields_list,
+        )
+
+
+class ResponseStub:
+    def __init__(self, status_code, reason, text, lines):
+        self.status_code = status_code
+        self.reason = reason
+        self.text = text
+        self.lines = lines
+
+    def iter_lines(self, *args, **kwargs):
+        yield from self.lines
+
+
+class SalesForceStub:
+    def __init__(
+        self,
+        instance_name: str,
+        config: Config,
+        data_cache: DataCache,
+        authenticator: Authenticator,
+        pipeline: Pipeline,
+        query_factory: QueryFactory,
+        initial_delay: int,
+        queries: list[dict] = None,
+    ):
+        self.instance_name = instance_name
+        self.config = config
+        self.data_cache = data_cache
+        self.authenticator = authenticator
+        self.pipeline = pipeline
+        self.query_factory = query_factory
+        self.initial_delay = initial_delay
+        self.queries = queries
+
+
+class SalesForceFactoryStub:
+    def __init__(self):
+        pass
+
+    def new(
+        self,
+        instance_name: str,
+        config: Config,
+        data_cache: DataCache,
+        authenticator: Authenticator,
+        pipeline: Pipeline,
+        query_factory: QueryFactory,
+        initial_delay: int,
+        queries: list[dict] = None,
+    ):
+        return SalesForceStub(
+            instance_name,
+            config,
+            data_cache,
+            authenticator,
+            pipeline,
+            query_factory,
+            initial_delay,
+            queries,
+        )
+
+
+class SessionStub:
+    def __init__(self):
+        self.response = None
+
+    def get(self, *args, **kwargs):
+        return self.response

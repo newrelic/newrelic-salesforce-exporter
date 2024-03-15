@@ -41,6 +41,25 @@ def maybe_convert_str_to_num(val: str) -> Union[int, str, float]:
             return val
 
 
+# Make testing easier
+def _utcnow():
+    return datetime.utcnow()
+
+_UTCNOW = _utcnow
+
+def get_iso_date_with_offset(
+    time_lag_minutes: int = 0,
+    initial_delay: int = 0,
+) -> str:
+    return (
+        _UTCNOW() - timedelta(
+            minutes=(time_lag_minutes + initial_delay)
+        )
+    ).isoformat(
+        timespec='milliseconds'
+    ) + 'Z'
+
+
 # NOTE: this sandbox can be jailbroken using the trick to exec statements inside
 # an exec block, and run an import (and other tricks):
 # https://book.hacktricks.xyz/generic-methodologies-and-resources/python/bypass-python-sandboxes#operators-and-short-tricks

@@ -1,13 +1,13 @@
 from datetime import datetime, timedelta
 from requests import Session
 
-from . import DataFormat
 from .auth import Authenticator
 from .cache import DataCache
 from . import config as mod_config
 from .pipeline import Pipeline
 from . import query as mod_query
-from .telemetry import print_info
+from .telemetry import print_info, print_warn
+from .util import get_iso_date_with_offset
 
 
 CSV_SLICE_SIZE = 1000
@@ -27,13 +27,16 @@ class SalesForce:
         data_cache: DataCache,
         authenticator: Authenticator,
         pipeline: Pipeline,
+        query_factory: mod_query.QueryFactory,
         initial_delay: int,
-        queries=None,
+        queries: list[dict] = None,
     ):
         self.instance_name = instance_name
-        self.default_api_ver = config.get('api_ver', '52.0')
         self.data_cache = data_cache
         self.auth = authenticator
+        self.pipeline = pipeline
+        self.query_factory = query_factory
+        self.default_api_ver = config.get('api_ver', '52.0')
         self.time_lag_minutes = config.get(
             mod_config.CONFIG_TIME_LAG_MINUTES,
             mod_config.DEFAULT_TIME_LAG_MINUTES if not self.data_cache else 0,
@@ -47,28 +50,24 @@ class SalesForce:
             mod_config.CONFIG_GENERATION_INTERVAL,
             mod_config.DEFAULT_GENERATION_INTERVAL,
         )
-        self.last_to_timestamp = (datetime.utcnow() - timedelta(
-            minutes=self.time_lag_minutes + initial_delay
-        )).isoformat(timespec='milliseconds') + 'Z'
-
-        if queries:
-            self.queries = queries
-        else:
-            self.queries = [{
+        self.last_to_timestamp = get_iso_date_with_offset(
+            self.time_lag_minutes,
+            initial_delay,
+        )
+        self.queries = queries if queries else \
+            [{
                 'query': SALESFORCE_LOG_DATE_QUERY \
                     if self.date_field.lower() == 'logdate' \
                     else SALESFORCE_CREATED_DATE_QUERY
             }]
 
-        self.pipeline = pipeline
-
     def authenticate(self, sfdc_session: Session):
         self.auth.authenticate(sfdc_session)
 
     def slide_time_range(self):
-        self.last_to_timestamp = (
-            datetime.utcnow() - timedelta(minutes=self.time_lag_minutes)) \
-                .isoformat(timespec='milliseconds') + "Z"
+        self.last_to_timestamp = get_iso_date_with_offset(
+            self.time_lag_minutes
+        )
 
     # NOTE: Is it possible that different SF orgs have overlapping IDs? If this is possible, we should use a different
     #       database for each org, or add a prefix to keys to avoid conflicts.
@@ -76,21 +75,24 @@ class SalesForce:
     def fetch_logs(self, session: Session) -> list[dict]:
         print_info(f"Queries = {self.queries}")
 
-        for query in self.queries:
-            response = mod_query.New(
-                query,
+        for q in self.queries:
+            query = self.query_factory.new(
+                q,
                 self.time_lag_minutes,
                 self.last_to_timestamp,
                 self.generation_interval,
                 self.default_api_ver,
-            ).execute(
+            )
+
+            response = query.execute(
                 session,
                 self.auth.get_instance_url(),
                 self.auth.get_access_token(),
             )
 
-            # Show query response
-            #print("Response = ", response)
+            if not response or not 'records' in response:
+                print_warn(f'no records returned for query {query.query}')
+                continue
 
             self.pipeline.execute(
                 session,
@@ -135,3 +137,29 @@ class SalesForce:
 #    csv_rows = self.parse_csv(download_response, record_id, record_event_type, cached_messages)
 #
 #    print_info(f"CSV rows = {len(csv_rows)}")
+
+class SalesForceFactory:
+    def __init__(self):
+        pass
+
+    def new(
+        self,
+        instance_name: str,
+        config: mod_config.Config,
+        data_cache: DataCache,
+        authenticator: Authenticator,
+        pipeline: Pipeline,
+        query_factory: mod_query.QueryFactory,
+        initial_delay: int,
+        queries: list[dict] = None,
+    ):
+        return SalesForce(
+            instance_name,
+            config,
+            data_cache,
+            authenticator,
+            pipeline,
+            query_factory,
+            initial_delay,
+            queries,
+        )
