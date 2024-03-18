@@ -150,13 +150,13 @@ class CacheFactory:
             return DataCache(
                 RedisBackend(
                     redis.Redis(
-                    host=host,
-                    port=port,
-                    db=db,
-                    password=password,
-                    ssl=ssl
+                        host=host,
+                        port=port,
+                        db=db,
+                        password=password,
+                        ssl=ssl
+                    ),
                 ), expire_days)
-            )
 
         print_info('Cache disabled')
 
