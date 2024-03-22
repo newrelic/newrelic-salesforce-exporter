@@ -83,9 +83,9 @@ def sandbox(code):
 
     def now(delta: timedelta = None):
         if delta:
-            return sf_time(datetime.utcnow() + delta)
+            return sf_time(_UTCNOW() + delta)
         else:
-            return sf_time(datetime.utcnow())
+            return sf_time(_UTCNOW())
 
     try:
         return eval(code)

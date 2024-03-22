@@ -32,132 +32,144 @@ class RedisBackend:
     def put(self, key, item):
         self.redis.set(key, item)
 
-    def list_length(self, key):
-        return self.redis.llen(key)
+    def get_set(self, key):
+        return self.redis.smembers(key)
 
-    def list_slice(self, key, start, end):
-        return self.redis.lrange(key, start, end)
-
-    def list_append(self, key, item):
-        self.redis.rpush(key, item)
+    def set_add(self, key, *values):
+        self.redis.sadd(key, *values)
 
     def set_expiry(self, key, days):
         self.redis.expire(key, timedelta(days=days))
+
+
+class BufferedAddSetCache:
+    def __init__(self, s: set):
+        self.s = s
+        self.buffer = set()
+
+    def check_or_set(self, item: str) -> bool:
+        if item in self.s or item in self.buffer:
+            return True
+
+        self.buffer.add(item)
+
+        return False
+
+    def get_buffer(self) -> set:
+        return self.buffer
 
 
 class DataCache:
     def __init__(self, backend, expiry):
         self.backend = backend
         self.expiry = expiry
-        self.cached_events = {}
-        self.cached_logs = {}
+        self.log_records = {}
+        self.event_records = None
 
     def can_skip_downloading_logfile(self, record_id: str) -> bool:
         try:
-            return self.backend.exists(record_id) and \
-                self.backend.list_length(record_id) > 1
+            return self.backend.exists(record_id)
         except Exception as e:
             raise CacheException(f'failed checking record {record_id}: {e}')
 
-    def load_cached_log_lines(self, record_id: str) -> None:
+    def check_or_set_log_line(self, record_id: str, line: dict) -> bool:
         try:
-            if self.backend.exists(record_id):
-                self.cached_logs[record_id] = \
-                    self.backend.list_slice(record_id, 0, -1)
-                return
+            if not record_id in self.log_records:
+                self.log_records[record_id] = BufferedAddSetCache(
+                    self.backend.get_set(record_id),
+                )
 
-            self.cached_logs[record_id] = ['init']
+            return self.log_records[record_id].check_or_set(line['REQUEST_ID'])
         except Exception as e:
-            raise CacheException(f'failed checking log record {record_id}: {e}')
+            raise CacheException(f'failed checking record {record_id}: {e}')
 
-    # Cache log
-    # @TODO this function assumes you have called load_cached_log_lines
-    # which isn't obvious.
-    def check_and_set_log_line(self, record_id: str, row: dict) -> bool:
-        row_id = row["REQUEST_ID"]
-
-        if row_id.encode('utf-8') in self.cached_logs[record_id]:
-            return True
-
-        self.cached_logs[record_id].append(row_id)
-
-        return False
-
-    # Cache event
-    def check_and_set_event_id(self, record_id: str) -> bool:
+    def check_or_set_event_id(self, record_id: str) -> bool:
         try:
-            if self.backend.exists(record_id):
-                return True
+            if not self.event_records:
+                self.event_records = BufferedAddSetCache(
+                    self.backend.get_set('event_ids'),
+                )
 
-            self.cached_events[record_id] = ''
-
-            return False
+            return self.event_records.check_or_set(record_id)
         except Exception as e:
             raise CacheException(f'failed checking record {record_id}: {e}')
 
     def flush(self) -> None:
-        # Flush cached log line ids for each log record
-        for record_id in self.cached_logs:
-            for row_id in self.cached_logs[record_id]:
-                try:
-                    self.backend.list_append(record_id, row_id)
+        try:
+            for record_id in self.log_records:
+                buf = self.log_records[record_id].get_buffer()
+                if len(buf) > 0:
+                    self.backend.set_add(record_id, *buf)
 
-                    # Set expire date for the whole list only once, when we find
-                    # the first entry ('init')
-                    if row_id == 'init':
-                        self.backend.set_expiry(record_id, self.expiry)
-                except Exception as e:
-                    raise CacheException(
-                        f'failed pushing row {row_id} for record {record_id}: {e}'
-                    )
-
-        # Attempt to release memory
-        del self.cached_logs[record_id]
-
-        # Flush any cached event record ids
-        for record_id in self.cached_events:
-            try:
-                self.backend.put(record_id, '')
                 self.backend.set_expiry(record_id, self.expiry)
 
-                # Attempt to release memory
-                del self.cached_events[record_id]
-            except Exception as e:
-                raise CacheException(f"failed setting record {record_id}: {e}")
+            if self.event_records:
+                buf = self.event_records.get_buffer()
+                if len(buf) > 0:
+                    for id in buf:
+                        self.backend.put(id, 1)
+                        self.backend.set_expiry(id, self.expiry)
 
-        # Run a gc in an attempt to reclaim memory
-        gc.collect()
+                    self.backend.set_add('event_ids', *buf)
+                    self.backend.set_expiry('event_ids', self.expiry)
+
+            # attempt to reclaim memory
+            for record_id in self.log_records:
+                self.log_records[record_id] = None
+
+            self.log_records = {}
+            self.event_records = None
+
+            gc.collect()
+        except Exception as e:
+            raise CacheException(f'failed flushing cache: {e}')
 
 
-class CacheFactory:
+class BackendFactory:
     def __init__(self):
         pass
 
     def new(self, config: Config):
-        if config.get_bool(CONFIG_CACHE_ENABLED, DEFAULT_CACHE_ENABLED):
-            host = config.get(CONFIG_REDIS_HOST, DEFAULT_REDIS_HOST)
-            port = config.get_int(CONFIG_REDIS_PORT, DEFAULT_REDIS_PORT)
-            db = config.get_int(CONFIG_REDIS_DB_NUMBER, DEFAULT_REDIS_DB_NUMBER)
-            password = config.get(CONFIG_REDIS_PASSWORD)
-            ssl = config.get_bool(CONFIG_REDIS_USE_SSL, DEFAULT_REDIS_SSL)
-            expire_days = config.get_int(CONFIG_REDIS_EXPIRE_DAYS)
-            password_display = "XXXXXX" if password != None else None
+        host = config.get(CONFIG_REDIS_HOST, DEFAULT_REDIS_HOST)
+        port = config.get_int(CONFIG_REDIS_PORT, DEFAULT_REDIS_PORT)
+        db = config.get_int(CONFIG_REDIS_DB_NUMBER, DEFAULT_REDIS_DB_NUMBER)
+        password = config.get(CONFIG_REDIS_PASSWORD)
+        ssl = config.get_bool(CONFIG_REDIS_USE_SSL, DEFAULT_REDIS_SSL)
+        password_display = "XXXXXX" if password != None else None
 
-            print_info(
-                f'Cache enabled, connecting to redis instance {host}:{port}:{db}, ssl={ssl}, password={password_display}'
-            )
+        print_info(
+            f'connecting to redis instance {host}:{port}:{db}, ssl={ssl}, password={password_display}'
+        )
 
+        return RedisBackend(
+            redis.Redis(
+                host=host,
+                port=port,
+                db=db,
+                password=password,
+                ssl=ssl,
+                decode_responses=True,
+            ),
+
+        )
+
+
+class CacheFactory:
+    def __init__(self, backend_factory):
+        self.backend_factory = backend_factory
+        pass
+
+    def new(self, config: Config):
+        if not config.get_bool(CONFIG_CACHE_ENABLED, DEFAULT_CACHE_ENABLED):
+            print_info('Cache disabled')
+            return None
+
+        print_info('Cache enabled')
+
+        try:
             return DataCache(
-                RedisBackend(
-                    redis.Redis(
-                        host=host,
-                        port=port,
-                        db=db,
-                        password=password,
-                        ssl=ssl
-                    ),
-                ), expire_days)
-
-        print_info('Cache disabled')
-
-        return None
+                self.backend_factory.new(config),
+                config.get_int(CONFIG_REDIS_EXPIRE_DAYS)
+            )
+        except Exception as e:
+            raise CacheException(f'failed creating backend: {e}')

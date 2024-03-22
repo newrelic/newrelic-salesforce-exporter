@@ -132,7 +132,7 @@ def transform_log_lines(
 
     for row in reader:
         # If we've already seen this log line, skip it
-        if data_cache and data_cache.check_and_set_log_line(record_id, row):
+        if data_cache and data_cache.check_or_set_log_line(record_id, row):
             continue
 
         # Otherwise, pack it up for shipping and yield it for consumption
@@ -205,7 +205,7 @@ def transform_event_records(iter, query: Query, data_cache: DataCache):
             )
 
         # If we've already seen this event record, skip it.
-        if data_cache and data_cache.check_and_set_event_id(record_id):
+        if data_cache and data_cache.check_or_set_event_id(record_id):
             continue
 
         # Build a New Relic log record from the SF event record
@@ -402,9 +402,6 @@ class Pipeline:
                 f'Log lines for logfile with id {record_id} already cached, skipping download'
             )
             return None
-
-        if self.data_cache:
-            self.data_cache.load_cached_log_lines(record_id)
 
         load_data(
             transform_log_lines(

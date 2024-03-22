@@ -14,7 +14,7 @@ from apscheduler.schedulers.background import BlockingScheduler
 from pytz import utc
 from yaml import Loader, load
 from newrelic_logging.auth import AuthenticatorFactory
-from newrelic_logging.cache import CacheFactory
+from newrelic_logging.cache import CacheFactory, BackendFactory
 from newrelic_logging.config import Config, getenv
 from newrelic_logging.newrelic import NewRelicFactory
 from newrelic_logging.pipeline import PipelineFactory
@@ -138,7 +138,7 @@ def run_once(
     Integration(
         config,
         AuthenticatorFactory(),
-        CacheFactory(),
+        CacheFactory(BackendFactory()),
         PipelineFactory(),
         SalesForceFactory(),
         QueryFactory(),
@@ -172,7 +172,7 @@ def run_as_service(
         Integration(
             config,
             AuthenticatorFactory(),
-            CacheFactory(),
+            CacheFactory(BackendFactory()),
             PipelineFactory(),
             SalesForceFactory(),
             QueryFactory(),

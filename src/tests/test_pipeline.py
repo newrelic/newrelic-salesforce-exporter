@@ -1193,7 +1193,7 @@ class TestPipeline(unittest.TestCase):
 
         # setup
         data_cache = DataCacheStub(
-            cached_log_lines={
+            cached_logs={
                 '00001111AAAABBBB': ['YYZ:abcdef123456', 'YYZ:fedcba654321']
             }
         )

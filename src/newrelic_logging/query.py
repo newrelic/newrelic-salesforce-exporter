@@ -1,5 +1,4 @@
 import copy
-from datetime import datetime, timedelta
 from requests import RequestException, Session
 
 from . import SalesforceApiException
@@ -59,6 +58,24 @@ class QueryFactory:
     def __init__(self):
         pass
 
+    def build_args(
+        self,
+        time_lag_minutes: int,
+        last_to_timestamp: str,
+        generation_interval: str,
+    ):
+        return {
+            'to_timestamp': get_iso_date_with_offset(time_lag_minutes),
+            'from_timestamp': last_to_timestamp,
+            'log_interval_type': generation_interval,
+        }
+
+    def get_env(self, q: dict) -> dict:
+        if 'env' in q and type(q['env']) is dict:
+            return q['env']
+
+        return {}
+
     def new(
         self,
         q: dict,
@@ -67,22 +84,19 @@ class QueryFactory:
         generation_interval: str,
         default_api_ver: str,
     ) -> Query:
-        to_timestamp = get_iso_date_with_offset(time_lag_minutes)
-        from_timestamp = last_to_timestamp
-
         qp = copy.deepcopy(q)
         qq = qp.pop('query', '')
 
-        args = {
-            'to_timestamp': to_timestamp,
-            'from_timestamp': from_timestamp,
-            'log_interval_type': generation_interval,
-        }
-
-        env = qp['env'] if 'env' in qp and type(qp['env']) is dict else {}
-
         return Query(
-            substitute(args, qq, env).replace(' ', '+'),
+            substitute(
+                self.build_args(
+                    time_lag_minutes,
+                    last_to_timestamp,
+                    generation_interval,
+                ),
+                qq,
+                self.get_env(qp),
+            ).replace(' ', '+'),
             Config(qp),
             qp.get('api_ver', default_api_ver)
         )

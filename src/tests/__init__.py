@@ -1,4 +1,7 @@
-from requests import Session
+from datetime import timedelta
+import json
+from redis import RedisError
+from requests import Session, RequestException
 
 from newrelic_logging import DataFormat
 from newrelic_logging.auth import Authenticator
@@ -77,27 +80,21 @@ class DataCacheStub:
         cached_logs = {},
         cached_events = [],
         skip_record_ids = [],
-        cached_log_lines = {},
     ):
         self.config = config
         self.cached_logs = cached_logs
         self.cached_events = cached_events
         self.skip_record_ids = skip_record_ids
-        self.cached_log_lines = cached_log_lines
         self.flush_called = False
 
     def can_skip_downloading_logfile(self, record_id: str) -> bool:
         return record_id in self.skip_record_ids
 
-    def load_cached_log_lines(self, record_id: str) -> None:
-        if record_id in self.cached_log_lines:
-            self.cached_logs[record_id] = self.cached_log_lines[record_id]
-
-    def check_and_set_log_line(self, record_id: str, row: dict) -> bool:
+    def check_or_set_log_line(self, record_id: str, row: dict) -> bool:
         return record_id in self.cached_logs and \
             row['REQUEST_ID'] in self.cached_logs[record_id]
 
-    def check_and_set_event_id(self, record_id: str) -> bool:
+    def check_or_set_event_id(self, record_id: str) -> bool:
         return record_id in self.cached_events
 
     def flush(self) -> None:
@@ -243,6 +240,87 @@ class PipelineFactoryStub:
         )
 
 
+class RedisStub:
+    def __init__(self, test_cache, raise_error = False):
+        self.expiry = {}
+        self.test_cache = test_cache
+        self.raise_error = raise_error
+
+    def exists(self, key):
+        if self.raise_error:
+            raise RedisError('raise_error set')
+
+        return key in self.test_cache
+
+    def set(self, key, item):
+        if self.raise_error:
+            raise RedisError('raise_error set')
+
+        self.test_cache[key] = item
+
+    def smembers(self, key):
+        if self.raise_error:
+            raise RedisError('raise_error set')
+
+        if not key in self.test_cache:
+            return set()
+
+        if not type(self.test_cache[key]) is set:
+            raise RedisError(f'{key} is not a set')
+
+        return self.test_cache[key]
+
+    def sadd(self, key, *values):
+        if self.raise_error:
+            raise RedisError('raise_error set')
+
+        if key in self.test_cache and not type(self.test_cache[key]) is set:
+            raise RedisError(f'{key} is not a set')
+
+        if not key in self.test_cache:
+            self.test_cache[key] = set()
+
+        for v in values:
+            self.test_cache[key].add(v)
+
+    def expire(self, key, time):
+        if self.raise_error:
+            raise RedisError('raise_error set')
+
+        self.expiry[key] = time
+
+
+class BackendStub:
+    def __init__(self, test_cache, raise_error = False):
+        self.redis = RedisStub(test_cache, raise_error)
+
+    def exists(self, key):
+        return self.redis.exists(key)
+
+    def put(self, key, item):
+        self.redis.set(key, item)
+
+    def get_set(self, key):
+        return self.redis.smembers(key)
+
+    def set_add(self, key, *values):
+        self.redis.sadd(key, *values)
+
+    def set_expiry(self, key, days):
+        self.redis.expire(key, timedelta(days=days))
+
+
+class BackendFactoryStub:
+    def __init__(self, raise_error = False):
+        self.raise_error = raise_error
+
+    def new(self, _: Config):
+        if self.raise_error:
+            raise RedisError('raise_error set')
+
+        return BackendStub({})
+
+
 class ResponseStub:
     def __init__(self, status_code, reason, text, lines):
         self.status_code = status_code
@@ -252,6 +330,9 @@ class ResponseStub:
 
     def iter_lines(self, *args, **kwargs):
         yield from self.lines
+
+    def json(self, *args, **kwargs):
+        return json.loads(self.text)
 
 
 class SalesForceStub:
@@ -304,8 +385,17 @@ class SalesForceFactoryStub:
 
 
 class SessionStub:
-    def __init__(self):
+    def __init__(self, raise_error=False):
+        self.raise_error = raise_error
         self.response = None
+        self.headers = None
+        self.url = None
 
     def get(self, *args, **kwargs):
+        if self.raise_error:
+            raise RequestException('raise_error set')
+
+        self.url = args[0]
+        self.headers = kwargs['headers']
+
         return self.response

@@ -52,28 +52,26 @@ class Authenticator:
 
         if self.data_cache:
             try:
-                self.data_cache.redis.delete(AUTH_CACHE_KEY)
+                # @TODO need to change all the places where redis is explicitly
+                # referenced since this breaks encapsulation.
+                self.data_cache.backend.redis.delete(AUTH_CACHE_KEY)
             except Exception as e:
                 print_warn(f'Failed deleting data from cache: {e}')
 
     def load_auth_from_cache(self) -> bool:
         try:
-            auth_exists = self.data_cache.redis.exists(AUTH_CACHE_KEY)
+            auth_exists = self.data_cache.backend.redis.exists(AUTH_CACHE_KEY)
             if auth_exists:
                 print_info('Retrieving credentials from Redis.')
-                #NOTE: hmget and hgetall both return byte arrays, not strings. We have to convert.
-                # We could fix it by adding the argument "decode_responses=True" to Redis constructor,
-                # but then we would have to change all places where we assume a byte array instead of a string,
-                # and refactoring in a language without static types is a pain.
                 try:
-                    auth = self.data_cache.redis.hmget(
+                    auth = self.data_cache.backend.redis.hmget(
                         AUTH_CACHE_KEY,
                         ['access_token', 'instance_url'],
                     )
 
-                    self.set_auth(
-                        auth[0].decode("utf-8"),
-                        auth[1].decode("utf-8"),
+                    self.set_auth_data(
+                        auth[0],
+                        auth[1],
                     )
 
                     return True
@@ -97,7 +95,7 @@ class Authenticator:
             }
 
             try:
-                self.data_cache.redis.hmset(AUTH_CACHE_KEY, auth)
+                self.data_cache.backend.redis.hmset(AUTH_CACHE_KEY, auth)
             except Exception as e:
                 print_warn(f"Failed storing data in cache: {e}")
 
