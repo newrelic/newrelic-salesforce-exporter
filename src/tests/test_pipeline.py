@@ -297,16 +297,35 @@ class TestPipeline(unittest.TestCase):
 
 
     def test_pack_event_record_into_log(self):
+        created_date = self.event_records[0]['CreatedDate']
+        timestamp = util.get_timestamp(created_date)
+
+        base_expected_attrs = {
+            'Id': '00001111AAAABBBB',
+            'Name': 'My Account',
+            'BillingCity': None,
+            'CreatedDate': created_date,
+            'CreatedBy.Name': 'Foo Bar',
+            'CreatedBy.Profile.Name': 'Beep Boop',
+            'CreatedBy.UserType': 'Bip Bop',
+            'EVENT_TYPE': 'Account',
+            'timestamp': timestamp,
+        }
+
         '''
         given: a query, record id and event record
-        when: there are no query options and the event record contains a 'type'
-              field in 'attributes'
+        when: there are no query options, the record id is not None, and the
+              event record contains a 'type' field in the 'attributes' field
         then: return a log with the 'message' attribute set to the event type
-              specified in the 'type' field + the created date, all attributes
-              from the original event record minus the 'attributes' field set in
-              the log 'attributes' field as well as the passed record id, and a
-              'timestamp' field with the epoch value representing the
-              'CreatedDate' field
+              specified in the record's 'attributes.type' field + the created
+              date; where the 'attributes' attribute contains all attributes
+              according to process_query_result, an 'Id' attribute set to the
+              passed record ID, an 'EVENT_TYPE' attribute set to the event type
+              specified in the record's 'attributes.type' field, and a
+              'timestamp' attribute set to the epoch value representing the
+              record's 'CreatedDate' field; and with the 'timestamp' attribute
+              also set to the epoch value representing the record's
+              'CreatedDate' field.
         '''
 
         # setup
@@ -320,39 +339,26 @@ class TestPipeline(unittest.TestCase):
         )
 
         # verify
-        created_date = self.event_records[0]['CreatedDate']
-        timestamp = int(datetime.strptime(
-            created_date,
-            '%Y-%m-%dT%H:%M:%S.%f%z').timestamp() * 1000,
-        )
         self.assertTrue('message' in log)
         self.assertTrue('attributes' in log)
         self.assertTrue('timestamp' in log)
         self.assertEqual(log['message'], f'Account {created_date}')
-        self.assertEqual(timestamp, log['timestamp'])
-
-        attrs = log['attributes']
-        self.assertTrue(not 'attributes' in attrs)
-        self.assertTrue('Id' in attrs)
-        self.assertTrue('Name' in attrs)
-        self.assertTrue('BillingCity' in attrs)
-        self.assertTrue('CreatedDate' in attrs)
-        self.assertEqual('00001111AAAABBBB', attrs['Id'])
-        self.assertEqual('My Account', attrs['Name'])
-        self.assertEqual(None, attrs['BillingCity'])
-        self.assertEqual('2024-03-11T00:00:00.000+0000', attrs['CreatedDate'])
+        self.assertEqual(log['attributes'], base_expected_attrs)
+        self.assertEqual(log['timestamp'], timestamp)
 
         '''
         given: a query, record id, and an event record
-        when: the record id is empty and there are no query options and the
-              event record contains a 'type' field in 'attributes'
-        then: return a log as in use case 1 but with no 'Id' value in the
-              log 'attributes' field
+        when: there are no query options, the record id is None, and the
+              event record contains a 'type' field in the 'attributes' field
+        then: return a log as in use case 1 but with the 'Id' value in the
+              log 'attributes' attribute set to the 'Id' value from the event
+              record
         '''
 
         # setup
         event_record = copy.deepcopy(self.event_records[0])
-        event_record.pop('Id')
+        expected_attrs = copy.deepcopy(base_expected_attrs)
+        expected_attrs['Id'] = '000012345'
 
         # execute
         log = pipeline.pack_event_record_into_log(
@@ -362,18 +368,29 @@ class TestPipeline(unittest.TestCase):
         )
 
         # verify
-        self.assertTrue(not 'Id' in log['attributes'])
+        self.assertTrue('message' in log)
+        self.assertTrue('attributes' in log)
+        self.assertTrue('timestamp' in log)
+        self.assertEqual(log['message'], f'Account {created_date}')
+        self.assertEqual(log['attributes'], expected_attrs)
+        self.assertEqual(log['timestamp'], timestamp)
 
         '''
         given: a query, record id, and an event record
-        when: the 'event_type' query option is specified
+        when: the 'event_type' query option is specified, the record id is not
+              None, and the event record contains a 'type' field in the
+              'attributes' field
         then: return a log as in use case 1 but with the event type in the log
-              message set to the custom event type specified in the 'event_type'
-              query option plus the created date.
+              'message' attribute set to the custom event type specified in the
+              'event_type' query option plus the created date, and with the
+              'EVENT_TYPE' attribute in the log 'attributes' attribute set to
+              the custom event type
         '''
 
         # setup
         event_record = copy.deepcopy(self.event_records[0])
+        expected_attrs = copy.deepcopy(base_expected_attrs)
+        expected_attrs['EVENT_TYPE'] = 'CustomEvent'
 
         # execute
         log = pipeline.pack_event_record_into_log(
@@ -383,19 +400,28 @@ class TestPipeline(unittest.TestCase):
         )
 
         # verify
+        self.assertTrue('message' in log)
+        self.assertTrue('attributes' in log)
+        self.assertTrue('timestamp' in log)
         self.assertEqual(log['message'], f'CustomEvent {created_date}')
+        self.assertEqual(log['attributes'], expected_attrs)
+        self.assertEqual(log['timestamp'], timestamp)
 
         '''
         given: a query, record id, and an event record
-        when: the event record does not contain an 'attributes' field
+        when: there are no query options, the record id is not None, and the
+              event record does not contain an 'attributes' field
         then: return a log as in use case 1 but with the event type in the log
-              message set to the default event type specified in the
-              'event_type' query option plus the created date.
+              'message' attribute set to the default event type plus the created
+              date, and with no 'EVENT_TYPE' attribute in the log 'attributes'
+              attribute
         '''
 
         # setup
         event_record = copy.deepcopy(self.event_records[0])
         event_record.pop('attributes')
+        expected_attrs = copy.deepcopy(base_expected_attrs)
+        expected_attrs.pop('EVENT_TYPE')
 
         # execute
         log = pipeline.pack_event_record_into_log(
@@ -405,18 +431,26 @@ class TestPipeline(unittest.TestCase):
         )
 
         # verify
+        self.assertTrue('message' in log)
+        self.assertTrue('attributes' in log)
+        self.assertTrue('timestamp' in log)
         self.assertEqual(log['message'], f'SFEvent {created_date}')
+        self.assertEqual(log['attributes'], expected_attrs)
+        self.assertEqual(log['timestamp'], timestamp)
 
         '''
         given: a query, record id, and an event record
-        when: the event record does contains an 'attributes' field but it is not
-              a dictionary
+        when: there are no query options, the record id is not None, and the
+              event record does contain an 'attributes' field but it is not a
+              dictionary
         then: return a log as in the previous use case
         '''
 
         # setup
         event_record = copy.deepcopy(self.event_records[0])
         event_record['attributes'] = 'test'
+        expected_attrs = copy.deepcopy(base_expected_attrs)
+        expected_attrs.pop('EVENT_TYPE')
 
         # execute
         log = pipeline.pack_event_record_into_log(
@@ -426,11 +460,17 @@ class TestPipeline(unittest.TestCase):
         )
 
         # verify
+        self.assertTrue('message' in log)
+        self.assertTrue('attributes' in log)
+        self.assertTrue('timestamp' in log)
         self.assertEqual(log['message'], f'SFEvent {created_date}')
+        self.assertEqual(log['attributes'], expected_attrs)
+        self.assertEqual(log['timestamp'], timestamp)
 
         '''
         given: a query, record id, and an event record
-        when: the event record does contains an 'type' field in the 'attributes'
+        when: there are no query options, the record id is not None, and the
+              event record does not contain a 'type' field in the 'attributes'
               field
         then: return a log as in the previous use case
         '''
@@ -438,7 +478,8 @@ class TestPipeline(unittest.TestCase):
         # setup
         event_record = copy.deepcopy(self.event_records[0])
         event_record['attributes'].pop('type')
-
+        expected_attrs = copy.deepcopy(base_expected_attrs)
+        expected_attrs.pop('EVENT_TYPE')
 
         # execute
         log = pipeline.pack_event_record_into_log(
@@ -448,11 +489,17 @@ class TestPipeline(unittest.TestCase):
         )
 
         # verify
+        self.assertTrue('message' in log)
+        self.assertTrue('attributes' in log)
+        self.assertTrue('timestamp' in log)
         self.assertEqual(log['message'], f'SFEvent {created_date}')
+        self.assertEqual(log['attributes'], expected_attrs)
+        self.assertEqual(log['timestamp'], timestamp)
 
         '''
         given: a query, record id, and an event record
-        when: the event record contains a 'type' field in the 'attributes'
+        when: there are no query options, the record id is not None, and the
+              event record does contain a 'type' field in the 'attributes'
               field but it is not a string
         then: return a log as in the previous use case
         '''
@@ -460,6 +507,8 @@ class TestPipeline(unittest.TestCase):
         # setup
         event_record = copy.deepcopy(self.event_records[0])
         event_record['attributes']['type'] = 12345
+        expected_attrs = copy.deepcopy(base_expected_attrs)
+        expected_attrs.pop('EVENT_TYPE')
 
         # execute
         log = pipeline.pack_event_record_into_log(
@@ -469,19 +518,73 @@ class TestPipeline(unittest.TestCase):
         )
 
         # verify
+        self.assertTrue('message' in log)
+        self.assertTrue('attributes' in log)
+        self.assertTrue('timestamp' in log)
         self.assertEqual(log['message'], f'SFEvent {created_date}')
+        self.assertEqual(log['attributes'], expected_attrs)
+        self.assertEqual(log['timestamp'], timestamp)
+
+        '''
+        given: a query, record id, and an event record
+        when: the 'timestamp_attr' query option is specified, the field
+              specified in the 'timestamp_attr' query option exists in the event
+              record, the record id is not None, and the event record contains a
+              'type' field in the 'attributes' field
+        then: return a log as in use case 1 but using the timestamp from the
+              field specified in the 'timestamp_attr' query option.
+        '''
+
+        # setup
+        __now = datetime.now()
+
+        def _now():
+            nonlocal __now
+            return __now
+
+        util._NOW = _now
+
+        created_date_2 = self.event_records[1]['CreatedDate']
+        timestamp = util.get_timestamp(created_date_2)
+
+        event_record = copy.deepcopy(self.event_records[0])
+        event_record['CustomDate'] = created_date_2
+        expected_attrs = copy.deepcopy(base_expected_attrs)
+        expected_attrs['CustomDate'] = created_date_2
+        expected_attrs['timestamp'] = timestamp
+
+        # execute
+        log = pipeline.pack_event_record_into_log(
+            QueryStub({ 'timestamp_attr': 'CustomDate' }),
+            '00001111AAAABBBB',
+            event_record
+        )
+
+        # verify
+        self.assertTrue('message' in log)
+        self.assertTrue('attributes' in log)
+        self.assertTrue('timestamp' in log)
+        self.assertEqual(log['message'], f'Account {created_date_2}')
+        self.assertEqual(log['attributes'], expected_attrs)
+        self.assertEqual(log['timestamp'], timestamp)
 
         '''
         given: a query, record id, and an event record
         when: the 'timestamp_attr' query option is specified but the specified
-              attribute name is not in the event record
-        then: return a log as in use case 1 but the message does not contain a
-              created date and contains a 'timestamp' field set to the current
-              time.
+              attribute name is not in the event record, the record id is not
+              None, and the event record contains a 'type' field in the
+              'attributes' field
+        then: return a log as in use case 1 but the log 'message' attribute does
+              not contain a date, the 'timestamp' attribute of the log
+              'attributes' attribute is set to the current time, and with the
+              log 'timestamp' attribute set to the current time.
         '''
 
         # setup
         event_record = copy.deepcopy(self.event_records[0])
+        expected_attrs = copy.deepcopy(base_expected_attrs)
+        timestamp = util.get_timestamp()
+        expected_attrs['timestamp'] = timestamp
 
         # execute
         log = pipeline.pack_event_record_into_log(
@@ -491,21 +594,27 @@ class TestPipeline(unittest.TestCase):
         )
 
         # verify
-        timestamp = int(datetime.now().timestamp() * 1000)
-        self.assertEqual(log['message'], f'Account')
+        self.assertTrue('message' in log)
+        self.assertTrue('attributes' in log)
         self.assertTrue('timestamp' in log)
-        self.assertTrue(log['timestamp'] <= timestamp)
+        self.assertEqual(log['message'], f'Account')
+        self.assertEqual(log['attributes'], expected_attrs)
+        self.assertEqual(log['timestamp'], timestamp)
 
         '''
         given: a query, record id, and an event record
-        when: no query options are specified and the event record does not
-              contain a 'CreatedDate' field
+        when: no query options are specified, the record id is not None, and the
+              event record does not contain a 'CreatedDate' field
         then: return the same as the previous use case
         '''
 
         # setup
         event_record = copy.deepcopy(self.event_records[0])
         event_record.pop('CreatedDate')
+        expected_attrs = copy.deepcopy(base_expected_attrs)
+        expected_attrs.pop('CreatedDate')
+        timestamp = util.get_timestamp()
+        expected_attrs['timestamp'] = timestamp
 
         # execute
         log = pipeline.pack_event_record_into_log(
@@ -515,21 +624,31 @@ class TestPipeline(unittest.TestCase):
         )
 
         # verify
-        timestamp = int(datetime.now().timestamp() * 1000)
-        self.assertEqual(log['message'], f'Account')
+        self.assertTrue('message' in log)
+        self.assertTrue('attributes' in log)
         self.assertTrue('timestamp' in log)
-        self.assertTrue(log['timestamp'] <= timestamp)
+        self.assertEqual(log['message'], f'Account')
+        self.assertEqual(log['attributes'], expected_attrs)
+        self.assertEqual(log['timestamp'], timestamp)
 
         '''
         given: a query, record id, and an event record
-        when: the 'rename_timestamp' query options is set
-        then: return the same as use case 1 but with a field with the name
+        when: the 'rename_timestamp' query option is specified, the record id is
+              not None, and the event record contains a 'type' field in the
+              'attributes' field
+        then: return the same as use case 1 but with an attribute with the name
               specified in the 'rename_timestamp' query option set to the
-              current time and no 'timestamp' field
+              created date in the log 'attributes' attribute, no 'timestamp'
+              attribute in the log 'attributes' attribute, and with no log
+              'timestamp' attribute
         '''
 
         # setup
         event_record = copy.deepcopy(self.event_records[0])
+        expected_attrs = copy.deepcopy(base_expected_attrs)
+        timestamp = util.get_timestamp(created_date)
+        expected_attrs['custom_timestamp'] = timestamp
+        expected_attrs.pop('timestamp')
 
         # execute
         log = pipeline.pack_event_record_into_log(
@@ -539,10 +658,11 @@ class TestPipeline(unittest.TestCase):
         )
 
         # verify
-        timestamp = int(datetime.now().timestamp() * 1000)
-        self.assertTrue('custom_timestamp' in log['attributes'])
+        self.assertTrue('message' in log)
+        self.assertTrue('attributes' in log)
         self.assertTrue(not 'timestamp' in log)
-        self.assertTrue(log['attributes']['custom_timestamp'] <= timestamp)
+        self.assertEqual(log['message'], f'Account {created_date}')
+        self.assertEqual(log['attributes'], expected_attrs)
 
     def test_transform_event_records(self):
         '''

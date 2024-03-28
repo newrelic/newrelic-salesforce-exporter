@@ -1,8 +1,11 @@
+from copy import deepcopy
 from datetime import datetime, timedelta
 import hashlib
-from typing import Union
+from typing import Any, Union
 
 from .telemetry import print_warn
+
+PRIMITIVE_TYPES = (str, int, float, bool, type(None))
 
 
 def is_logfile_response(records):
@@ -41,6 +44,51 @@ def maybe_convert_str_to_num(val: str) -> Union[int, str, float]:
             return val
 
 
+def is_primitive(val: Any) -> bool:
+    vt = type(val)
+
+    for t in PRIMITIVE_TYPES:
+        if vt == t:
+            return True
+
+    return False
+
+
+def process_query_result_helper(
+    item: tuple[str, Any],
+    name: list[str] = [],
+    vals: list[tuple[str, Any]] = [],
+) -> list[tuple[str, Any]]:
+    (k, v) = item
+
+    if k == 'attributes':
+        return vals
+
+    if is_primitive(v):
+        return vals + [('.'.join(name + [k]), v)]
+
+    if not type(v) is dict:
+        print_warn(f'ignoring structured element {k} in query result')
+        return vals
+
+    new_vals = vals
+
+    for item0 in v.items():
+        new_vals = process_query_result_helper(item0, name + [k], new_vals)
+
+    return new_vals
+
+
+def process_query_result(query_result: dict) -> dict:
+    out = {}
+
+    for item in query_result.items():
+        for (k, v) in process_query_result_helper(item):
+            out[k] = v
+
+    return out
+
+
 # Make testing easier
 def _utcnow():
     return datetime.utcnow()
@@ -58,6 +106,25 @@ def get_iso_date_with_offset(
     ).isoformat(
         timespec='milliseconds'
     ) + 'Z'
+
+
+# Make testing easier
+def _now():
+    return datetime.now()
+
+_NOW = _now
+
+
+def get_timestamp(date_string: str = None):
+    if not date_string:
+        return int(_NOW().timestamp() * 1000)
+
+    return int(
+        datetime.strptime(
+            date_string,
+            '%Y-%m-%dT%H:%M:%S.%f%z'
+        ).timestamp() * 1000
+    )
 
 
 # NOTE: this sandbox can be jailbroken using the trick to exec statements inside

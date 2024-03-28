@@ -14,7 +14,9 @@ from .query import Query
 from .telemetry import print_info
 from .util import generate_record_id, \
     is_logfile_response, \
-    maybe_convert_str_to_num
+    maybe_convert_str_to_num, \
+    process_query_result, \
+    get_timestamp
 
 
 DEFAULT_CHUNK_SIZE = 4096
@@ -153,15 +155,13 @@ def pack_event_record_into_log(
     record_id: str,
     record: dict,
 ) -> dict:
-    # Make a copy of it so we aren't modifying the row passed by the caller, and
-    # set attributes appropriately
-    attrs = deepcopy(record)
+    attrs = process_query_result(record)
     if record_id:
         attrs['Id'] = record_id
 
     message = query.get('event_type', 'SFEvent')
-    if 'attributes' in attrs and type(attrs['attributes']) == dict:
-        attributes = attrs.pop('attributes')
+    if 'attributes' in record and type(record['attributes']) == dict:
+        attributes = record['attributes']
         if 'type' in attributes and type(attributes['type']) == str:
             attrs['EVENT_TYPE'] = message = \
                 query.get('event_type', attributes['type'])
@@ -170,15 +170,12 @@ def pack_event_record_into_log(
     if timestamp_attr in attrs:
         created_date = attrs[timestamp_attr]
         message += f' {created_date}'
-        timestamp = int(datetime.strptime(
-            created_date,
-            '%Y-%m-%dT%H:%M:%S.%f%z').timestamp() * 1000,
-        )
+        timestamp = get_timestamp(created_date)
     else:
-        timestamp = int(datetime.now().timestamp() * 1000)
+        timestamp = get_timestamp()
 
     timestamp_field_name = query.get('rename_timestamp', 'timestamp')
-    attrs[timestamp_field_name] = int(timestamp)
+    attrs[timestamp_field_name] = timestamp
 
     log_entry = {
         'message': message,
