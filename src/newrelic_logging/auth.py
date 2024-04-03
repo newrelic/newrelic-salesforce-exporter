@@ -99,22 +99,6 @@ class Authenticator:
             except Exception as e:
                 print_warn(f"Failed storing data in cache: {e}")
 
-    def authenticate(
-        self,
-        session: Session,
-    ) -> None:
-        if self.data_cache and self.load_auth_from_cache():
-            return
-
-        oauth_type = self.get_grant_type()
-        if oauth_type == 'password':
-            self.authenticate_with_password(session)
-            print_info('Correctly authenticated with user/pass flow')
-            return
-
-        self.authenticate_with_jwt(session)
-        print_info('Correctly authenticated with JWT flow')
-
     def authenticate_with_jwt(self, session: Session) -> None:
         private_key_file = self.auth_data['private_key']
         client_id = self.auth_data['client_id']
@@ -198,6 +182,22 @@ class Authenticator:
         except RequestException as e:
             raise LoginException(f'authentication failed for sfdc instance {self.instance_name}') from e
 
+    def authenticate(self, session: Session) -> None:
+        if self.data_cache and self.load_auth_from_cache():
+            return
+
+        oauth_type = self.get_grant_type()
+        if oauth_type == 'password':
+            self.authenticate_with_password(session)
+            print_info('Correctly authenticated with user/pass flow')
+            return
+
+        self.authenticate_with_jwt(session)
+        print_info('Correctly authenticated with JWT flow')
+
+    def reauthenticate(self, session: Session) -> None:
+        self.clear_auth()
+        self.authenticate(session)
 
 def validate_oauth_config(auth: dict) -> dict:
     if not auth['client_id']:

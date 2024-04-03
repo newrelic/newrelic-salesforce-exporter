@@ -1,10 +1,10 @@
 from datetime import datetime
 import unittest
 
-from newrelic_logging import SalesforceApiException
+from newrelic_logging import LoginException, SalesforceApiException
 from newrelic_logging import config as mod_config, query, util
 from . import \
-    ResponseStub, \
+    ApiStub, \
     SessionStub
 
 class TestQuery(unittest.TestCase):
@@ -18,13 +18,14 @@ class TestQuery(unittest.TestCase):
         '''
 
         # setup
+        api = ApiStub()
         config = mod_config.Config({ 'foo': 'bar' })
 
         # execute
         q = query.Query(
+            api,
             'SELECT+LogFile+FROM+EventLogFile',
             config,
-            '55.0',
         )
         val = q.get('foo')
 
@@ -41,96 +42,128 @@ class TestQuery(unittest.TestCase):
         '''
 
         # setup
+        api = ApiStub()
         config = mod_config.Config({})
 
         # execute
         q = query.Query(
+            api,
             'SELECT+LogFile+FROM+EventLogFile',
             config,
-            '55.0',
         )
         val = q.get('foo', 'beep')
 
         # verify
         self.assertEqual(val, 'beep')
 
-    def test_execute_raises_exception_on_non_200_response(self):
+    def test_execute_raises_login_exception_if_api_query_does(self):
         '''
-        execute() raises exception on non-200 status code from Salesforce API
-        given: a query string, a configuration, and an api version
-        when: execute() is called with an http session, an instance url, and an access token
-        and when: the response produces a non-200 status code
+        execute() raises a LoginException if api.query() raises a LoginException
+        given: an api instance, a query string, and a configuration
+        when: execute() is called with an http session
+        then: calls api.query() with the given session, query string, and no api version
+        and when: api.query() raises a LoginException (as a result of a reauthenticate)
+        then: raise a LoginException
+        '''
+
+        # setup
+        api = ApiStub(raise_login_error=True)
+        config = mod_config.Config({})
+        session = SessionStub()
+
+        # execute/verify
+        q = query.Query(
+            api,
+            'SELECT+LogFile+FROM+EventLogFile',
+            config,
+        )
+
+        with self.assertRaises(LoginException) as _:
+            q.execute(session)
+
+    def test_execute_raises_salesforce_api_exception_if_api_query_does(self):
+        '''
+        execute() raises a SalesforceApiException if api.query() raises a SalesforceApiException
+        given: an api instance, a query string, and a configuration
+        when: execute() is called with an http session
+        then: calls api.query() with the given session, query string, and no api version
+        and when: api.query() raises a SalesforceApiException
         then: raise a SalesforceApiException
         '''
 
         # setup
+        api = ApiStub(raise_error=True)
         config = mod_config.Config({})
         session = SessionStub()
-        session.response = ResponseStub(500, 'Error', '', [])
 
         # execute/verify
         q = query.Query(
+            api,
             'SELECT+LogFile+FROM+EventLogFile',
             config,
-            '55.0',
         )
 
         with self.assertRaises(SalesforceApiException) as _:
-            q.execute(session, 'https://my.salesforce.test', '123456')
+            q.execute(session)
 
-    def test_execute_raises_exception_if_session_get_does(self):
+    def test_execute_calls_query_api_with_query_and_returns_result(self):
         '''
-        execute() raises exception if session.get() raises a RequestException
-        given: a query string, a configuration, and an api version
-        when: execute() is called with an http session, an instance url, and an access token
-        and when: session.get() raises a RequestException
-        then: raise a SalesforceApiException
-        '''
-
-        # setup
-        config = mod_config.Config({})
-        session = SessionStub(raise_error=True)
-        session.response = ResponseStub(200, 'OK', '[]', [] )
-
-        # execute/verify
-        q = query.Query(
-            'SELECT+LogFile+FROM+EventLogFile',
-            config,
-            '55.0',
-        )
-
-        with self.assertRaises(SalesforceApiException) as _:
-            q.execute(session, 'https://my.salesforce.test', '123456')
-
-    def test_execute_calls_query_api_url_with_token_and_returns_json_response(self):
-        '''
-        execute() calls the correct query API url with the access token and returns a json response
-        given: a query string, a configuration, and an api version
-        when: execute() is called with an http session, an instance url, and an access token
-        then: a get request is made to the correct API url with the given access token and returns a json response
+        execute() calls api.query() with the given session, query string, and no api version and returns the result
+        given: an api instance, a query string, and a configuration
+        when: execute() is called with an http session
+        then: calls api.query() with the given session, query string, and no api version
+        and: returns query result
         '''
 
         # setup
+        api = ApiStub(query_result={ 'foo': 'bar' })
         config = mod_config.Config({})
         session = SessionStub()
-        session.response = ResponseStub(200, 'OK', '{"foo": "bar"}', [] )
 
         # execute
         q = query.Query(
+            api,
             'SELECT+LogFile+FROM+EventLogFile',
             config,
-            '55.0',
         )
 
-        resp = q.execute(session, 'https://my.salesforce.test', '123456')
+        resp = q.execute(session)
 
         # verify
-        self.assertEqual(
-            session.url,
-            f'https://my.salesforce.test/services/data/v55.0/query?q=SELECT+LogFile+FROM+EventLogFile',
+        self.assertEqual('SELECT+LogFile+FROM+EventLogFile', api.soql)
+        self.assertIsNone(api.query_api_ver)
+        self.assertIsNotNone(resp)
+        self.assertTrue(type(resp) is dict)
+        self.assertTrue('foo' in resp)
+        self.assertEqual(resp['foo'], 'bar')
+
+    def test_execute_calls_query_api_with_query_and_api_ver_and_returns_result(self):
+        '''
+        execute() calls api.query() with the given session, query string, and api version and returns the result
+        given: an api instance, a query string, a configuration, and an api version
+        when: execute() is called with an http session
+        then: calls api.query() with the given session, query string, and api version
+        and: returns query result
+        '''
+
+        # setup
+        api = ApiStub(query_result={ 'foo': 'bar' })
+        config = mod_config.Config({})
+        session = SessionStub()
+
+        # execute
+        q = query.Query(
+            api,
+            'SELECT+LogFile+FROM+EventLogFile',
+            config,
+            '52.0',
         )
-        self.assertTrue('Authorization' in session.headers)
-        self.assertEqual(session.headers['Authorization'], 'Bearer 123456')
+
+        resp = q.execute(session)
+
+        # verify
+        self.assertEqual('SELECT+LogFile+FROM+EventLogFile', api.soql)
+        self.assertEqual(api.query_api_ver, '52.0')
         self.assertIsNotNone(resp)
         self.assertTrue(type(resp) is dict)
         self.assertTrue('foo' in resp)
@@ -251,7 +284,7 @@ class TestQueryFactory(unittest.TestCase):
         '''
         new() returns a query instance with the given query with arguments replaced and URL encoded
         given: a query factory
-        when: new() is called with a query dict, lag time, timestamp, generation interval, and default api version
+        when: new() is called with an Api instance, query dict, lag time, timestamp, and generation interval
         then: returns a query instance with the input query with arguments replaced and URL encoded
         '''
 
@@ -264,6 +297,7 @@ class TestQueryFactory(unittest.TestCase):
 
         util._UTCNOW = _utcnow
 
+        api = ApiStub()
         to_timestamp = util.get_iso_date_with_offset(time_lag_minutes=500)
         last_to_timestamp = util.get_iso_date_with_offset(time_lag_minutes=1000)
         now = _now.isoformat(timespec='milliseconds') + "Z"
@@ -272,6 +306,7 @@ class TestQueryFactory(unittest.TestCase):
         # execute
         f = query.QueryFactory()
         q = f.new(
+            api,
             {
                 'query': 'SELECT LogFile FROM EventLogFile WHERE CreatedDate>={from_timestamp} AND CreatedDate<{to_timestamp} AND LogIntervalType={log_interval_type} AND Foo={foo}',
                 'env': env,
@@ -279,7 +314,6 @@ class TestQueryFactory(unittest.TestCase):
             500,
             last_to_timestamp,
             'Daily',
-            '55.0',
         )
 
         # verify
@@ -292,7 +326,7 @@ class TestQueryFactory(unittest.TestCase):
         '''
         new() returns a query instance with the input query dict minus the query property
         given: a query factory
-        when: new() is called with a query dict, lag time, timestamp, generation interval, and default api version
+        when: new() is called with an Api instance, query dict, lag time, timestamp, and generation interval
         then: returns a query instance with a config equal to the input query dict minus the query property
         '''
 
@@ -300,8 +334,10 @@ class TestQueryFactory(unittest.TestCase):
         last_to_timestamp = util.get_iso_date_with_offset(time_lag_minutes=1000)
 
         # execute
+        api = ApiStub()
         f = query.QueryFactory()
         q = f.new(
+            api,
             {
                 'query': 'SELECT LogFile FROM EventLogFile',
                 'foo': 'bar',
@@ -312,7 +348,6 @@ class TestQueryFactory(unittest.TestCase):
             500,
             last_to_timestamp,
             'Daily',
-            '55.0',
         )
 
         # verify
@@ -334,16 +369,19 @@ class TestQueryFactory(unittest.TestCase):
         '''
         new() returns a query instance with the api version specified in the query dict
         given: a query factory
-        when: new() is called with a query dict, lag time, timestamp, generation interval, and default api version
+        when: new() is called with an Api instance, query dict, lag time, timestamp, and generation interval
+        and when: an api version is specified in the query dict
         then: returns a query instance with the api version specified in the query dict
         '''
 
         # setup
+        api = ApiStub(api_ver='54.0')
         last_to_timestamp = util.get_iso_date_with_offset(time_lag_minutes=1000)
 
         # execute
         f = query.QueryFactory()
         q = f.new(
+            api,
             {
                 'query': 'SELECT LogFile FROM EventLogFile',
                 'api_ver': '58.0'
@@ -351,7 +389,6 @@ class TestQueryFactory(unittest.TestCase):
             500,
             last_to_timestamp,
             'Daily',
-            '53.0',
         )
 
         # verify
@@ -359,26 +396,28 @@ class TestQueryFactory(unittest.TestCase):
 
     def test_new_returns_query_obj_with_default_api_ver(self):
         '''
-        new() returns a query instance with the default api version specified on the new() call
+        new() returns a query instance without an api version
         given: a query factory
-        when: new() is called with a query dict, lag time, timestamp, generation interval, and default api version
-        then: returns a query instance with the default api version specified on the the new() call
+        when: new() is called with an Api instance, query dict, lag time, timestamp, and generation interval
+        and when: no api version is specified in the query dict
+        then: returns a query instance without an api version
         '''
 
         # setup
+        api = ApiStub(api_ver='54.0')
         last_to_timestamp = util.get_iso_date_with_offset(time_lag_minutes=1000)
 
         # execute
         f = query.QueryFactory()
         q = f.new(
+            api,
             {
                 'query': 'SELECT LogFile FROM EventLogFile',
             },
             500,
             last_to_timestamp,
             'Daily',
-            '53.0',
         )
 
         # verify
-        self.assertEqual(q.api_ver, '53.0')
+        self.assertIsNone(q.api_ver)

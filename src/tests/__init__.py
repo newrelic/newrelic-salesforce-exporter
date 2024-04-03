@@ -3,13 +3,78 @@ import json
 from redis import RedisError
 from requests import Session, RequestException
 
-from newrelic_logging import DataFormat
+from newrelic_logging import DataFormat, LoginException, SalesforceApiException
+from newrelic_logging.api import Api
 from newrelic_logging.auth import Authenticator
 from newrelic_logging.cache import DataCache
 from newrelic_logging.config import Config
 from newrelic_logging.newrelic import NewRelic
 from newrelic_logging.pipeline import Pipeline
 from newrelic_logging.query import Query, QueryFactory
+
+
+class ApiStub:
+    def __init__(
+        self,
+        authenticator: Authenticator = None,
+        api_ver: str = None,
+        query_result: dict = None,
+        lines: list[str] = None,
+        raise_error = False,
+        raise_login_error = False,
+    ):
+        self.authenticator = authenticator
+        self.api_ver = api_ver
+        self.query_result = query_result
+        self.lines = lines
+        self.soql = None
+        self.query_api_ver = None
+        self.log_file_path = None
+        self.chunk_size = None
+        self.raise_error = raise_error
+        self.raise_login_error = raise_login_error
+
+    def authenticate(self, session: Session):
+        if self.raise_login_error:
+            raise LoginException()
+
+        self.authenticator.authenticate(session)
+
+    def query(self, session: Session, soql: str, api_ver: str = None) -> dict:
+        self.soql = soql
+        self.query_api_ver = api_ver
+
+        if self.raise_error:
+            raise SalesforceApiException()
+
+        if self.raise_login_error:
+            raise LoginException()
+
+        return self.query_result
+
+    def get_log_file(
+        self,
+        session: Session,
+        log_file_path: str,
+        chunk_size: int,
+    ):
+        self.log_file_path = log_file_path
+        self.chunk_size = chunk_size
+
+        if self.raise_error:
+            raise SalesforceApiException()
+
+        if self.raise_login_error:
+            raise LoginException()
+
+        yield from self.lines
+
+class ApiFactoryStub:
+    def __init__(self):
+        pass
+
+    def new(self, authenticator: Authenticator, api_ver: str):
+        return ApiStub(authenticator, api_ver)
 
 
 class AuthenticatorStub:
@@ -22,6 +87,8 @@ class AuthenticatorStub:
         instance_url: str = '',
         grant_type: str = '',
         authenticate_called: bool = False,
+        reauthenticate_called: bool = False,
+        raise_login_error = False,
     ):
         self.config = config
         self.data_cache = data_cache
@@ -30,6 +97,8 @@ class AuthenticatorStub:
         self.instance_url = instance_url
         self.grant_type = grant_type
         self.authenticate_called = authenticate_called
+        self.reauthenticate_called = reauthenticate_called
+        self.raise_login_error = raise_login_error
 
     def get_access_token(self) -> str:
         return self.access_token
@@ -52,17 +121,27 @@ class AuthenticatorStub:
     def store_auth(self, auth_resp: dict) -> None:
         pass
 
-    def authenticate(
-        self,
-        session: Session,
-    ) -> None:
-        self.authenticate_called = True
-
     def authenticate_with_jwt(self, session: Session) -> None:
         pass
 
     def authenticate_with_password(self, session: Session) -> None:
         pass
+
+    def authenticate(
+        self,
+        session: Session,
+    ) -> None:
+        self.authenticate_called = True
+        if self.raise_login_error:
+            raise LoginException('Unauthorized')
+
+    def reauthenticate(
+        self,
+        session: Session,
+    ) -> None:
+        self.reauthenticate_called = True
+        if self.raise_login_error:
+            raise LoginException('Unauthorized')
 
 
 class AuthenticatorFactoryStub:
@@ -133,11 +212,13 @@ class NewRelicFactoryStub:
 class QueryStub:
     def __init__(
         self,
-        config: Config = Config({}),
-        api_ver: str = '',
-        result: dict = { 'records': [] },
+        api: Api = None,
         query: str = '',
+        config: Config = Config({}),
+        api_ver: str = None,
+        result: dict = { 'records': [] },
     ):
+        self.api = api
         self.query = query
         self.config = config
         self.api_ver = api_ver
@@ -150,12 +231,7 @@ class QueryStub:
     def get_config(self):
         return self.config
 
-    def execute(
-        self,
-        session: Session = None,
-        instance_url: str = '',
-        access_token: str = '',
-    ):
+    def execute(self, session: Session = None):
         self.executed = True
         return self.result
 
@@ -168,16 +244,16 @@ class QueryFactoryStub:
 
     def new(
         self,
+        api: Api,
         q: dict,
         time_lag_minutes: int = 0,
         last_to_timestamp: str = '',
         generation_interval: str = '',
-        default_api_ver: str = '',
     ) -> Query:
         if self.query:
             return self.query
 
-        qq = QueryStub(q, default_api_ver, query=q['query'])
+        qq = QueryStub(api, q['query'], q)
         self.queries.append(qq)
         return qq
 
@@ -192,6 +268,8 @@ class PipelineStub:
         labels: dict = {},
         event_type_fields_mapping: dict = {},
         numeric_fields_list: set = set(),
+        raise_error: bool = False,
+        raise_login_error: bool = False,
     ):
         self.config = config
         self.data_cache = data_cache
@@ -202,15 +280,22 @@ class PipelineStub:
         self.numeric_fields_list = numeric_fields_list
         self.queries = []
         self.executed = False
+        self.raise_error = raise_error
+        self.raise_login_error = raise_login_error
 
     def execute(
         self,
+        api: Api,
         session: Session,
         query: Query,
-        instance_url: str,
-        access_token: str,
         records: list[dict],
     ):
+        if self.raise_error:
+            raise SalesforceApiException()
+
+        if self.raise_login_error:
+            raise LoginException()
+
         self.queries.append(query)
         self.executed = True
 
@@ -321,14 +406,49 @@ class BackendFactoryStub:
         return BackendStub({})
 
 
+class MultiRequestSessionStub:
+    def __init__(self, responses=[], raise_error=False):
+        self.raise_error = raise_error
+        self.requests = []
+        self.responses = responses
+        self.count = 0
+
+    def get(self, *args, **kwargs):
+        self.requests.append({
+            'url': args[0],
+            'headers': kwargs['headers'],
+            'stream': kwargs['stream'] if 'stream' in kwargs else None,
+        })
+
+        if self.raise_error:
+            raise RequestException('raise_error set')
+
+        if self.count < len(self.responses):
+            self.count += 1
+
+        return self.responses[self.count - 1]
+
+
 class ResponseStub:
-    def __init__(self, status_code, reason, text, lines):
+    def __init__(self, status_code, reason, text, lines, encoding=None):
         self.status_code = status_code
         self.reason = reason
         self.text = text
         self.lines = lines
+        self.chunk_size = None
+        self.decode_unicode = None
+        self.encoding = encoding
+        self.iter_lines_called = False
 
     def iter_lines(self, *args, **kwargs):
+        self.iter_lines_called = True
+
+        if 'chunk_size' in kwargs:
+            self.chunk_size = kwargs['chunk_size']
+
+        if 'decode_unicode' in kwargs:
+            self.decode_unicode = kwargs['decode_unicode']
+
         yield from self.lines
 
     def json(self, *args, **kwargs):
@@ -385,17 +505,24 @@ class SalesForceFactoryStub:
 
 
 class SessionStub:
-    def __init__(self, raise_error=False):
+    def __init__(self, raise_error=False, raise_connection_error=False):
         self.raise_error = raise_error
+        self.raise_connection_error = raise_connection_error
         self.response = None
         self.headers = None
         self.url = None
+        self.stream = None
 
     def get(self, *args, **kwargs):
-        if self.raise_error:
-            raise RequestException('raise_error set')
-
         self.url = args[0]
         self.headers = kwargs['headers']
+        if 'stream' in kwargs:
+            self.stream = kwargs['stream']
+
+        if self.raise_connection_error:
+            raise ConnectionError('raise_connection_error set')
+
+        if self.raise_error:
+            raise RequestException('raise_error set')
 
         return self.response

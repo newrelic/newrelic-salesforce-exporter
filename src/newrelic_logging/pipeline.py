@@ -6,6 +6,7 @@ import pytz
 from requests import Session
 
 from . import DataFormat, SalesforceApiException
+from .api import Api
 from .cache import DataCache
 from .config import Config
 from .http_session import new_retry_session
@@ -88,32 +89,13 @@ def pack_log_line_into_log(
 
 
 def export_log_lines(
+    api: Api,
     session: Session,
-    url: str,
-    access_token: str,
+    log_file_path: str,
     chunk_size: int,
 ):
-    print_info(f'Downloading log lines for log file: {url}')
-
-    # Request the log lines for the log file record url
-    response = session.get(
-        url,
-        headers={
-            'Authorization': f'Bearer {access_token}'
-        },
-        stream=True,
-    )
-    if response.status_code != 200:
-        error_message = f'salesforce event log file download failed. ' \
-                        f'status-code: {response.status_code}, ' \
-                        f'reason: {response.reason} ' \
-                        f'response: {response.text}'
-        raise SalesforceApiException(response.status_code, error_message)
-
-    # Stream the response as a set of lines. This function will return an
-    # iterator that yields one line at a time holding only the minimum
-    # amount of data chunks in memory to make up a single line
-    return response.iter_lines(chunk_size=chunk_size, decode_unicode=True)
+    print_info(f'Downloading log lines for log file: {log_file_path}')
+    return api.get_log_file(session, log_file_path, chunk_size)
 
 
 def transform_log_lines(
@@ -380,15 +362,14 @@ class Pipeline:
 
     def process_log_record(
         self,
+        api: Api,
         session: Session,
         query: Query,
-        instance_url: str,
-        access_token: str,
         record: dict,
     ):
         record_id = str(record['Id'])
         record_event_type = query.get("event_type", record['EventType'])
-        record_file_name = record['LogFile']
+        log_file_path = record['LogFile']
         interval = record['Interval']
 
         # NOTE: only Hourly logs can be skipped, because Daily logs can change
@@ -403,9 +384,9 @@ class Pipeline:
         load_data(
             transform_log_lines(
                 export_log_lines(
+                    api,
                     session,
-                    f'{instance_url}{record_file_name}',
-                    access_token,
+                    log_file_path,
                     self.config.get('chunk_size', DEFAULT_CHUNK_SIZE)
                 ),
                 query,
@@ -441,20 +422,18 @@ class Pipeline:
 
     def execute(
         self,
+        api: Api,
         session: Session,
         query: Query,
-        instance_url: str,
-        access_token: str,
         records: list[dict],
     ):
         if is_logfile_response(records):
             for record in records:
                 if 'LogFile' in record:
                     self.process_log_record(
+                        api,
                         session,
                         query,
-                        instance_url,
-                        access_token,
                         record,
                     )
 

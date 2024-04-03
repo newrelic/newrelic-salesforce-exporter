@@ -4,18 +4,21 @@ import json
 import pytz
 import unittest
 
+
 from newrelic_logging import \
     config, \
     DataFormat, \
+    LoginException, \
     pipeline, \
     util, \
     SalesforceApiException
 from . import \
+    ApiStub, \
     DataCacheStub, \
     NewRelicStub, \
     QueryStub, \
-    ResponseStub, \
     SessionStub
+
 
 class TestPipeline(unittest.TestCase):
     def setUp(self):
@@ -162,7 +165,7 @@ class TestPipeline(unittest.TestCase):
         '''
 
         # setup
-        query = QueryStub({
+        query = QueryStub(config={
             'event_type': 'CustomSFEvent',
             'rename_timestamp': 'custom_timestamp',
         })
@@ -186,30 +189,55 @@ class TestPipeline(unittest.TestCase):
 
     def test_export_log_lines(self):
         '''
-        given: an http session, url, access token, and chunk size
-        when: the response produces a non-200 status code
+        given: an Api instance, an http session, log file path, and chunk size
+        when: api.get_log_file() is called
+        and when: api.get_log_file() raises a LoginException
+        then: raise a LoginException
+        '''
+
+        # setup
+        api = ApiStub(raise_login_error=True)
+        session = SessionStub()
+
+        # execute/verify
+        with self.assertRaises(LoginException):
+            lines = pipeline.export_log_lines(api, session, '', 100)
+            # Have to use next to cause the generator to execute the function
+            # else get_log_file() won't get executed and our stub won't have
+            # a chance to throw the fake exception.
+            next(lines)
+
+        '''
+        given: an Api instance, an http session, log file path, and chunk size
+        when: api.get_log_file() is called
+        and when: api.get_log_file() raises a SalesforceApiException
         then: raise a SalesforceApiException
         '''
 
         # setup
+        api = ApiStub(raise_error=True)
         session = SessionStub()
-        session.response = ResponseStub(500, 'Error', '', [])
 
         # execute/verify
         with self.assertRaises(SalesforceApiException):
-            pipeline.export_log_lines(session, '', '', 100)
+            lines = pipeline.export_log_lines(api, session, '', 100)
+            # Have to use next to cause the generator to execute the function
+            # else get_log_file() won't get executed and our stub won't have
+            # a chance to throw the fake exception.
+            next(lines)
 
         '''
-        given: an http session, url, access token, and chunk size
+        given: an Api instance, an http session, log file path, and chunk size
         when: the response produces a 200 status code
         then: return a generator iterator that yields one line of data at a time
         '''
 
         # setup
-        session.response = ResponseStub(200, 'OK', '', self.log_rows)
+        api = ApiStub(lines=self.log_rows)
+        session = SessionStub()
 
-        #execute
-        response = pipeline.export_log_lines(session, '', '', 100)
+        # execute
+        response = pipeline.export_log_lines(api, session, '', 100)
 
         lines = []
         for line in response:
@@ -394,7 +422,7 @@ class TestPipeline(unittest.TestCase):
 
         # execute
         log = pipeline.pack_event_record_into_log(
-            QueryStub({ 'event_type': 'CustomEvent' }),
+            QueryStub(config={ 'event_type': 'CustomEvent' }),
             '00001111AAAABBBB',
             event_record
         )
@@ -555,7 +583,7 @@ class TestPipeline(unittest.TestCase):
 
         # execute
         log = pipeline.pack_event_record_into_log(
-            QueryStub({ 'timestamp_attr': 'CustomDate' }),
+            QueryStub(config={ 'timestamp_attr': 'CustomDate' }),
             '00001111AAAABBBB',
             event_record
         )
@@ -588,7 +616,7 @@ class TestPipeline(unittest.TestCase):
 
         # execute
         log = pipeline.pack_event_record_into_log(
-            QueryStub({ 'timestamp_attr': 'NotPresent' }),
+            QueryStub(config={ 'timestamp_attr': 'NotPresent' }),
             '00001111AAAABBBB',
             event_record
         )
@@ -652,7 +680,7 @@ class TestPipeline(unittest.TestCase):
 
         # execute
         log = pipeline.pack_event_record_into_log(
-            QueryStub({ 'rename_timestamp': 'custom_timestamp' }),
+            QueryStub(config={ 'rename_timestamp': 'custom_timestamp' }),
             '00001111AAAABBBB',
             event_record
         )
@@ -706,7 +734,7 @@ class TestPipeline(unittest.TestCase):
         # execute
         logs = pipeline.transform_event_records(
             self.event_records[2:],
-            QueryStub({ 'id': ['Name'] }),
+            QueryStub(config={ 'id': ['Name'] }),
             None,
         )
 
@@ -1142,9 +1170,9 @@ class TestPipeline(unittest.TestCase):
         '''
 
         # setup
+        api = ApiStub(lines=self.log_rows)
         cfg = config.Config({})
         session = SessionStub()
-        session.response = ResponseStub(200, 'OK', '', self.log_rows)
         newrelic = NewRelicStub()
         query = QueryStub({})
 
@@ -1165,10 +1193,9 @@ class TestPipeline(unittest.TestCase):
 
         # execute
         p.process_log_record(
+            api,
             session,
             query,
-            'https://test.local.test',
-            '12345',
             record,
         )
 
@@ -1207,15 +1234,77 @@ class TestPipeline(unittest.TestCase):
         '''
         given: the values from use case 1
         when: the pipeline is configured as in use case 1
-        and when: the data format is set to DataFormat.LOGS
-        and when: the number of log lines to be processed is less than the
-                  maximum number of rows,
+        and when: export_log_lines() raises a LoginException
+        then: raise a LoginException
+        '''
+
+        # setup
+        api = ApiStub(raise_login_error=True)
+        newrelic = NewRelicStub()
+
+        p = pipeline.Pipeline(
+            cfg,
+            None,
+            newrelic,
+            DataFormat.LOGS,
+            { 'foo': 'bar' },
+            {},
+            set(),
+        )
+
+        record = self.log_records[0]
+
+        # execute / verify
+        with self.assertRaises(LoginException) as _:
+            p.process_log_record(
+                api,
+                session,
+                query,
+                record,
+            )
+
+        '''
+        given: the values from use case 1
+        when: the pipeline is configured as in use case 1
+        and when: export_log_lines() raises a SalesforceApiException
+        then: raise a SalesforceApiException
+        '''
+
+        # setup
+        api = ApiStub(raise_error=True)
+        newrelic = NewRelicStub()
+
+        p = pipeline.Pipeline(
+            cfg,
+            None,
+            newrelic,
+            DataFormat.LOGS,
+            { 'foo': 'bar' },
+            {},
+            set(),
+        )
+
+        record = self.log_records[0]
+
+        # execute / verify
+        with self.assertRaises(SalesforceApiException) as _:
+            p.process_log_record(
+                api,
+                session,
+                query,
+                record,
+            )
+
+        '''
+        given: the values from use case 1
+        when: the pipeline is configured as in use case 1
         and when: a data cache is specified
         and when: the record ID matches a record ID in the data cache
         then: no log entries are sent
         '''
 
         # setup
+        api = ApiStub()
         data_cache = DataCacheStub(skip_record_ids=['00001111AAAABBBB'])
         newrelic = NewRelicStub()
 
@@ -1236,10 +1325,9 @@ class TestPipeline(unittest.TestCase):
 
         # execute
         p.process_log_record(
+            api,
             session,
             query,
-            'https://test.local.test',
-            '12345',
             record,
         )
 
@@ -1259,6 +1347,8 @@ class TestPipeline(unittest.TestCase):
         '''
 
         # setup
+        api = ApiStub(lines=self.log_rows)
+        data_cache = DataCacheStub(skip_record_ids=['00001111AAAABBBB'])
         newrelic = NewRelicStub()
 
         p = pipeline.Pipeline(
@@ -1279,10 +1369,9 @@ class TestPipeline(unittest.TestCase):
 
         # execute
         p.process_log_record(
+            api,
             session,
             query,
-            'https://test.local.test',
-            '12345',
             new_record,
         )
 
@@ -1312,9 +1401,10 @@ class TestPipeline(unittest.TestCase):
         '''
 
         # setup
+        api = ApiStub(lines=self.log_rows)
         data_cache = DataCacheStub(
             cached_logs={
-                '00001111AAAABBBB': ['YYZ:abcdef123456', 'YYZ:fedcba654321']
+                '00001111AAAABBBB': ['YYZ:abcdef123456']
             }
         )
         newrelic = NewRelicStub()
@@ -1336,15 +1426,23 @@ class TestPipeline(unittest.TestCase):
 
         # execute
         p.process_log_record(
+            api,
             session,
             query,
-            'https://test.local.test',
-            '12345',
             record,
         )
 
         # verify
-        self.assertEqual(len(newrelic.logs), 0)
+        self.assertEqual(len(newrelic.logs), 1)
+        l = newrelic.logs[0]
+        self.assertEqual(len(l), 1)
+        l = l[0]
+        self.assertTrue('logs' in l)
+        self.assertTrue('common' in l)
+        self.assertTrue(type(l['common']) is dict)
+        self.assertTrue('foo' in l['common'])
+        self.assertEqual(l['common']['foo'], 'bar')
+        self.assertEqual(len(l['logs']), 1)
 
     def test_pipeline_process_event_records(self):
         '''
@@ -1368,7 +1466,7 @@ class TestPipeline(unittest.TestCase):
         # setup
         cfg = config.Config({})
         newrelic = NewRelicStub()
-        query = QueryStub({ 'id': ['Name'] })
+        query = QueryStub(config={ 'id': ['Name'] })
 
         p = pipeline.Pipeline(
             cfg,
@@ -1449,9 +1547,9 @@ class TestPipeline(unittest.TestCase):
         '''
 
         # setup
+        api = ApiStub(lines=self.log_rows)
         cfg = config.Config({})
         session = SessionStub()
-        session.response = ResponseStub(200, 'OK', '', self.log_rows)
         newrelic = NewRelicStub()
         query = QueryStub({})
         data_cache = DataCacheStub()
@@ -1471,10 +1569,9 @@ class TestPipeline(unittest.TestCase):
 
         # execute
         p.execute(
+            api,
             session,
             query,
-            'https://test.local.test',
-            '12345',
             self.log_records,
         )
 
@@ -1495,17 +1592,93 @@ class TestPipeline(unittest.TestCase):
 
         '''
         given: the values from use case 1
+        when: the pipeline is configured with the configuration, session,
+              newrelic instance, data format, labels, event type fields mapping,
+              and numeric field names
+        and when: the first record in the result set contains a 'LogFile'
+                  attribute
+        and when: process_log_record() raises a LoginException
+        then: raise a LoginException
+        '''
+
+        # setup
+        api = ApiStub(raise_login_error=True)
+        cfg = config.Config({})
+        session = SessionStub()
+        newrelic = NewRelicStub()
+        query = QueryStub({})
+        data_cache = DataCacheStub()
+
+        p = pipeline.Pipeline(
+            cfg,
+            data_cache,
+            newrelic,
+            DataFormat.LOGS,
+            { 'foo': 'bar' },
+            {},
+            set(),
+        )
+
+        # execute / verify
+        with self.assertRaises(LoginException) as _:
+            p.execute(
+                api,
+                session,
+                query,
+                self.log_records,
+            )
+
+        '''
+        given: the values from use case 1
+        when: the pipeline is configured with the configuration, session,
+              newrelic instance, data format, labels, event type fields mapping,
+              and numeric field names
+        and when: the first record in the result set contains a 'LogFile'
+                  attribute
+        and when: process_log_record() raises a SalesforceApiException
+        then: raise a SalesforceApiException
+        '''
+
+        # setup
+        api = ApiStub(raise_error=True)
+        cfg = config.Config({})
+        session = SessionStub()
+        newrelic = NewRelicStub()
+        query = QueryStub({})
+        data_cache = DataCacheStub()
+
+        p = pipeline.Pipeline(
+            cfg,
+            data_cache,
+            newrelic,
+            DataFormat.LOGS,
+            { 'foo': 'bar' },
+            {},
+            set(),
+        )
+
+        # execute / verify
+        with self.assertRaises(SalesforceApiException) as _:
+            p.execute(
+                api,
+                session,
+                query,
+                self.log_records,
+            )
+
+        '''
+        given: the values from use case 1
         when: the pipeline is configured as in use case 1
         and when: the first record in the result set does not contain a
                   'LogFile' attribute
         and when: a data cache is specified
         and when: the number of event records to be processed is less than the
                   maximum number of rows
-        then: a single Events API post is made containing all labels in the
+        then: a single Logs API post is made containing all labels in the
               'common' property of the logs post and one log for each exported
               and transformed event record, and the cache is flushed
         '''
-
+        api = ApiStub()
         cfg = config.Config({})
         newrelic = NewRelicStub()
         query = QueryStub({ 'id': ['Name'] })
@@ -1524,10 +1697,9 @@ class TestPipeline(unittest.TestCase):
         self.assertEqual(len(newrelic.logs), 0)
 
         p.execute(
+            api,
             session,
             query,
-            'https://test.local.test',
-            '12345',
             self.event_records,
         )
 

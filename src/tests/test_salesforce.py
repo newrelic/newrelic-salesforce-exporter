@@ -1,14 +1,22 @@
 from datetime import datetime, timedelta
 import unittest
 
+
 from . import \
+    ApiFactoryStub, \
     AuthenticatorStub, \
     DataCacheStub, \
     PipelineStub, \
     QueryStub, \
     QueryFactoryStub, \
     SessionStub
-from newrelic_logging import config, salesforce, util
+from newrelic_logging import \
+    config, \
+    salesforce, \
+    util, \
+    LoginException, \
+    SalesforceApiException
+
 
 class TestSalesforce(unittest.TestCase):
     def test_init(self):
@@ -43,6 +51,7 @@ class TestSalesforce(unittest.TestCase):
         auth = AuthenticatorStub()
         pipeline = PipelineStub()
         data_cache = DataCacheStub()
+        api_factory = ApiFactoryStub()
         query_factory = QueryFactoryStub()
         last_to_timestamp = util.get_iso_date_with_offset(
             time_lag_minutes,
@@ -56,19 +65,21 @@ class TestSalesforce(unittest.TestCase):
             None,
             auth,
             pipeline,
+            api_factory,
             query_factory,
             initial_delay,
         )
 
         # verify
         self.assertEqual(client.instance_name, 'test_instance')
-        self.assertEqual(client.default_api_ver, '55.0')
         self.assertEqual(client.data_cache, None)
-        self.assertEqual(client.auth, auth)
         self.assertEqual(client.time_lag_minutes, time_lag_minutes)
         self.assertEqual(client.date_field, 'CreateDate')
         self.assertEqual(client.generation_interval, 'Hourly')
         self.assertEqual(client.last_to_timestamp, last_to_timestamp)
+        self.assertIsNotNone(client.api)
+        self.assertEqual(client.api.authenticator, auth)
+        self.assertEqual(client.api.api_ver, '55.0')
         self.assertTrue(len(client.queries) == 1)
         self.assertTrue('query' in client.queries[0])
         self.assertEqual(
@@ -104,6 +115,7 @@ class TestSalesforce(unittest.TestCase):
             None,
             auth,
             pipeline,
+            api_factory,
             query_factory,
             initial_delay,
         )
@@ -138,6 +150,7 @@ class TestSalesforce(unittest.TestCase):
             data_cache,
             auth,
             pipeline,
+            api_factory,
             query_factory,
             initial_delay,
         )
@@ -173,6 +186,7 @@ class TestSalesforce(unittest.TestCase):
             None,
             auth,
             pipeline,
+            api_factory,
             query_factory,
             initial_delay,
         )
@@ -197,6 +211,7 @@ class TestSalesforce(unittest.TestCase):
             data_cache,
             auth,
             pipeline,
+            api_factory,
             query_factory,
             initial_delay,
         )
@@ -229,6 +244,7 @@ class TestSalesforce(unittest.TestCase):
             None,
             auth,
             pipeline,
+            api_factory,
             query_factory,
             initial_delay,
         )
@@ -265,6 +281,7 @@ class TestSalesforce(unittest.TestCase):
             None,
             auth,
             pipeline,
+            api_factory,
             query_factory,
             initial_delay,
         )
@@ -296,6 +313,7 @@ class TestSalesforce(unittest.TestCase):
             None,
             auth,
             pipeline,
+            api_factory,
             query_factory,
             initial_delay,
             queries
@@ -308,13 +326,13 @@ class TestSalesforce(unittest.TestCase):
         self.assertTrue('query' in client.queries[1])
         self.assertEqual(client.queries[1]['query'], 'bar')
 
-    def test_authenticate(self):
+    def test_authenticate_is_called(self):
         '''
         given: an instance name and configuration, a data cache, authenticator,
                pipeline, query factory, initial delay value, set of queries,
                and an http session
         when: called
-        then: the underlying authenticator is called
+        then: the underlying api is called
         '''
 
         # setup
@@ -328,6 +346,7 @@ class TestSalesforce(unittest.TestCase):
         })
         auth = AuthenticatorStub()
         pipeline = PipelineStub()
+        api_factory = ApiFactoryStub()
         query_factory = QueryFactoryStub()
         session = SessionStub()
 
@@ -337,6 +356,7 @@ class TestSalesforce(unittest.TestCase):
             None,
             auth,
             pipeline,
+            api_factory,
             query_factory,
             initial_delay,
         )
@@ -345,6 +365,53 @@ class TestSalesforce(unittest.TestCase):
         client.authenticate(session)
 
         # verify
+        self.assertIsNotNone(client.api)
+        self.assertEqual(client.api.authenticator, auth)
+        self.assertTrue(auth.authenticate_called)
+
+    def test_authenticate_raises_login_exception_if_authenticate_does(self):
+        '''
+        given: an instance name and configuration, a data cache, authenticator,
+               pipeline, query factory, initial delay value, set of queries,
+               and an http session
+        when: called
+        and when: authenticator.authenticate() raises a LoginException
+        then: raise a LoginException
+        '''
+
+        # setup
+        time_lag_minutes = 603
+        initial_delay = 5
+        cfg = config.Config({
+            'api_ver': '55.0',
+            'time_lag_minutes': time_lag_minutes,
+            'date_field': 'CreateDate',
+            'generation_interval': 'Hourly',
+        })
+        auth = AuthenticatorStub(raise_login_error=True)
+        pipeline = PipelineStub()
+        api_factory = ApiFactoryStub()
+        query_factory = QueryFactoryStub()
+        session = SessionStub()
+
+        client = salesforce.SalesForce(
+            'test_instance',
+            cfg,
+            None,
+            auth,
+            pipeline,
+            api_factory,
+            query_factory,
+            initial_delay,
+        )
+
+        # execute / verify
+        with self.assertRaises(LoginException) as _:
+            client.authenticate(session)
+
+        # verify
+        self.assertIsNotNone(client.api)
+        self.assertEqual(client.api.authenticator, auth)
         self.assertTrue(auth.authenticate_called)
 
     def test_slide_time_range(self):
@@ -375,6 +442,7 @@ class TestSalesforce(unittest.TestCase):
         })
         auth = AuthenticatorStub()
         pipeline = PipelineStub()
+        api_factory = ApiFactoryStub()
         query_factory = QueryFactoryStub()
 
         client = salesforce.SalesForce(
@@ -383,6 +451,7 @@ class TestSalesforce(unittest.TestCase):
             None,
             auth,
             pipeline,
+            api_factory,
             query_factory,
             initial_delay,
         )
@@ -421,6 +490,7 @@ class TestSalesforce(unittest.TestCase):
         })
         auth = AuthenticatorStub()
         pipeline = PipelineStub()
+        api_factory = ApiFactoryStub()
         query_factory = QueryFactoryStub()
         session = SessionStub()
 
@@ -430,6 +500,7 @@ class TestSalesforce(unittest.TestCase):
             None,
             auth,
             pipeline,
+            api_factory,
             query_factory,
             initial_delay,
         )
@@ -457,6 +528,7 @@ class TestSalesforce(unittest.TestCase):
         auth = AuthenticatorStub()
         pipeline = PipelineStub()
         query_factory = QueryFactoryStub()
+        api_factory = ApiFactoryStub()
         session = SessionStub()
         queries = [
             {
@@ -479,6 +551,7 @@ class TestSalesforce(unittest.TestCase):
             None,
             auth,
             pipeline,
+            api_factory,
             query_factory,
             initial_delay,
             queries,
@@ -523,6 +596,7 @@ class TestSalesforce(unittest.TestCase):
         pipeline = PipelineStub()
         query = QueryStub(result=None)
         query_factory = QueryFactoryStub(query)
+        api_factory = ApiFactoryStub()
         session = SessionStub()
 
         client = salesforce.SalesForce(
@@ -531,6 +605,7 @@ class TestSalesforce(unittest.TestCase):
             None,
             auth,
             pipeline,
+            api_factory,
             query_factory,
             initial_delay,
         )
@@ -555,6 +630,7 @@ class TestSalesforce(unittest.TestCase):
         pipeline = PipelineStub()
         query = QueryStub(result={ 'foo': 'bar' })
         query_factory = QueryFactoryStub(query)
+        api_factory = ApiFactoryStub()
         session = SessionStub()
 
         client = salesforce.SalesForce(
@@ -563,6 +639,7 @@ class TestSalesforce(unittest.TestCase):
             None,
             auth,
             pipeline,
+            api_factory,
             query_factory,
             initial_delay,
         )
@@ -574,6 +651,66 @@ class TestSalesforce(unittest.TestCase):
 
         self.assertTrue(query.executed)
         self.assertFalse(pipeline.executed)
+
+        '''
+        given: an instance name and configuration, data cache, authenticator,
+               pipeline, api factory, query factory, initial delay value, and an
+               http session
+        when: pipeline.execute() raises a LoginException
+        then: raise a LoginException
+        '''
+
+        auth = AuthenticatorStub()
+        pipeline = PipelineStub(raise_login_error=True)
+        query = QueryStub()
+        query_factory = QueryFactoryStub(query)
+        api_factory = ApiFactoryStub()
+        session = SessionStub()
+
+        client = salesforce.SalesForce(
+            'test_instance',
+            cfg,
+            None,
+            auth,
+            pipeline,
+            api_factory,
+            query_factory,
+            initial_delay,
+        )
+
+        # execute / verify
+        with self.assertRaises(LoginException) as _:
+            client.fetch_logs(session)
+
+        '''
+        given: an instance name and configuration, data cache, authenticator,
+               pipeline, api factory, query factory, initial delay value, and an
+               http session
+        when: pipeline.execute() raises a SalesforceApiException
+        then: raise a SalesforceApiException
+        '''
+
+        auth = AuthenticatorStub()
+        pipeline = PipelineStub(raise_error=True)
+        query = QueryStub()
+        query_factory = QueryFactoryStub(query)
+        api_factory = ApiFactoryStub()
+        session = SessionStub()
+
+        client = salesforce.SalesForce(
+            'test_instance',
+            cfg,
+            None,
+            auth,
+            pipeline,
+            api_factory,
+            query_factory,
+            initial_delay,
+        )
+
+        # execute / verify
+        with self.assertRaises(SalesforceApiException) as _:
+            client.fetch_logs(session)
 
 
 if __name__ == '__main__':

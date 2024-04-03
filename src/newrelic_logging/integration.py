@@ -135,29 +135,13 @@ class Integration:
         self,
         client: salesforce.SalesForce,
         session: Session,
-        retry: bool = True,
     ) -> None:
-
         try:
             client.authenticate(session)
-            return client.fetch_logs(session)
+            client.fetch_logs(session)
         except LoginException as e:
             print_err(f'authentication failed: {e}')
         except SalesforceApiException as e:
-            if e.err_code == 401:
-                if retry:
-                    print_err('authentication failed, retrying...')
-                    client.clear_auth()
-                    self.auth_and_fetch(
-                        client,
-                        session,
-                        False,
-                    )
-                    return
-
-                print_err(f'exception while fetching data from SF: {e}')
-                return
-
             print_err(f'exception while fetching data from SF: {e}')
         except CacheException as e:
             print_err(f'exception while accessing Redis cache: {e}')
