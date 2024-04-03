@@ -13,6 +13,7 @@ from apscheduler.jobstores.memory import MemoryJobStore
 from apscheduler.schedulers.background import BlockingScheduler
 from pytz import utc
 from yaml import Loader, load
+from newrelic_logging.api import ApiFactory
 from newrelic_logging.auth import AuthenticatorFactory
 from newrelic_logging.cache import CacheFactory, BackendFactory
 from newrelic_logging.config import Config, getenv
@@ -141,6 +142,7 @@ def run_once(
         CacheFactory(BackendFactory()),
         PipelineFactory(),
         SalesForceFactory(),
+        ApiFactory(),
         QueryFactory(),
         NewRelicFactory(),
         event_type_fields_mapping,

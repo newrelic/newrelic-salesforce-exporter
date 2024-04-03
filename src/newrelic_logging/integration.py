@@ -7,6 +7,7 @@ from . import \
     LoginException, \
     NewRelicApiException, \
     SalesforceApiException
+from . import api
 from . import auth
 from . import cache
 from . import config as mod_config
@@ -28,6 +29,7 @@ def build_instance(
     cache_factory: cache.CacheFactory,
     pipeline_factory: pipeline.PipelineFactory,
     salesforce_factory: salesforce.SalesForceFactory,
+    api_factory: api.ApiFactory,
     query_factory: query.QueryFactory,
     new_relic: newrelic.NewRelic,
     data_format: DataFormat,
@@ -64,6 +66,7 @@ def build_instance(
                 event_type_fields_mapping,
                 numeric_fields_list,
             ),
+            api_factory,
             query_factory,
             initial_delay,
             config['queries'] if 'queries' in config else None,
@@ -79,6 +82,7 @@ class Integration:
         cache_factory: cache.CacheFactory,
         pipeline_factory: pipeline.PipelineFactory,
         salesforce_factory: salesforce.SalesForceFactory,
+        api_factory: api.ApiFactory,
         query_factory: query.QueryFactory,
         newrelic_factory: newrelic.NewRelicFactory,
         event_type_fields_mapping: dict = {},
@@ -112,6 +116,7 @@ class Integration:
                 cache_factory,
                 pipeline_factory,
                 salesforce_factory,
+                api_factory,
                 query_factory,
                 self.new_relic,
                 data_format,
