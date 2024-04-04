@@ -256,7 +256,7 @@ class TestApi(unittest.TestCase):
         and when: response status code is 401
         then: reauthenticate() is called
         and when: reauthenticate() does not throw a LoginException
-        then: request is executed again with the same parameters
+        then: request is executed again with the same URL and stream setting as the first call to session.get() and the second access token
         and when: it returns a 200
         then: calls callback with response and returns result
         '''
@@ -265,6 +265,7 @@ class TestApi(unittest.TestCase):
         auth = AuthenticatorStub(
             instance_url='https://my.salesforce.test',
             access_token='123456',
+            access_token_2='567890',
         )
         response1 = ResponseStub(401, 'Unauthorized', 'Unauthorized', [])
         response2 = ResponseStub(200, 'OK', 'OK', [])
@@ -299,7 +300,7 @@ class TestApi(unittest.TestCase):
         self.assertTrue('Authorization' in session.requests[1]['headers'])
         self.assertEqual(
             session.requests[1]['headers']['Authorization'],
-            'Bearer 123456',
+            'Bearer 567890',
         )
         self.assertEqual(
             session.requests[1]['stream'],
@@ -308,9 +309,9 @@ class TestApi(unittest.TestCase):
         self.assertIsNotNone(val)
         self.assertEqual(val, 'OK')
 
-    def test_get_passes_same_params_to_get_on_reauthenticate(self):
+    def test_get_passed_correct_params_after_reauthenticate(self):
         '''
-        get() receives the same set of parameters on the second call after reauthenticate() succeeds
+        get() receives the correct set of parameters when it is called after reauthenticate() succeeds
         given: an authenticator
         and given: a session
         and given: a service url
@@ -320,13 +321,14 @@ class TestApi(unittest.TestCase):
         and when: response status code is 401
         then: reauthenticate() is called
         and when: reauthenticate() does not throw a LoginException
-        then: request is executed again with the same set of parameters as the first call to session.get()
+        then: request is executed again with the same URL and stream setting as the first call to session.get() and the second access token
         '''
 
         # setup
         auth = AuthenticatorStub(
             instance_url='https://my.salesforce.test',
             access_token='123456',
+            access_token_2='567890'
         )
         response1 = ResponseStub(401, 'Unauthorized', 'Unauthorized', [])
         response2 = ResponseStub(200, 'OK', 'OK', [])
@@ -340,8 +342,33 @@ class TestApi(unittest.TestCase):
 
         # verify
         self.assertEqual(len(session.requests), 2)
-        self.assertEqual(session.requests[0], session.requests[1])
         self.assertTrue(auth.reauthenticate_called)
+        self.assertEqual(
+            session.requests[0]['url'],
+            'https://my.salesforce.test/foo',
+        )
+        self.assertTrue('Authorization' in session.requests[0]['headers'])
+        self.assertEqual(
+            session.requests[0]['headers']['Authorization'],
+            'Bearer 123456',
+        )
+        self.assertEqual(
+            session.requests[0]['stream'],
+            True,
+        )
+        self.assertEqual(
+            session.requests[1]['url'],
+            'https://my.salesforce.test/foo',
+        )
+        self.assertTrue('Authorization' in session.requests[1]['headers'])
+        self.assertEqual(
+            session.requests[1]['headers']['Authorization'],
+            'Bearer 567890',
+        )
+        self.assertEqual(
+            session.requests[1]['stream'],
+            True,
+        )
         self.assertIsNotNone(val)
         self.assertEqual(val, 'OK')
 
@@ -357,7 +384,7 @@ class TestApi(unittest.TestCase):
         and when: response status code is 401
         then: reauthenticate() is called
         and when: reauthenticate() does not throw a LoginException
-        then: request is executed again with the same parameters
+        then: request is executed again with the same URL and stream setting as the first call to session.get() and the second access token
         and when: it returns a non-200 status code
         then: throws a SalesforceApiException
         '''
@@ -366,6 +393,7 @@ class TestApi(unittest.TestCase):
         auth = AuthenticatorStub(
             instance_url='https://my.salesforce.test',
             access_token='123456',
+            access_token_2='567890',
         )
         response1 = ResponseStub(401, 'Unauthorized', 'Unauthorized', [])
         response2 = ResponseStub(401, 'Unauthorized', 'Unauthorized 2', [])
@@ -384,8 +412,33 @@ class TestApi(unittest.TestCase):
             )
 
         self.assertEqual(len(session.requests), 2)
-        self.assertEqual(session.requests[0], session.requests[1])
         self.assertTrue(auth.reauthenticate_called)
+        self.assertEqual(
+            session.requests[0]['url'],
+            'https://my.salesforce.test/foo',
+        )
+        self.assertTrue('Authorization' in session.requests[0]['headers'])
+        self.assertEqual(
+            session.requests[0]['headers']['Authorization'],
+            'Bearer 123456',
+        )
+        self.assertEqual(
+            session.requests[0]['stream'],
+            False,
+        )
+        self.assertEqual(
+            session.requests[1]['url'],
+            'https://my.salesforce.test/foo',
+        )
+        self.assertTrue('Authorization' in session.requests[1]['headers'])
+        self.assertEqual(
+            session.requests[1]['headers']['Authorization'],
+            'Bearer 567890',
+        )
+        self.assertEqual(
+            session.requests[1]['stream'],
+            False,
+        )
 
     def test_stream_lines_sets_fallback_encoding_and_calls_iter_lines_with_chunk_size_and_decode_unicode(self):
         '''

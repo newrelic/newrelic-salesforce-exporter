@@ -4,7 +4,7 @@ from redis import RedisError
 from requests import Session, RequestException
 
 from newrelic_logging import DataFormat, LoginException, SalesforceApiException
-from newrelic_logging.api import Api
+from newrelic_logging.api import Api, ApiFactory
 from newrelic_logging.auth import Authenticator
 from newrelic_logging.cache import DataCache
 from newrelic_logging.config import Config
@@ -84,6 +84,7 @@ class AuthenticatorStub:
         data_cache: DataCache = None,
         token_url: str = '',
         access_token: str = '',
+        access_token_2: str = '',
         instance_url: str = '',
         grant_type: str = '',
         authenticate_called: bool = False,
@@ -94,6 +95,7 @@ class AuthenticatorStub:
         self.data_cache = data_cache
         self.token_url = token_url
         self.access_token = access_token
+        self.access_token_2 = access_token_2
         self.instance_url = instance_url
         self.grant_type = grant_type
         self.authenticate_called = authenticate_called
@@ -142,6 +144,8 @@ class AuthenticatorStub:
         self.reauthenticate_called = True
         if self.raise_login_error:
             raise LoginException('Unauthorized')
+
+        self.access_token = self.access_token_2
 
 
 class AuthenticatorFactoryStub:
@@ -463,6 +467,7 @@ class SalesForceStub:
         data_cache: DataCache,
         authenticator: Authenticator,
         pipeline: Pipeline,
+        api_factory: ApiFactory,
         query_factory: QueryFactory,
         initial_delay: int,
         queries: list[dict] = None,
@@ -472,6 +477,7 @@ class SalesForceStub:
         self.data_cache = data_cache
         self.authenticator = authenticator
         self.pipeline = pipeline
+        self.api_factory = api_factory
         self.query_factory = query_factory
         self.initial_delay = initial_delay
         self.queries = queries
@@ -488,6 +494,7 @@ class SalesForceFactoryStub:
         data_cache: DataCache,
         authenticator: Authenticator,
         pipeline: Pipeline,
+        api_factory: ApiFactory,
         query_factory: QueryFactory,
         initial_delay: int,
         queries: list[dict] = None,
@@ -498,6 +505,7 @@ class SalesForceFactoryStub:
             data_cache,
             authenticator,
             pipeline,
+            api_factory,
             query_factory,
             initial_delay,
             queries,

@@ -32,7 +32,11 @@ def get(
             )
             auth.reauthenticate(session)
 
-            response = session.get(url, headers=headers, stream=stream)
+            new_headers = {
+                'Authorization': f'Bearer {auth.get_access_token()}'
+            }
+
+            response = session.get(url, headers=new_headers, stream=stream)
             if response.status_code == 200:
                 return cb(response)
 

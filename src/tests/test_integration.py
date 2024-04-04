@@ -1,6 +1,7 @@
 import unittest
 
-from . import AuthenticatorFactoryStub, \
+from . import ApiFactoryStub, \
+    AuthenticatorFactoryStub, \
     CacheFactoryStub, \
     NewRelicStub, \
     NewRelicFactoryStub, \
@@ -38,6 +39,7 @@ class TestIntegration(unittest.TestCase):
                 }
             ]
         })
+        api_factory = ApiFactoryStub()
         auth_factory = AuthenticatorFactoryStub()
         cache_factory = CacheFactoryStub()
         pipeline_factory = PipelineFactoryStub()
@@ -54,6 +56,7 @@ class TestIntegration(unittest.TestCase):
             cache_factory,
             pipeline_factory,
             salesforce_factory,
+            api_factory,
             query_factory,
             new_relic,
             DataFormat.EVENTS,
@@ -141,6 +144,7 @@ class TestIntegration(unittest.TestCase):
                 }
             ]
         })
+        api_factory = ApiFactoryStub()
         auth_factory = AuthenticatorFactoryStub()
         cache_factory = CacheFactoryStub()
         pipeline_factory = PipelineFactoryStub()
@@ -154,6 +158,7 @@ class TestIntegration(unittest.TestCase):
             cache_factory,
             pipeline_factory,
             salesforce_factory,
+            api_factory,
             query_factory,
             new_relic,
             DataFormat.EVENTS,
@@ -200,6 +205,7 @@ class TestIntegration(unittest.TestCase):
                 }
             ]
         })
+        api_factory = ApiFactoryStub()
         auth_factory = AuthenticatorFactoryStub()
         cache_factory = CacheFactoryStub()
         pipeline_factory = PipelineFactoryStub()
@@ -213,6 +219,7 @@ class TestIntegration(unittest.TestCase):
             cache_factory,
             pipeline_factory,
             salesforce_factory,
+            api_factory,
             query_factory,
             new_relic,
             DataFormat.EVENTS,
@@ -273,6 +280,7 @@ class TestIntegration(unittest.TestCase):
             }
         })
 
+        api_factory = ApiFactoryStub()
         auth_factory = AuthenticatorFactoryStub()
         cache_factory = CacheFactoryStub()
         pipeline_factory = PipelineFactoryStub()
@@ -290,6 +298,7 @@ class TestIntegration(unittest.TestCase):
             cache_factory,
             pipeline_factory,
             salesforce_factory,
+            api_factory,
             query_factory,
             newrelic_factory,
             event_type_fields_mapping,
@@ -345,6 +354,7 @@ class TestIntegration(unittest.TestCase):
             }
         })
 
+        api_factory = ApiFactoryStub()
         auth_factory = AuthenticatorFactoryStub()
         cache_factory = CacheFactoryStub()
         pipeline_factory = PipelineFactoryStub()
@@ -361,6 +371,7 @@ class TestIntegration(unittest.TestCase):
                 cache_factory,
                 pipeline_factory,
                 salesforce_factory,
+                api_factory,
                 query_factory,
                 newrelic_factory,
                 event_type_fields_mapping,
@@ -384,6 +395,7 @@ class TestIntegration(unittest.TestCase):
             }
         })
 
+        api_factory = ApiFactoryStub()
         auth_factory = AuthenticatorFactoryStub()
         cache_factory = CacheFactoryStub()
         pipeline_factory = PipelineFactoryStub()
@@ -399,6 +411,7 @@ class TestIntegration(unittest.TestCase):
             cache_factory,
             pipeline_factory,
             salesforce_factory,
+            api_factory,
             query_factory,
             newrelic_factory,
             event_type_fields_mapping,
@@ -425,6 +438,7 @@ class TestIntegration(unittest.TestCase):
             }
         })
 
+        api_factory = ApiFactoryStub()
         auth_factory = AuthenticatorFactoryStub()
         cache_factory = CacheFactoryStub()
         pipeline_factory = PipelineFactoryStub()
@@ -440,6 +454,7 @@ class TestIntegration(unittest.TestCase):
             cache_factory,
             pipeline_factory,
             salesforce_factory,
+            api_factory,
             query_factory,
             newrelic_factory,
             event_type_fields_mapping,
