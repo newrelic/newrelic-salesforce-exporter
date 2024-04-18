@@ -1,0 +1,28 @@
+[
+  {
+    "attributes": {
+      "type": "EventLogFile",
+      "url": "/services/data/v52.0/sobjects/EventLogFile/00001111AAAABBBB"
+    },
+    "Id": "00001111AAAABBBB",
+    "EventType": "ApexCallout",
+    "CreatedDate": "2024-03-11T15:00:00.000+0000",
+    "LogDate": "2024-03-11T02:00:00.000+0000",
+    "Interval": "Hourly",
+    "LogFile": "/services/data/v52.0/sobjects/EventLogFile/00001111AAAABBBB/LogFile",
+    "Sequence": 1
+  },
+  {
+    "attributes": {
+      "type": "EventLogFile",
+      "url": "/services/data/v52.0/sobjects/EventLogFile/00002222AAAABBBB"
+    },
+    "Id": "00002222AAAABBBB",
+    "EventType": "ApexCallout",
+    "CreatedDate": "2024-03-11T16:00:00.000+0000",
+    "LogDate": "2024-03-11T03:00:00.000+0000",
+    "Interval": "Hourly",
+    "LogFile": "/services/data/v52.0/sobjects/EventLogFile/00002222AAAABBBB/LogFile",
+    "Sequence": 2
+  }
+]

@@ -18,19 +18,19 @@ class Telemetry:
 
     def __init__(self, integration_name: str) -> None:
         self.integration_name = integration_name
-    
+
     def is_empty(self):
         return len(self.logs) == 0
-    
+
     def log_info(self, msg: str):
         self.record_log(msg, "info")
-    
+
     def log_err(self, msg: str):
         self.record_log(msg, "error")
-    
+
     def log_warn(self, msg: str):
         self.record_log(msg, "warn")
-    
+
     def record_log(self, msg: str, level: str):
         log = {
             "timestamp": round(time.time() * 1000),
@@ -41,15 +41,16 @@ class Telemetry:
             }
         }
         self.logs.append(log)
-    
+
     def clear(self):
         self.logs = []
 
     def build_model(self):
         return [{
-            "log_entries": self.logs
+            "common": {},
+            "logs": self.logs,
         }]
-    
+
 def print_log(msg: str, level: str):
     print(json.dumps({
         "message": msg,

@@ -4,6 +4,18 @@ from types import SimpleNamespace
 from typing import Any
 
 
+CONFIG_DATE_FIELD = 'date_field'
+CONFIG_GENERATION_INTERVAL = 'generation_interval'
+CONFIG_TIME_LAG_MINUTES = 'time_lag_minutes'
+
+DATE_FIELD_LOG_DATE = 'LogDate'
+DATE_FIELD_CREATE_DATE = 'CreateDate'
+GENERATION_INTERVAL_DAILY = 'Daily'
+GENERATION_INTERVAL_HOURLY = 'Hourly'
+
+DEFAULT_TIME_LAG_MINUTES = 300
+DEFAULT_GENERATION_INTERVAL = GENERATION_INTERVAL_DAILY
+
 BOOL_TRUE_VALS = ['true', '1', 'on', 'yes']
 NOT_FOUND = SimpleNamespace()
 
@@ -74,15 +86,21 @@ class Config:
     def getenv(self, env_var_name: str, default = None) -> str:
         return getenv(env_var_name, default, self.prefix)
 
-    def get(self, key: str, default = None, allow_none = False) -> Any:
+    def get(
+        self,
+        key: str,
+        default = None,
+        allow_none = False,
+        env_var_name = None,
+    ) -> Any:
         val = get_nested(self.config, key)
         if not val == NOT_FOUND and not allow_none and not val == None:
             return val
 
-        return self.getenv(
-            re.sub(r'[^a-zA-Z0-9_]', '_', key.upper()),
-            default,
-        )
+        var_name = env_var_name if env_var_name else \
+            re.sub(r'[^a-zA-Z0-9_]', '_', key.upper())
+
+        return self.getenv(var_name, default)
 
     def get_int(self, key: str, default = None) -> int:
         val = self.get(key, default)

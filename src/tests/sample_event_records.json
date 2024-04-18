@@ -1,0 +1,76 @@
+[
+  {
+    "attributes": {
+      "type": "Account",
+      "url": "/services/data/v58.0/sobjects/Account/12345"
+    },
+    "Id": "000012345",
+    "Name": "My Account",
+    "BillingCity": null,
+    "CreatedDate": "2024-03-11T00:00:00.000+0000",
+    "CreatedBy": {
+      "attributes": {
+          "type": "User",
+          "url": "/services/data/v55.0/sobjects/User/12345"
+      },
+      "Name": "Foo Bar",
+      "Profile": {
+          "attributes": {
+              "type": "Profile",
+              "url": "/services/data/v55.0/sobjects/Profile/12345"
+          },
+          "Name": "Beep Boop"
+      },
+      "UserType": "Bip Bop"
+    }
+  },
+  {
+    "attributes": {
+      "type": "Account",
+      "url": "/services/data/v58.0/sobjects/Account/54321"
+    },
+    "Id": "000054321",
+    "Name": "My Other Account",
+    "BillingCity": null,
+    "CreatedDate": "2024-03-10T00:00:00.000+0000",
+    "CreatedBy": {
+      "attributes": {
+          "type": "User",
+          "url": "/services/data/v55.0/sobjects/User/12345"
+      },
+      "Name": "Foo Bar",
+      "Profile": {
+          "attributes": {
+              "type": "Profile",
+              "url": "/services/data/v55.0/sobjects/Profile/12345"
+          },
+          "Name": "Beep Boop"
+      },
+      "UserType": "Bip Bop"
+    }
+  },
+  {
+    "attributes": {
+      "type": "Account",
+      "url": "/services/data/v58.0/sobjects/Account/00000"
+    },
+    "Name": "My Last Account",
+    "BillingCity": null,
+    "CreatedDate": "2024-03-09T00:00:00.000+0000",
+    "CreatedBy": {
+      "attributes": {
+          "type": "User",
+          "url": "/services/data/v55.0/sobjects/User/12345"
+      },
+      "Name": "Foo Bar",
+      "Profile": {
+          "attributes": {
+              "type": "Profile",
+              "url": "/services/data/v55.0/sobjects/Profile/12345"
+          },
+          "Name": "Beep Boop"
+      },
+      "UserType": "Bip Bop"
+    }
+  }
+]
