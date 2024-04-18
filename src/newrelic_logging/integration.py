@@ -91,7 +91,7 @@ class Integration:
     ):
         Telemetry(
             config['integration_name'] if 'integration_name' in config \
-                else 'com.newrelic.labs.sfdc.eventlogfiles'
+                else 'com.newrelic.labs.salesforce.exporter'
         )
 
         data_format = config.get('newrelic.data_format', 'logs').lower()

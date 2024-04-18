@@ -3,10 +3,10 @@ from enum import Enum
 
 # Integration definitions
 
-VERSION         = "1.0.0"
-NAME            = "salesforce-eventlogfile"
+VERSION         = "2.0.0"
+NAME            = "salesforce-exporter"
 PROVIDER        = "newrelic-labs"
-COLLECTOR_NAME  = "newrelic-logs-salesforce-eventlogfile"
+COLLECTOR_NAME  = "newrelic-salesforce-exporter"
 
 
 class DataFormat(Enum):
