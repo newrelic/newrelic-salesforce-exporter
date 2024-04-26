@@ -2,27 +2,24 @@
 import newrelic.agent
 newrelic.agent.initialize('./newrelic.ini')
 
+
 import optparse
 import os
+from pytz import utc
 import sys
 from typing import Any
+from yaml import Loader, load
 
 
 from apscheduler.executors.pool import ThreadPoolExecutor
 from apscheduler.jobstores.memory import MemoryJobStore
 from apscheduler.schedulers.background import BlockingScheduler
-from pytz import utc
-from yaml import Loader, load
-from newrelic_logging.api import ApiFactory
-from newrelic_logging.auth import AuthenticatorFactory
-from newrelic_logging.cache import CacheFactory, BackendFactory
-from newrelic_logging.config import Config, getenv
-from newrelic_logging.newrelic import NewRelicFactory
-from newrelic_logging.pipeline import PipelineFactory
-from newrelic_logging.query import QueryFactory
-from newrelic_logging.salesforce import SalesForceFactory
 
-from newrelic_logging.integration import Integration
+
+from newrelic_logging.config import Config, getenv
+from newrelic_logging.factory import Factory
+from newrelic_logging.limits import receiver as limits_receiver
+from newrelic_logging.query import QueryFactory, receiver as query_receiver
 from newrelic_logging.telemetry import print_info, print_warn
 
 
@@ -130,30 +127,48 @@ def load_mapping_file(mapping_file_path: str, default_mapping: Any) -> dict:
         return load(stream, Loader=Loader)[MAPPING]
 
 
-def run_once(
+def create_receivers(
     config: Config,
     event_type_fields_mapping: dict,
+    initial_delay: int,
+):
+    receivers = []
+
+    receivers.append(
+        query_receiver.new_create_receiver_func(
+            config,
+            QueryFactory(),
+            event_type_fields_mapping,
+            initial_delay,
+        )
+    )
+
+    receivers.append(
+        limits_receiver.new_create_receiver_func()
+    )
+
+    return receivers
+
+
+def run_once(
+    factory: Factory,
+    config: Config,
+    receivers: list[callable],
     numeric_fields_list: set
 ):
-
-    Integration(
+    # Run the integration
+    factory.new_integration(
+        factory,
         config,
-        AuthenticatorFactory(),
-        CacheFactory(BackendFactory()),
-        PipelineFactory(),
-        SalesForceFactory(),
-        ApiFactory(),
-        QueryFactory(),
-        NewRelicFactory(),
-        event_type_fields_mapping,
+        receivers,
         numeric_fields_list,
-        config.get_int(CRON_INTERVAL_MINUTES, 60),
     ).run()
 
 
 def run_as_service(
+    factory: Factory,
     config: Config,
-    event_type_fields_mapping: dict,
+    receivers: list[callable],
     numeric_fields_list: set,
 ):
     scheduler = BlockingScheduler(
@@ -171,17 +186,11 @@ def run_as_service(
 
     service_schedule = config[SERVICE_SCHEDULE]
     scheduler.add_job(
-        Integration(
+        factory.new_integration(
+            factory,
             config,
-            AuthenticatorFactory(),
-            CacheFactory(BackendFactory()),
-            PipelineFactory(),
-            SalesForceFactory(),
-            QueryFactory(),
-            NewRelicFactory(),
-            event_type_fields_mapping,
+            receivers,
             numeric_fields_list,
-            0
         ).run,
         trigger='cron',
         hour=service_schedule['hour'],
@@ -198,11 +207,33 @@ def run(
     event_type_fields_mapping: dict,
     numeric_fields_list: set
 ):
+    factory = Factory()
+
     if not config.get(RUN_AS_SERVICE, False):
-        run_once(config, event_type_fields_mapping, numeric_fields_list)
+        run_once(
+            factory,
+            config,
+            create_receivers(
+                config,
+                event_type_fields_mapping,
+                config.get_int(CRON_INTERVAL_MINUTES, 60),
+            ),
+            numeric_fields_list,
+        )
         return
 
-    run_as_service(config, event_type_fields_mapping, numeric_fields_list)
+
+    run_as_service(
+        factory,
+        config,
+        create_receivers(
+            config,
+            event_type_fields_mapping,
+            0,
+        ),
+        numeric_fields_list,
+    )
+
 
 @newrelic.agent.background_task()
 def main():

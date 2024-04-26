@@ -42,6 +42,34 @@ class RedisBackend:
         self.redis.expire(key, timedelta(days=days))
 
 
+class BackendFactory:
+    def __init__(self):
+        pass
+
+    def new_backend(self, config: Config):
+        host = config.get(CONFIG_REDIS_HOST, DEFAULT_REDIS_HOST)
+        port = config.get_int(CONFIG_REDIS_PORT, DEFAULT_REDIS_PORT)
+        db = config.get_int(CONFIG_REDIS_DB_NUMBER, DEFAULT_REDIS_DB_NUMBER)
+        password = config.get(CONFIG_REDIS_PASSWORD)
+        ssl = config.get_bool(CONFIG_REDIS_USE_SSL, DEFAULT_REDIS_SSL)
+        password_display = "XXXXXX" if password != None else None
+
+        print_info(
+            f'connecting to redis instance {host}:{port}:{db}, ssl={ssl}, password={password_display}'
+        )
+
+        return RedisBackend(
+            redis.Redis(
+                host=host,
+                port=port,
+                db=db,
+                password=password,
+                ssl=ssl,
+                decode_responses=True,
+            ),
+        )
+
+
 class BufferedAddSetCache:
     def __init__(self, s: set):
         self.s = s
@@ -64,7 +92,7 @@ class DataCache:
         self.backend = backend
         self.expiry = expiry
         self.log_records = {}
-        self.event_records = None
+        self.query_records = None
 
     def can_skip_downloading_logfile(self, record_id: str) -> bool:
         try:
@@ -83,14 +111,14 @@ class DataCache:
         except Exception as e:
             raise CacheException(f'failed checking record {record_id}: {e}')
 
-    def check_or_set_event_id(self, record_id: str) -> bool:
+    def check_or_set_record_id(self, record_id: str) -> bool:
         try:
-            if not self.event_records:
-                self.event_records = BufferedAddSetCache(
-                    self.backend.get_set('event_ids'),
+            if not self.query_records:
+                self.query_records = BufferedAddSetCache(
+                    self.backend.get_set('record_ids'),
                 )
 
-            return self.event_records.check_or_set(record_id)
+            return self.query_records.check_or_set(record_id)
         except Exception as e:
             raise CacheException(f'failed checking record {record_id}: {e}')
 
@@ -103,73 +131,23 @@ class DataCache:
 
                 self.backend.set_expiry(record_id, self.expiry)
 
-            if self.event_records:
-                buf = self.event_records.get_buffer()
+            if self.query_records:
+                buf = self.query_records.get_buffer()
                 if len(buf) > 0:
                     for id in buf:
                         self.backend.put(id, 1)
                         self.backend.set_expiry(id, self.expiry)
 
-                    self.backend.set_add('event_ids', *buf)
-                    self.backend.set_expiry('event_ids', self.expiry)
+                    self.backend.set_add('record_ids', *buf)
+                    self.backend.set_expiry('record_ids', self.expiry)
 
             # attempt to reclaim memory
             for record_id in self.log_records:
                 self.log_records[record_id] = None
 
             self.log_records = {}
-            self.event_records = None
+            self.query_records = None
 
             gc.collect()
         except Exception as e:
             raise CacheException(f'failed flushing cache: {e}')
-
-
-class BackendFactory:
-    def __init__(self):
-        pass
-
-    def new(self, config: Config):
-        host = config.get(CONFIG_REDIS_HOST, DEFAULT_REDIS_HOST)
-        port = config.get_int(CONFIG_REDIS_PORT, DEFAULT_REDIS_PORT)
-        db = config.get_int(CONFIG_REDIS_DB_NUMBER, DEFAULT_REDIS_DB_NUMBER)
-        password = config.get(CONFIG_REDIS_PASSWORD)
-        ssl = config.get_bool(CONFIG_REDIS_USE_SSL, DEFAULT_REDIS_SSL)
-        password_display = "XXXXXX" if password != None else None
-
-        print_info(
-            f'connecting to redis instance {host}:{port}:{db}, ssl={ssl}, password={password_display}'
-        )
-
-        return RedisBackend(
-            redis.Redis(
-                host=host,
-                port=port,
-                db=db,
-                password=password,
-                ssl=ssl,
-                decode_responses=True,
-            ),
-
-        )
-
-
-class CacheFactory:
-    def __init__(self, backend_factory):
-        self.backend_factory = backend_factory
-        pass
-
-    def new(self, config: Config):
-        if not config.get_bool(CONFIG_CACHE_ENABLED, DEFAULT_CACHE_ENABLED):
-            print_info('Cache disabled')
-            return None
-
-        print_info('Cache enabled')
-
-        try:
-            return DataCache(
-                self.backend_factory.new(config),
-                config.get_int(CONFIG_REDIS_EXPIRE_DAYS)
-            )
-        except Exception as e:
-            raise CacheException(f'failed creating backend: {e}')

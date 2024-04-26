@@ -401,43 +401,43 @@ class TestDataCache(unittest.TestCase):
         with self.assertRaises(CacheException) as _:
             data_cache.check_or_set_log_line('foo', line)
 
-    def test_check_or_set_event_id_true_when_exists(self):
+    def test_check_or_set_record_id_true_when_exists(self):
         '''
-        check_or_set_event_id returns true when event ID is in the cached set
+        check_or_set_record_id returns true when record ID is in the cached set
         given: a backend instance
-        when: check_or_set_event_id is called
-        and when: event ID is in the set 'event_ids'
+        when: check_or_set_record_id is called
+        and when: record ID is in the set 'record_ids'
         then: returns true
         '''
 
         # setup
-        backend = BackendStub({ 'event_ids': set(['foo']) })
+        backend = BackendStub({ 'record_ids': set(['foo']) })
 
         # execute
         data_cache = cache.DataCache(backend, 5)
-        val = data_cache.check_or_set_event_id('foo')
+        val = data_cache.check_or_set_record_id('foo')
 
         # verify
         self.assertTrue(val)
 
-    def test_check_or_set_event_id_false_and_adds_when_missing(self):
+    def test_check_or_set_record_id_false_and_adds_when_missing(self):
         '''
-        check_or_set_event_id returns false and adds event ID when event ID is not in the cached set
+        check_or_set_record_id returns false and adds record ID when record ID is not in the cached set
         given: a backend instance
-        when: check_or_set_event_id is called
-        and when: event ID is not in set 'event_ids'
-        then: the event ID is added to the set and False is returned
+        when: check_or_set_record_id is called
+        and when: record ID is not in set 'record_ids'
+        then: the record ID is added to the set and False is returned
         '''
 
         # setup
-        backend = BackendStub({ 'event_ids': set() })
+        backend = BackendStub({ 'record_ids': set() })
 
         # preconditions
-        self.assertFalse('foo' in backend.redis.test_cache['event_ids'])
+        self.assertFalse('foo' in backend.redis.test_cache['record_ids'])
 
         # execute
         data_cache = cache.DataCache(backend, 5)
-        val = data_cache.check_or_set_event_id('foo')
+        val = data_cache.check_or_set_record_id('foo')
 
         # verify
         self.assertFalse(val)
@@ -445,13 +445,13 @@ class TestDataCache(unittest.TestCase):
         # Need to flush before we can check the cache as how it is stored
         # in memory is an implementation detail
         data_cache.flush()
-        self.assertTrue('foo' in backend.redis.test_cache['event_ids'])
+        self.assertTrue('foo' in backend.redis.test_cache['record_ids'])
 
-    def test_check_or_set_event_id_raises_if_backend_does(self):
+    def test_check_or_set_record_id_raises_if_backend_does(self):
         '''
-        check_or_set_event_id raises CacheException if backend raises any Exception
+        check_or_set_record_id raises CacheException if backend raises any Exception
         given: a backend instance
-        when: check_or_set_event_id is called
+        when: check_or_set_record_id is called
         and when: backend raises any exception
         then: a CacheException is raised
         '''
@@ -463,14 +463,14 @@ class TestDataCache(unittest.TestCase):
         data_cache = cache.DataCache(backend, 5)
 
         with self.assertRaises(CacheException) as _:
-            data_cache.check_or_set_event_id('foo')
+            data_cache.check_or_set_record_id('foo')
 
     def test_flush_does_not_affect_cache_when_add_buffers_empty(self):
         '''
         backend cache is empty if flush is called when BufferedAddSet buffers are empty
         given: a backend instance
         when: flush is called
-        and when: the log lines and event ID add buffers are empty
+        and when: the log lines and record ID add buffers are empty
         then: the backend cache remains empty
         '''
 
@@ -519,12 +519,12 @@ class TestDataCache(unittest.TestCase):
         self.assertTrue('beep' in backend.redis.test_cache)
         self.assertEqual(backend.redis.test_cache['beep'], set(['boop']))
 
-    def test_flush_writes_event_ids_when_add_buffer_not_empty(self):
+    def test_flush_writes_record_ids_when_add_buffer_not_empty(self):
         '''
-        flush writes any buffered event IDs when event IDs add buffer is not empty
+        flush writes any buffered record IDs when record IDs add buffer is not empty
         given: a backend instance
         when: flush is called
-        and when: the event IDs add buffer is not empty
+        and when: the record IDs add buffer is not empty
         then: the backend cache is updated with items from the add buffer
         '''
 
@@ -536,17 +536,17 @@ class TestDataCache(unittest.TestCase):
 
         # execute
         data_cache = cache.DataCache(backend, 5)
-        data_cache.check_or_set_event_id('foo')
-        data_cache.check_or_set_event_id('bar')
-        data_cache.check_or_set_event_id('beep')
-        data_cache.check_or_set_event_id('boop')
+        data_cache.check_or_set_record_id('foo')
+        data_cache.check_or_set_record_id('bar')
+        data_cache.check_or_set_record_id('beep')
+        data_cache.check_or_set_record_id('boop')
         data_cache.flush()
 
         # verify
         self.assertEqual(len(backend.redis.test_cache), 5)
-        self.assertTrue('event_ids' in backend.redis.test_cache)
+        self.assertTrue('record_ids' in backend.redis.test_cache)
         self.assertEqual(
-            backend.redis.test_cache['event_ids'],
+            backend.redis.test_cache['record_ids'],
             set(['foo', 'bar', 'beep', 'boop'])
         )
         self.assertTrue('foo' in backend.redis.test_cache)
@@ -578,15 +578,15 @@ class TestDataCache(unittest.TestCase):
         # execute
         data_cache = cache.DataCache(backend, 5)
         data_cache.check_or_set_log_line('foo', line1)
-        data_cache.check_or_set_event_id('bar')
+        data_cache.check_or_set_record_id('bar')
         data_cache.flush()
 
         # verify
         self.assertEqual(len(backend.redis.test_cache), 3)
         self.assertTrue('foo' in backend.redis.test_cache)
         self.assertEqual(backend.redis.test_cache['foo'], set(['bar']))
-        self.assertTrue('event_ids' in backend.redis.test_cache)
-        self.assertEqual(backend.redis.test_cache['event_ids'], set(['bar']))
+        self.assertTrue('record_ids' in backend.redis.test_cache)
+        self.assertEqual(backend.redis.test_cache['record_ids'], set(['bar']))
         self.assertTrue('bar' in backend.redis.test_cache)
         self.assertEqual(backend.redis.test_cache['bar'], 1)
         self.assertEqual(len(backend.redis.expiry), 3)
@@ -594,8 +594,8 @@ class TestDataCache(unittest.TestCase):
         self.assertEqual(backend.redis.expiry['foo'], timedelta(days=5))
         self.assertTrue('bar' in backend.redis.expiry)
         self.assertEqual(backend.redis.expiry['bar'], timedelta(days=5))
-        self.assertTrue('event_ids' in backend.redis.expiry)
-        self.assertEqual(backend.redis.expiry['event_ids'], timedelta(days=5))
+        self.assertTrue('record_ids' in backend.redis.expiry)
+        self.assertEqual(backend.redis.expiry['record_ids'], timedelta(days=5))
 
     def test_flush_does_not_write_dups(self):
         '''
@@ -611,7 +611,7 @@ class TestDataCache(unittest.TestCase):
             'foo': set(['bar', 'baz']),
             'beep': 1,
             'boop': 1,
-            'event_ids': set(['beep', 'boop'])
+            'record_ids': set(['beep', 'boop'])
         })
         line1 = { 'REQUEST_ID': 'bip' }
         line2 = { 'REQUEST_ID': 'bop' }
@@ -620,8 +620,8 @@ class TestDataCache(unittest.TestCase):
         data_cache = cache.DataCache(backend, 5)
         data_cache.check_or_set_log_line('foo', line1)
         data_cache.check_or_set_log_line('foo', line2)
-        data_cache.check_or_set_event_id('bim')
-        data_cache.check_or_set_event_id('bam')
+        data_cache.check_or_set_record_id('bim')
+        data_cache.check_or_set_record_id('bam')
         data_cache.flush()
 
         # verify
@@ -631,9 +631,9 @@ class TestDataCache(unittest.TestCase):
             backend.redis.test_cache['foo'],
             set(['bar', 'baz', 'bip', 'bop']),
         )
-        self.assertTrue('event_ids' in backend.redis.test_cache)
+        self.assertTrue('record_ids' in backend.redis.test_cache)
         self.assertEqual(
-            backend.redis.test_cache['event_ids'],
+            backend.redis.test_cache['record_ids'],
             set(['beep', 'boop', 'bim', 'bam']),
         )
         self.assertTrue('bim' in backend.redis.expiry)
@@ -657,72 +657,10 @@ class TestDataCache(unittest.TestCase):
         data_cache = cache.DataCache(backend, 5)
 
         # have to add data to be cached before setting raise_error
-        data_cache.check_or_set_event_id('foo')
+        data_cache.check_or_set_record_id('foo')
 
         # now set error and execute/verify
         backend.redis.raise_error = True
 
         with self.assertRaises(CacheException) as _:
             data_cache.flush()
-
-
-class TestCacheFactory(unittest.TestCase):
-    def test_new_returns_none_if_disabled(self):
-        '''
-        new returns None if cache disabled
-        given: a backend factory and a configuration
-        when: new is called
-        and when: cache_enabled is False in config
-        then: None is returned
-        '''
-
-        # setup
-        config = mod_config.Config({ 'cache_enabled': 'false' })
-        backend_factory = BackendFactoryStub()
-
-        # execute
-        cache_factory = cache.CacheFactory(backend_factory)
-        data_cache = cache_factory.new(config)
-
-        # verify
-        self.assertIsNone(data_cache)
-
-    def test_new_returns_data_cache_with_backend_if_enabled(self):
-        '''
-        new returns DataCache instance with backend from specified backend factory if cache enabled
-        given: a backend factory and a configuration
-        when: new is called
-        and when: cache_enabled is True in config
-        then: a DataCache is returned with the a backend from the specified backend factory
-        '''
-
-        # setup
-        config = mod_config.Config({ 'cache_enabled': 'true' })
-        backend_factory = BackendFactoryStub()
-
-        # execute
-        cache_factory = cache.CacheFactory(backend_factory)
-        data_cache = cache_factory.new(config)
-
-        # verify
-        self.assertIsNotNone(data_cache)
-        self.assertTrue(type(data_cache.backend) is BackendStub)
-
-    def test_new_raises_if_backend_factory_does(self):
-        '''
-        new raises CacheException if backend factory does
-        given: a backend factory and a configuration
-        when: new is called
-        and when: backend factory new() raises any exception
-        then: a CacheException is raised
-        '''
-
-        # setup
-        config = mod_config.Config({ 'cache_enabled': 'true' })
-        backend_factory = BackendFactoryStub(raise_error=True)
-
-        # execute / verify
-        cache_factory = cache.CacheFactory(backend_factory)
-
-        with self.assertRaises(CacheException):
-            _ = cache_factory.new(config)

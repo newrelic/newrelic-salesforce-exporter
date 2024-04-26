@@ -2,7 +2,7 @@ from datetime import datetime
 import unittest
 
 from newrelic_logging import LoginException, SalesforceApiException
-from newrelic_logging import config as mod_config, query, util
+from newrelic_logging import config as mod_config, util, query
 from . import \
     ApiStub, \
     SessionStub
@@ -11,10 +11,12 @@ class TestQuery(unittest.TestCase):
     def test_get_returns_backing_config_value_when_key_exists(self):
         '''
         get() returns the value of the key in the backing config when the key exists
-        given: a query string, a configuration, and an api version
+        given: an api instance
+        and given: a query string
+        and given: a configuration
         and given: a key
-        when: get is called with the key
-        then: returns value of the key from backing config
+        when: get() is called with the key
+        then: return value of the key from backing config
         '''
 
         # setup
@@ -35,8 +37,11 @@ class TestQuery(unittest.TestCase):
     def test_get_returns_backing_config_default_when_key_missing(self):
         '''
         get() returns the default value passed to the backing config.get when key does not exist in the backing config
-        given: a query string, a configuration, and an api version
-        when: get is called with a key and a default value
+        given: an api instance
+        and given: a query string
+        and given: a configuration
+        and given: a key
+        when: get() is called with a key and a default value
         and when: the key does not exist in the backing config
         then: returns default value passed to the backing config.get
         '''
@@ -59,7 +64,10 @@ class TestQuery(unittest.TestCase):
     def test_execute_raises_login_exception_if_api_query_does(self):
         '''
         execute() raises a LoginException if api.query() raises a LoginException
-        given: an api instance, a query string, and a configuration
+        given: an api instance
+        and given: a query string
+        and given: a configuration
+        and given: an http session
         when: execute() is called with an http session
         then: calls api.query() with the given session, query string, and no api version
         and when: api.query() raises a LoginException (as a result of a reauthenticate)
@@ -84,7 +92,10 @@ class TestQuery(unittest.TestCase):
     def test_execute_raises_salesforce_api_exception_if_api_query_does(self):
         '''
         execute() raises a SalesforceApiException if api.query() raises a SalesforceApiException
-        given: an api instance, a query string, and a configuration
+        given: an api instance
+        and given: a query string
+        and given: a configuration
+        and given: an http session
         when: execute() is called with an http session
         then: calls api.query() with the given session, query string, and no api version
         and when: api.query() raises a SalesforceApiException
@@ -109,10 +120,13 @@ class TestQuery(unittest.TestCase):
     def test_execute_calls_query_api_with_query_and_returns_result(self):
         '''
         execute() calls api.query() with the given session, query string, and no api version and returns the result
-        given: an api instance, a query string, and a configuration
-        when: execute() is called with an http session
+        given: an api instance
+        and given: a query string
+        and given: a configuration
+        and given: an http session
+        when: execute() is called
         then: calls api.query() with the given session, query string, and no api version
-        and: returns query result
+        and: return query result
         '''
 
         # setup
@@ -140,10 +154,14 @@ class TestQuery(unittest.TestCase):
     def test_execute_calls_query_api_with_query_and_api_ver_and_returns_result(self):
         '''
         execute() calls api.query() with the given session, query string, and api version and returns the result
-        given: an api instance, a query string, a configuration, and an api version
-        when: execute() is called with an http session
+        given: an api instance
+        and given: a query string
+        and given: a configuration
+        and given: an api version
+        and given: an http session
+        when: execute() is called
         then: calls api.query() with the given session, query string, and api version
-        and: returns query result
+        and: return query result
         '''
 
         # setup
@@ -175,8 +193,11 @@ class TestQueryFactory(unittest.TestCase):
         '''
         build_args() returns dictionary with expected properties
         given: a query factory
-        when: build_args() is called with a time lag, timestamp, and generation interval
-        then: returns dict with expected properties
+        and given: a time lag value
+        and given: a timestamp
+        and given: a generation interval value
+        when: build_args() is called
+        then: return dict with expected properties
         '''
 
         # setup
@@ -214,9 +235,10 @@ class TestQueryFactory(unittest.TestCase):
         '''
         get_env() returns an empty dict if env is not in the passed query dict
         given: a query factory
-        when: get_env() is called with a query dict
+        and given: a query dict
+        when: get_env() is called
         and when: there is no env property in the query dict
-        then: returns an empty dict
+        then: return an empty dict
         '''
 
         # setup
@@ -235,10 +257,11 @@ class TestQueryFactory(unittest.TestCase):
         '''
         get_env() returns an empty dict if the passed query dict has an env property but it is not a dict
         given: a query factory
-        when: get_env() is called with a query dict
+        and given: a query dict
+        when: get_env() is called
         and when: there is an env property in the query dict
         and when: the env property is not a dict
-        then: returns an empty dict
+        then: return an empty dict
         '''
 
         # setup
@@ -257,10 +280,11 @@ class TestQueryFactory(unittest.TestCase):
         '''
         get_env() returns the env dict from the query dict when one is present
         given: a query factory
-        when: get_env() is called with a query dict
+        and given: a query dict
+        when: get_env() is called
         and when: there is an env property in the query dict
         and when: the env property is a dict
-        then: returns the env dict
+        then: return the env dict
         '''
 
         # setup
@@ -284,8 +308,12 @@ class TestQueryFactory(unittest.TestCase):
         '''
         new() returns a query instance with the given query with arguments replaced and URL encoded
         given: a query factory
-        when: new() is called with an Api instance, query dict, lag time, timestamp, and generation interval
-        then: returns a query instance with the input query with arguments replaced and URL encoded
+        and given: a query dict
+        and given: a lag time value
+        and given: a timestamp
+        and given: a generation interval value
+        when: new() is called
+        then: return a query instance with the input query with arguments replaced and URL encoded
         '''
 
         # setup
@@ -326,8 +354,12 @@ class TestQueryFactory(unittest.TestCase):
         '''
         new() returns a query instance with the input query dict minus the query property
         given: a query factory
-        when: new() is called with an Api instance, query dict, lag time, timestamp, and generation interval
-        then: returns a query instance with a config equal to the input query dict minus the query property
+        and given: a query dict
+        and given: a lag time value
+        and given: a timestamp
+        and given: a generation interval value
+        when: new() is called
+        then: return a query instance with a config equal to the input query dict minus the query property
         '''
 
         # setup
@@ -369,9 +401,13 @@ class TestQueryFactory(unittest.TestCase):
         '''
         new() returns a query instance with the api version specified in the query dict
         given: a query factory
-        when: new() is called with an Api instance, query dict, lag time, timestamp, and generation interval
+        and given: a query dict
+        and given: a lag time value
+        and given: a timestamp
+        and given: a generation interval value
+        when: new() is called
         and when: an api version is specified in the query dict
-        then: returns a query instance with the api version specified in the query dict
+        then: return a query instance with the api version specified in the query dict
         '''
 
         # setup
@@ -398,9 +434,13 @@ class TestQueryFactory(unittest.TestCase):
         '''
         new() returns a query instance without an api version
         given: a query factory
-        when: new() is called with an Api instance, query dict, lag time, timestamp, and generation interval
+        and given: a query dict
+        and given: a lag time value
+        and given: a timestamp
+        and given: a generation interval value
+        when: new() is called
         and when: no api version is specified in the query dict
-        then: returns a query instance without an api version
+        then: return a query instance without an api version
         '''
 
         # setup

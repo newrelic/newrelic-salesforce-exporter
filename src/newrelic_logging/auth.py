@@ -289,25 +289,24 @@ def make_auth_from_env(config: Config) -> dict:
     raise Exception(f'Wrong or missing grant_type')
 
 
-class AuthenticatorFactory:
-    def __init__(self):
-        pass
+def new_authenticator(
+    instance_config: Config,
+    data_cache: DataCache,
+) -> Authenticator:
+    token_url = instance_config.get('token_url', env_var_name=SF_TOKEN_URL)
 
-    def new(self, config: Config, data_cache: DataCache) -> Authenticator:
-        token_url = config.get('token_url', env_var_name=SF_TOKEN_URL)
+    if not token_url:
+        raise ConfigException('token_url', 'missing token URL')
 
-        if not token_url:
-            raise ConfigException('token_url', 'missing token URL')
-
-        if 'auth' in config:
-            return Authenticator(
-                token_url,
-                make_auth_from_config(config.sub('auth')),
-                data_cache,
-            )
-
+    if 'auth' in instance_config:
         return Authenticator(
             token_url,
-            make_auth_from_env(config),
-            data_cache
+            make_auth_from_config(instance_config.sub('auth')),
+            data_cache,
         )
+
+    return Authenticator(
+        token_url,
+        make_auth_from_env(instance_config),
+        data_cache
+    )

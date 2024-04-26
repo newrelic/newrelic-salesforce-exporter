@@ -3,14 +3,24 @@ import json
 from redis import RedisError
 from requests import Session, RequestException
 
-from newrelic_logging import DataFormat, LoginException, SalesforceApiException
-from newrelic_logging.api import Api, ApiFactory
+
+from newrelic_logging import \
+    CacheException, \
+    DataFormat, \
+    LoginException, \
+    NewRelicApiException, \
+    SalesforceApiException
+from newrelic_logging.api import Api
 from newrelic_logging.auth import Authenticator
-from newrelic_logging.cache import DataCache
+from newrelic_logging.cache import BackendFactory, DataCache
 from newrelic_logging.config import Config
+from newrelic_logging.factory import Factory
+from newrelic_logging.instance import Instance
+from newrelic_logging.integration import Integration
 from newrelic_logging.newrelic import NewRelic
 from newrelic_logging.pipeline import Pipeline
-from newrelic_logging.query import Query, QueryFactory
+from newrelic_logging.query import Query
+from newrelic_logging.telemetry import Telemetry
 
 
 class ApiStub:
@@ -20,6 +30,7 @@ class ApiStub:
         api_ver: str = None,
         query_result: dict = None,
         lines: list[str] = None,
+        limits_result: dict = None,
         raise_error = False,
         raise_login_error = False,
     ):
@@ -27,8 +38,10 @@ class ApiStub:
         self.api_ver = api_ver
         self.query_result = query_result
         self.lines = lines
+        self.limits_result = limits_result
         self.soql = None
         self.query_api_ver = None
+        self.limits_api_ver = None
         self.log_file_path = None
         self.chunk_size = None
         self.raise_error = raise_error
@@ -69,12 +82,16 @@ class ApiStub:
 
         yield from self.lines
 
-class ApiFactoryStub:
-    def __init__(self):
-        pass
+    def list_limits(self, session: Session, api_ver: str = None) -> dict:
+        self.limits_api_ver = api_ver
 
-    def new(self, authenticator: Authenticator, api_ver: str):
-        return ApiStub(authenticator, api_ver)
+        if self.raise_error:
+            raise SalesforceApiException()
+
+        if self.raise_login_error:
+            raise LoginException()
+
+        return self.limits_result
 
 
 class AuthenticatorStub:
@@ -148,25 +165,17 @@ class AuthenticatorStub:
         self.access_token = self.access_token_2
 
 
-class AuthenticatorFactoryStub:
-    def __init__(self):
-        pass
-
-    def new(self, config: Config, data_cache: DataCache) -> Authenticator:
-        return AuthenticatorStub(config, data_cache)
-
-
 class DataCacheStub:
     def __init__(
         self,
         config: Config = None,
         cached_logs = {},
-        cached_events = [],
+        cached_records = [],
         skip_record_ids = [],
     ):
         self.config = config
         self.cached_logs = cached_logs
-        self.cached_events = cached_events
+        self.cached_records = cached_records
         self.skip_record_ids = skip_record_ids
         self.flush_called = False
 
@@ -177,40 +186,31 @@ class DataCacheStub:
         return record_id in self.cached_logs and \
             row['REQUEST_ID'] in self.cached_logs[record_id]
 
-    def check_or_set_event_id(self, record_id: str) -> bool:
-        return record_id in self.cached_events
+    def check_or_set_record_id(self, record_id: str) -> bool:
+        return record_id in self.cached_records
 
     def flush(self) -> None:
         self.flush_called = True
 
 
-class CacheFactoryStub:
-    def __init__(self):
-        pass
-
-    def new(self, config: Config):
-        return DataCacheStub(config)
-
-
 class NewRelicStub:
-    def __init__(self, config: Config = None):
+    def __init__(self, config: Config = None, raise_error: bool = False):
         self.config = config
         self.logs = []
         self.events = []
+        self.raise_error = raise_error
 
     def post_logs(self, session: Session, data: list[dict]) -> None:
+        if self.raise_error:
+            raise NewRelicApiException()
+
         self.logs.append(data)
 
     def post_events(self, session: Session, events: list[dict]) -> None:
+        if self.raise_error:
+            raise NewRelicApiException()
+
         self.events.append(events)
-
-
-class NewRelicFactoryStub:
-    def __init__(self):
-        pass
-
-    def new(self, config: Config):
-        return NewRelicStub(config)
 
 
 class QueryStub:
@@ -221,30 +221,57 @@ class QueryStub:
         config: Config = Config({}),
         api_ver: str = None,
         result: dict = { 'records': [] },
+        wrapped: Query = None,
+        raise_login_error: bool = False,
+        raise_error: bool = False,
     ):
         self.api = api
         self.query = query
         self.config = config
         self.api_ver = api_ver
         self.executed = False
-        self.result = result
+        self.raise_login_error = raise_login_error
+        self.raise_error = raise_error
+        self.wrapped = None
+        if 'results' in config:
+            self.result = { 'records': config['results'] }
+        elif wrapped:
+            self.wrapped = wrapped
+        else:
+            self.result = result
 
     def get(self, key: str, default = None):
+        if self.wrapped:
+            return self.wrapped.get(key, default)
+
         return self.config.get(key, default)
 
     def get_config(self):
+        if self.wrapped:
+            return self.wrapped.get_config()
+
         return self.config
 
     def execute(self, session: Session = None):
+        if self.raise_error:
+            raise SalesforceApiException()
+
+        if self.raise_login_error:
+            raise LoginException()
+
         self.executed = True
+
+        if self.wrapped:
+            return self.wrapped.execute(session)
+
         return self.result
 
 
 class QueryFactoryStub:
-    def __init__(self, query: QueryStub = None ):
+    def __init__(self, query: QueryStub = None, wrap=False ):
         self.query = query
         self.queries = [] if not query else None
-        pass
+        self.wrap = wrap
 
     def new(
         self,
@@ -257,7 +284,13 @@ class QueryFactoryStub:
         if self.query:
             return self.query
 
-        qq = QueryStub(api, q['query'], q)
+        if self.wrap:
+            qq = QueryStub(
+                wrapped=Query(api, q['query'], q)
+            )
+        else:
+            qq = QueryStub(api, q['query'], q)
+
         self.queries.append(qq)
         return qq
 
@@ -270,29 +303,26 @@ class PipelineStub:
         new_relic: NewRelic = None,
         data_format: DataFormat = DataFormat.LOGS,
         labels: dict = {},
-        event_type_fields_mapping: dict = {},
         numeric_fields_list: set = set(),
         raise_error: bool = False,
         raise_login_error: bool = False,
+        raise_newrelic_error: bool = False,
     ):
         self.config = config
         self.data_cache = data_cache
         self.new_relic = new_relic
         self.data_format = data_format
         self.labels = labels
-        self.event_type_fields_mapping = event_type_fields_mapping
         self.numeric_fields_list = numeric_fields_list
         self.queries = []
         self.executed = False
         self.raise_error = raise_error
         self.raise_login_error = raise_login_error
+        self.raise_newrelic_error = raise_newrelic_error
 
     def execute(
         self,
-        api: Api,
         session: Session,
-        query: Query,
-        records: list[dict],
     ):
         if self.raise_error:
             raise SalesforceApiException()
@@ -300,33 +330,10 @@ class PipelineStub:
         if self.raise_login_error:
             raise LoginException()
 
-        self.queries.append(query)
+        if self.raise_newrelic_error:
+            raise NewRelicApiException()
+
         self.executed = True
-
-
-class PipelineFactoryStub:
-    def __init__(self):
-        pass
-
-    def new(
-        self,
-        config: Config,
-        data_cache: DataCache,
-        new_relic: NewRelic,
-        data_format: DataFormat,
-        labels: dict,
-        event_type_fields_mapping: dict,
-        numeric_fields_list: set,
-    ):
-        return PipelineStub(
-            config,
-            data_cache,
-            new_relic,
-            data_format,
-            labels,
-            event_type_fields_mapping,
-            numeric_fields_list,
-        )
 
 
 class RedisStub:
@@ -403,9 +410,9 @@ class BackendFactoryStub:
     def __init__(self, raise_error = False):
         self.raise_error = raise_error
 
-    def new(self, _: Config):
+    def new_backend(self, config: Config):
         if self.raise_error:
-            raise RedisError('raise_error set')
+            raise CacheException('raise_error set')
 
         return BackendStub({})
 
@@ -459,57 +466,86 @@ class ResponseStub:
         return json.loads(self.text)
 
 
-class SalesForceStub:
+class InstanceStub:
     def __init__(
         self,
-        instance_name: str,
-        config: Config,
-        data_cache: DataCache,
-        authenticator: Authenticator,
-        pipeline: Pipeline,
-        api_factory: ApiFactory,
-        query_factory: QueryFactory,
-        initial_delay: int,
+        instance_name: str = '',
+        config: Config = Config({}),
+        api: Api = None,
+        pipeline: Pipeline = None,
         queries: list[dict] = None,
+        raise_login_error: bool = False,
+        raise_error: bool = False,
+        raise_newrelic_error: bool = False,
+        raise_cache_error: bool = False,
+        raise_unexpected_error: bool = False,
     ):
-        self.instance_name = instance_name
+        self.name = instance_name
         self.config = config
-        self.data_cache = data_cache
-        self.authenticator = authenticator
+        self.api = api
         self.pipeline = pipeline
-        self.api_factory = api_factory
-        self.query_factory = query_factory
-        self.initial_delay = initial_delay
         self.queries = queries
+        self.harvest_called = False
+        self.raise_login_error = raise_login_error
+        self.raise_error = raise_error
+        self.raise_newrelic_error = raise_newrelic_error
+        self.raise_cache_error = raise_cache_error
+        self.raise_unexpected_error = raise_unexpected_error
+
+    def harvest(self, session: Session):
+        if self.raise_error:
+            raise SalesforceApiException()
+
+        if self.raise_login_error:
+            raise LoginException()
+
+        if self.raise_newrelic_error:
+            raise NewRelicApiException()
+
+        if self.raise_cache_error:
+            raise CacheException()
+
+        if self.raise_unexpected_error:
+            raise Exception()
+
+        self.harvest_called = True
 
 
-class SalesForceFactoryStub:
-    def __init__(self):
+class IntegrationStub:
+    def __init__(
+        self,
+        config: Config = Config({}),
+        event_type_fields_mapping: dict = {},
+        numeric_fields_list: set = set(),
+        initial_delay: int = 0,
+    ):
         pass
 
-    def new(
+class ReceiverStub:
+    def __init__(
         self,
-        instance_name: str,
-        config: Config,
-        data_cache: DataCache,
-        authenticator: Authenticator,
-        pipeline: Pipeline,
-        api_factory: ApiFactory,
-        query_factory: QueryFactory,
-        initial_delay: int,
-        queries: list[dict] = None,
+        raise_login_error: bool = False,
+        raise_error: bool = False,
+        logs: list[dict] = [],
     ):
-        return SalesForceStub(
-            instance_name,
-            config,
-            data_cache,
-            authenticator,
-            pipeline,
-            api_factory,
-            query_factory,
-            initial_delay,
-            queries,
-        )
+        self.executed = False
+        self.raise_login_error = raise_login_error
+        self.raise_error = raise_error
+        self.logs = logs
+
+    def execute(
+        self,
+        session: Session,
+    ):
+        if self.raise_error:
+            raise SalesforceApiException()
+
+        if self.raise_login_error:
+            raise LoginException()
+
+        self.executed = True
+
+        yield from self.logs
 
 
 class SessionStub:
@@ -534,3 +570,174 @@ class SessionStub:
             raise RequestException('raise_error set')
 
         return self.response
+
+
+class TelemetryStub:
+    def __init__(
+        self,
+        integration_name: str = 'test_instance',
+        new_relic: NewRelic = None,
+        empty: bool = True
+    ):
+        self.integration_name = integration_name
+        self.new_relic = new_relic
+        self.empty = empty
+        self.flush_called = False
+
+    def is_empty(self):
+        return self.empty
+
+    def log_info(self, msg: str):
+        self.record_log(msg, "info")
+
+    def log_err(self, msg: str):
+        self.record_log(msg, "error")
+
+    def log_warn(self, msg: str):
+        self.record_log(msg, "warn")
+
+    def record_log(self, msg: str, level: str):
+        pass
+
+    def clear(self):
+        pass
+
+    def flush(self, session: Session):
+        self.flush_called = True
+
+
+class FactoryStub:
+    def __init__(
+        self,
+        f: Factory,
+        backend_factory: BackendFactoryStub = None,
+        data_cache: DataCacheStub = None,
+        authenticator: AuthenticatorStub = None,
+        api: ApiStub = None,
+        pipeline: PipelineStub = None,
+        instance: InstanceStub = None,
+        integration: IntegrationStub = None,
+        new_relic: NewRelicStub = None,
+        telemetry: TelemetryStub = None
+    ):
+        self.f = f
+        self.backend_factory = backend_factory
+        self.data_cache = data_cache
+        self.authenticator = authenticator
+        self.api = api
+        self.pipeline = pipeline
+        self.instance = instance
+        self.integration = integration
+        self.new_relic = new_relic
+        self.telemetry = telemetry
+
+    def new_backend_factory(self):
+        if self.backend_factory:
+            return BackendFactoryStub()
+
+        return self.backend_factory
+
+    def new_data_cache(
+        self,
+        instance_config: Config,
+        backend_factory: BackendFactory,
+    ) -> DataCache:
+        if self.data_cache:
+            return self.data_cache
+
+        return self.f.new_data_cache(instance_config, backend_factory)
+
+    def new_authenticator(
+        self,
+        instance_config: Config,
+        data_cache: DataCache,
+    ) -> Authenticator:
+        if self.authenticator:
+            return self.authenticator
+
+        return self.f.new_authenticator(instance_config, data_cache)
+
+    def new_api(self, authenticator: Authenticator, api_ver: str):
+        if self.api:
+            return self.api
+
+        return self.f.new_api(authenticator, api_ver)
+
+    def new_pipeline(
+        self,
+        config: Config,
+        data_cache: DataCache,
+        new_relic: NewRelic,
+        data_format: DataFormat,
+        labels: dict,
+        numeric_fields_list: set,
+    ) -> Pipeline:
+        if self.pipeline:
+            return self.pipeline
+
+        return self.f.new_pipeline(
+            config,
+            data_cache,
+            new_relic,
+            data_format,
+            labels,
+            numeric_fields_list,
+        )
+
+    def new_instance(
+        self,
+        factory,
+        instance_name: str,
+        instance_config: Config,
+        data_format: DataFormat,
+        new_relic: NewRelic,
+        receivers: list[callable],
+        labels: dict,
+        numeric_fields_list: set = set(),
+    ) -> Instance:
+        if self.instance:
+            return self.instance
+
+        return self.f.new_instance(
+            factory,
+            instance_name,
+            instance_config,
+            data_format,
+            new_relic,
+            receivers,
+            labels,
+            numeric_fields_list,
+        )
+
+    def new_integration(
+        self,
+        factory,
+        config: Config,
+        receivers: list[callable],
+        numeric_fields_list: set = set(),
+    ) -> Integration:
+        if self.integration:
+            return self.integration
+
+        return self.f.new_integration(
+            factory,
+            config,
+            receivers,
+            numeric_fields_list,
+        )
+
+    def new_new_relic(self, config: Config):
+        if self.new_relic:
+            return self.new_relic
+
+        return self.f.new_new_relic(config)
+
+    def new_telemetry(
+        self,
+        config: Config,
+        new_relic: NewRelic,
+    ):
+        if self.telemetry:
+            return self.telemetry
+
+        return self.f.new_telemetry(config, new_relic)

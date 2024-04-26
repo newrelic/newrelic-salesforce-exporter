@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 import hashlib
 import json
+import pytz
 import unittest
 
 from newrelic_logging import util
@@ -503,6 +504,53 @@ class TestUtilities(unittest.TestCase):
 
         # verify
         self.assertEqual(expected, timestamp)
+
+    def test_get_log_line_timestamp_returns_now_when_missing_timestamp_attribute(self):
+        _now = datetime.utcnow()
+
+        def _utcnow():
+            nonlocal _now
+            return _now
+
+        util._UTCNOW = _utcnow
+
+        '''
+        get_log_line_timestamp() returns a timestamp representing the current time when no TIMESTAMP attribute is found in the log line
+        given: a log line
+        when: get_log_line_timestamp() is called
+        and when: there is no TIMESTAMP attribute
+        then: return the current timestamp
+        '''
+
+        # setup
+        now = _now.replace(microsecond=0)
+
+        # execute
+        ts = util.get_log_line_timestamp({})
+
+        # verify
+        self.assertEqual(now.timestamp(), ts)
+
+    def test_get_log_line_timestamp_returns_timestamp_from_attribute(self):
+        '''
+        get_log_line_timestamp() returns a timestamp representing TIMESTAMP attribute when a TIMESTAMP attribute is found in the log line
+        given: a log line
+        when: get_log_line_timestamp() is called
+        when: there is a TIMESTAMP attribute
+        then: parse the string in the format YYYYMMDDHHmmss.FFF and return
+              the representative timestamp
+        '''
+
+        # setup
+        now = datetime.utcnow().replace(microsecond=0)
+        epoch = now.strftime('%Y%m%d%H%M%S.%f')
+
+        # execute
+        ts1 = pytz.utc.localize(now).replace(microsecond=0).timestamp()
+        ts2 = util.get_log_line_timestamp({ 'TIMESTAMP': epoch })
+
+        # verify
+        self.assertEqual(ts1, ts2)
 
 
 if __name__ == '__main__':
