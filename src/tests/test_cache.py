@@ -1,9 +1,13 @@
 from datetime import timedelta
 from redis import RedisError
+from types import SimpleNamespace
 import unittest
 
-from newrelic_logging import cache, CacheException, config as mod_config
-from . import RedisStub, BackendStub, BackendFactoryStub
+from newrelic_logging import \
+    cache, \
+    CacheException, \
+    config as mod_config
+from . import RedisStub, BackendStub
 
 class TestRedisBackend(unittest.TestCase):
     def test_exists(self):
@@ -214,6 +218,51 @@ class TestRedisBackend(unittest.TestCase):
         # verify
         with self.assertRaises(RedisError) as _:
             backend.set_expiry('foo', 5)
+
+
+class TestBackendFactory(unittest.TestCase):
+    def test_new_backend(self):
+        '''
+        new_backend() returns a properly configured Redis client given an instance configuration
+        given: an instance configuration
+        when: new_backend() is called
+        then: return a new Redis client with the correct client values
+        '''
+
+        # setup
+        def redis_connect(**kwargs):
+            return SimpleNamespace(**kwargs)
+
+        config = mod_config.Config({
+            'redis': {
+                'host': 'foo',
+                'port': 1234,
+                'db_number': 2,
+                'password': 'beepboop',
+                'ssl': True,
+            }
+        })
+
+        # execute
+        f = cache.BackendFactory()
+        backend = f.new_backend(
+            config,
+            redis_connector=redis_connect,
+        )
+
+        # verify
+        r = backend.redis
+
+        self.assertTrue(hasattr(r, 'host'))
+        self.assertEqual(r.host, 'foo')
+        self.assertTrue(hasattr(r, 'port'))
+        self.assertEqual(r.port, 1234)
+        self.assertTrue(hasattr(r, 'db'))
+        self.assertEqual(r.db, 2)
+        self.assertTrue(hasattr(r, 'password'))
+        self.assertEqual(r.password, 'beepboop')
+        self.assertTrue(hasattr(r, 'ssl'))
+        self.assertEqual(r.ssl, True)
 
 
 class TestBufferedAddSetCache(unittest.TestCase):

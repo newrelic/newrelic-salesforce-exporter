@@ -633,9 +633,9 @@ class FactoryStub:
 
     def new_backend_factory(self):
         if self.backend_factory:
-            return BackendFactoryStub()
+            return self.backend_factory
 
-        return self.backend_factory
+        return self.f.new_backend_factory()
 
     def new_data_cache(
         self,

@@ -22,6 +22,11 @@ DEFAULT_REDIS_EXPIRE_DAYS = 2
 DEFAULT_REDIS_SSL = False
 
 
+# Going through this function makes testing easier
+def redis_connect(**kwargs) -> redis.Redis: # pragma: no cover
+    return redis.Redis(**kwargs)
+
+
 class RedisBackend:
     def __init__(self, redis):
         self.redis = redis
@@ -46,7 +51,11 @@ class BackendFactory:
     def __init__(self):
         pass
 
-    def new_backend(self, config: Config):
+    def new_backend(
+        self,
+        config: Config,
+        redis_connector: callable = redis_connect, # makes testing easier
+    ):
         host = config.get(CONFIG_REDIS_HOST, DEFAULT_REDIS_HOST)
         port = config.get_int(CONFIG_REDIS_PORT, DEFAULT_REDIS_PORT)
         db = config.get_int(CONFIG_REDIS_DB_NUMBER, DEFAULT_REDIS_DB_NUMBER)
@@ -59,7 +68,7 @@ class BackendFactory:
         )
 
         return RedisBackend(
-            redis.Redis(
+            redis_connector(
                 host=host,
                 port=port,
                 db=db,
