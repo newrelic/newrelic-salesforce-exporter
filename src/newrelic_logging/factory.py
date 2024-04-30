@@ -10,8 +10,6 @@ from .config import Config
 from .instance import Instance
 from .integration import Integration
 from .pipeline import Pipeline
-from .query.receiver import QueryReceiver
-from .limits.receiver import LimitsReceiver
 from .telemetry import print_info, Telemetry
 
 
@@ -142,7 +140,7 @@ class Factory:
         numeric_fields_list: set = set(),
     ):
         if not 'instances' in config or len(config['instances']) == 0:
-            raise Exception('no instances found to run')
+            raise ConfigException('no instances found to run')
 
         data_format = config.get('newrelic.data_format', 'logs').lower()
         if data_format == 'logs':
@@ -157,13 +155,16 @@ class Factory:
         instances = []
 
         for index, i in enumerate(config['instances']):
+            if not 'name' in i:
+                raise ConfigException(f'missing instance name for instance {i}')
+
             instance_config = config.sub(f'instances.{index}.arguments')
             instance_config.set_prefix(
                 instance_config['auth_env_prefix'] \
                 if 'auth_env_prefix' in instance_config else ''
             )
 
-            labels = i['labels']
+            labels = i['labels'] if 'labels' in i else {}
             labels['nr-labs'] = 'data'
 
             instances.append(factory.new_instance(
@@ -185,17 +186,26 @@ class Factory:
             env_var_name=newrelic.NR_LICENSE_KEY,
         )
 
-        region = config.get('newrelic.api_endpoint')
-        account_id = config.get('newrelic.account_id', env_var_name=newrelic.NR_ACCOUNT_ID)
+        account_id = config.get(
+            'newrelic.account_id',
+            env_var_name=newrelic.NR_ACCOUNT_ID,
+        )
+        if not account_id:
+            raise NewRelicApiException(f'missing New Relic account ID')
 
+        region = config.get('newrelic.api_endpoint')
         if region == "US":
             logs_api_endpoint = newrelic.US_LOGGING_ENDPOINT
-            events_api_endpoint = newrelic.US_EVENTS_ENDPOINT.format(account_id=account_id)
+            events_api_endpoint = newrelic.US_EVENTS_ENDPOINT.format(
+                account_id=account_id,
+            )
         elif region == "EU":
             logs_api_endpoint = newrelic.EU_LOGGING_ENDPOINT
-            events_api_endpoint = newrelic.EU_EVENTS_ENDPOINT.format(account_id=account_id)
+            events_api_endpoint = newrelic.EU_EVENTS_ENDPOINT.format(
+                account_id=account_id,
+            )
         else:
-            raise NewRelicApiException(f'Invalid region {region}')
+            raise NewRelicApiException(f'invalid New Relic API region {region}')
 
         return newrelic.NewRelic(
             logs_api_endpoint,

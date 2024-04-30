@@ -97,7 +97,7 @@ class ApiStub:
 class AuthenticatorStub:
     def __init__(
         self,
-        config: Config = None,
+        instance_config: Config = None,
         data_cache: DataCache = None,
         token_url: str = '',
         access_token: str = '',
@@ -108,7 +108,7 @@ class AuthenticatorStub:
         reauthenticate_called: bool = False,
         raise_login_error = False,
     ):
-        self.config = config
+        self.instance_config = instance_config
         self.data_cache = data_cache
         self.token_url = token_url
         self.access_token = access_token
@@ -168,12 +168,14 @@ class AuthenticatorStub:
 class DataCacheStub:
     def __init__(
         self,
-        config: Config = None,
+        instance_config: Config = None,
+        backend_factory: BackendFactory = None,
         cached_logs = {},
         cached_records = [],
         skip_record_ids = [],
     ):
-        self.config = config
+        self.instance_config = instance_config
+        self.backend_factory = backend_factory
         self.cached_logs = cached_logs
         self.cached_records = cached_records
         self.skip_record_ids = skip_record_ids
@@ -298,7 +300,7 @@ class QueryFactoryStub:
 class PipelineStub:
     def __init__(
         self,
-        config: Config = Config({}),
+        instance_config: Config = Config({}),
         data_cache: DataCache = None,
         new_relic: NewRelic = None,
         data_format: DataFormat = DataFormat.LOGS,
@@ -308,7 +310,7 @@ class PipelineStub:
         raise_login_error: bool = False,
         raise_newrelic_error: bool = False,
     ):
-        self.config = config
+        self.instance_config = instance_config
         self.data_cache = data_cache
         self.new_relic = new_relic
         self.data_format = data_format
@@ -319,6 +321,10 @@ class PipelineStub:
         self.raise_error = raise_error
         self.raise_login_error = raise_login_error
         self.raise_newrelic_error = raise_newrelic_error
+        self.receivers = []
+
+    def add_receiver(self, receiver) -> None:
+        self.receivers.append(receiver)
 
     def execute(
         self,
@@ -470,7 +476,12 @@ class InstanceStub:
     def __init__(
         self,
         instance_name: str = '',
-        config: Config = Config({}),
+        instance_config: Config = Config({}),
+        data_format: DataFormat = DataFormat.LOGS,
+        new_relic: NewRelic = None,
+        receivers: list[callable] = [],
+        labels: dict = {},
+        numeric_fields_list: set = set(),
         api: Api = None,
         pipeline: Pipeline = None,
         queries: list[dict] = None,
@@ -481,7 +492,12 @@ class InstanceStub:
         raise_unexpected_error: bool = False,
     ):
         self.name = instance_name
-        self.config = config
+        self.instance_config = instance_config
+        self.data_format = data_format
+        self.new_relic = new_relic
+        self.receivers = receivers
+        self.labels = labels
+        self.numeric_fields_list = numeric_fields_list
         self.api = api
         self.pipeline = pipeline
         self.queries = queries
@@ -515,19 +531,26 @@ class IntegrationStub:
     def __init__(
         self,
         config: Config = Config({}),
-        event_type_fields_mapping: dict = {},
+        receivers: list[callable] = [],
         numeric_fields_list: set = set(),
-        initial_delay: int = 0,
     ):
-        pass
+        self.config = config
+        self.receivers = receivers
+        self.numeric_fields_list = numeric_fields_list
 
 class ReceiverStub:
     def __init__(
         self,
+        instance_config: Config = Config({}),
+        data_cache: DataCache = None,
+        api: Api = None,
         raise_login_error: bool = False,
         raise_error: bool = False,
         logs: list[dict] = [],
     ):
+        self.instance_config = instance_config
+        self.data_cache = data_cache
+        self.api = api
         self.executed = False
         self.raise_login_error = raise_login_error
         self.raise_error = raise_error
@@ -575,11 +598,11 @@ class SessionStub:
 class TelemetryStub:
     def __init__(
         self,
-        integration_name: str = 'test_instance',
+        config: Config = Config({}),
         new_relic: NewRelic = None,
         empty: bool = True
     ):
-        self.integration_name = integration_name
+        self.config = config
         self.new_relic = new_relic
         self.empty = empty
         self.flush_called = False
@@ -607,6 +630,139 @@ class TelemetryStub:
 
 
 class FactoryStub:
+    def __init__(
+        self,
+        backend_factory: BackendFactoryStub = None,
+        data_cache: DataCacheStub = None,
+        authenticator: AuthenticatorStub = None,
+        api: ApiStub = None,
+        pipeline: PipelineStub = None,
+        instance: InstanceStub = None,
+        integration: IntegrationStub = None,
+        new_relic: NewRelicStub = None,
+        telemetry: TelemetryStub = None
+    ):
+        self.backend_factory = backend_factory
+        self.data_cache = data_cache
+        self.authenticator = authenticator
+        self.api = api
+        self.pipeline = pipeline
+        self.instance = instance
+        self.integration = integration
+        self.new_relic = new_relic
+        self.telemetry = telemetry
+
+    def new_backend_factory(self):
+        if self.backend_factory:
+            return self.backend_factory
+
+        return BackendFactoryStub()
+
+    def new_data_cache(
+        self,
+        instance_config: Config,
+        backend_factory: BackendFactory,
+    ) -> DataCache:
+        if self.data_cache:
+            return self.data_cache
+
+        return DataCacheStub(instance_config, backend_factory)
+
+    def new_authenticator(
+        self,
+        instance_config: Config,
+        data_cache: DataCache,
+    ) -> Authenticator:
+        if self.authenticator:
+            return self.authenticator
+
+        return AuthenticatorStub(instance_config, data_cache)
+
+    def new_api(self, authenticator: Authenticator, api_ver: str):
+        if self.api:
+            return self.api
+
+        return ApiStub(authenticator, api_ver)
+
+    def new_pipeline(
+        self,
+        instance_config: Config,
+        data_cache: DataCache,
+        new_relic: NewRelic,
+        data_format: DataFormat,
+        labels: dict,
+        numeric_fields_list: set,
+    ) -> Pipeline:
+        if self.pipeline:
+            return self.pipeline
+
+        return PipelineStub(
+            instance_config,
+            data_cache,
+            new_relic,
+            data_format,
+            labels,
+            numeric_fields_list,
+        )
+
+    def new_instance(
+        self,
+        factory,
+        instance_name: str,
+        instance_config: Config,
+        data_format: DataFormat,
+        new_relic: NewRelic,
+        receivers: list[callable],
+        labels: dict,
+        numeric_fields_list: set = set(),
+    ) -> Instance:
+        if self.instance:
+            return self.instance
+
+        return InstanceStub(
+            instance_name,
+            instance_config,
+            data_format,
+            new_relic,
+            receivers,
+            labels,
+            numeric_fields_list,
+        )
+
+    def new_integration(
+        self,
+        factory,
+        config: Config,
+        receivers: list[callable],
+        numeric_fields_list: set = set(),
+    ) -> Integration:
+        if self.integration:
+            return self.integration
+
+        return IntegrationStub(
+            config,
+            receivers,
+            numeric_fields_list,
+        )
+
+    def new_new_relic(self, config: Config):
+        if self.new_relic:
+            return self.new_relic
+
+        return NewRelicStub(config)
+
+    def new_telemetry(
+        self,
+        config: Config,
+        new_relic: NewRelic,
+    ):
+        if self.telemetry:
+            return self.telemetry
+
+        return TelemetryStub(config, new_relic)
+
+
+class DelegatingFactoryStub:
     def __init__(
         self,
         f: Factory,

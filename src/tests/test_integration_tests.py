@@ -7,7 +7,7 @@ import unittest
 from . import \
     ApiStub, \
     AuthenticatorStub, \
-    FactoryStub, \
+    DelegatingFactoryStub, \
     NewRelicStub, \
     QueryFactoryStub
 
@@ -68,7 +68,7 @@ class TestIntegrationTests(unittest.TestCase):
         )
 
         f = factory.Factory()
-        fs = FactoryStub(
+        fs = DelegatingFactoryStub(
             f,
             new_relic=new_relic,
             authenticator=auth,
@@ -183,7 +183,7 @@ class TestIntegrationTests(unittest.TestCase):
         )
 
         f = factory.Factory()
-        fs = FactoryStub(
+        fs = DelegatingFactoryStub(
             f,
             new_relic=new_relic,
             authenticator=auth,
@@ -273,7 +273,7 @@ class TestIntegrationTests(unittest.TestCase):
         )
 
         f = factory.Factory()
-        fs = FactoryStub(
+        fs = DelegatingFactoryStub(
             f,
             new_relic=new_relic,
             authenticator=auth,
@@ -384,7 +384,7 @@ class TestIntegrationTests(unittest.TestCase):
         )
 
         f = factory.Factory()
-        fs = FactoryStub(
+        fs = DelegatingFactoryStub(
             f,
             new_relic=new_relic,
             authenticator=auth,
@@ -472,7 +472,7 @@ class TestIntegrationTests(unittest.TestCase):
         )
 
         f = factory.Factory()
-        fs = FactoryStub(
+        fs = DelegatingFactoryStub(
             f,
             new_relic=new_relic,
             authenticator=auth,
@@ -575,7 +575,7 @@ class TestIntegrationTests(unittest.TestCase):
         )
 
         f = factory.Factory()
-        fs = FactoryStub(
+        fs = DelegatingFactoryStub(
             f,
             new_relic=new_relic,
             authenticator=auth,
