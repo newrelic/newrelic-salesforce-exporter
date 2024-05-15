@@ -130,7 +130,8 @@ class TestLimitsReceiver(unittest.TestCase):
     def test_build_attributes_returns_name_only_given_no_max_or_remaining(self):
         '''
         build_attributes() returns a dict containing only a name attribute when there are no Max or Remaining attributes in the given limit dict
-        given: the result of export_limits()
+        given: a set of limits options from the instance configuration
+        and given: the result of export_limits()
         and given: a limit name
         when: build_attributes() is called
         and when: the limit for the given limit name does not have Max or Remaining attributes
@@ -138,6 +139,7 @@ class TestLimitsReceiver(unittest.TestCase):
         '''
 
         # setup
+        config = mod_config.Config({})
         limits = {
             'Foo': { 'Max': 50, 'Remaining': 3 },
             'Bar': { 'Max': 300, 'Remaining': 10 },
@@ -146,7 +148,7 @@ class TestLimitsReceiver(unittest.TestCase):
         }
 
         # execute
-        attrs = receiver.build_attributes(limits, 'Boop')
+        attrs = receiver.build_attributes(config, limits, 'Boop')
 
         # verify
         self.assertTrue('name' in attrs)
@@ -157,7 +159,8 @@ class TestLimitsReceiver(unittest.TestCase):
     def test_build_attributes_returns_name_and_max_given_no_remaining(self):
         '''
         build_attributes() returns a dict containing only name and Max attributes when there is no Remaining attribute in the given limit dict
-        given: the result of export_limits()
+        given: a set of limits options from the instance configuration
+        and given: the result of export_limits()
         and given: a limit name
         when: build_attributes() is called
         and when: the limit for the given limit name has a Max attribute
@@ -166,6 +169,7 @@ class TestLimitsReceiver(unittest.TestCase):
         '''
 
         # setup
+        config = mod_config.Config({})
         limits = {
             'Foo': { 'Max': 50, 'Remaining': 3 },
             'Bar': { 'Max': 300, 'Remaining': 10 },
@@ -174,7 +178,7 @@ class TestLimitsReceiver(unittest.TestCase):
         }
 
         # execute
-        attrs = receiver.build_attributes(limits, 'Boop')
+        attrs = receiver.build_attributes(config, limits, 'Boop')
 
         # verify
         self.assertTrue('name' in attrs)
@@ -186,7 +190,8 @@ class TestLimitsReceiver(unittest.TestCase):
     def test_build_attributes_returns_name_and_remaining_given_no_max(self):
         '''
         build_attributes() returns a dict containing only name and Remaining attributes when there is no Max attribute in the given limit dict
-        given: the result of export_limits()
+        given: a set of limits options from the instance configuration
+        and given: the result of export_limits()
         and given: a limit name
         when: build_attributes() is called
         and when: the limit for the given limit name has a Remaining attribute
@@ -195,6 +200,7 @@ class TestLimitsReceiver(unittest.TestCase):
         '''
 
         # setup
+        config = mod_config.Config({})
         limits = {
             'Foo': { 'Max': 50, 'Remaining': 3 },
             'Bar': { 'Max': 300, 'Remaining': 10 },
@@ -203,7 +209,7 @@ class TestLimitsReceiver(unittest.TestCase):
         }
 
         # execute
-        attrs = receiver.build_attributes(limits, 'Boop')
+        attrs = receiver.build_attributes(config, limits, 'Boop')
 
         # verify
         self.assertTrue('name' in attrs)
@@ -215,7 +221,8 @@ class TestLimitsReceiver(unittest.TestCase):
     def test_build_attributes_returns_name_and_max_and_remaining(self):
         '''
         build_attributes() returns a dict containing the name, Max, and Remaining attributes when both Max and Remaining exist in the given limit dict
-        given: the result of export_limits()
+        given: a set of limits options from the instance configuration
+        and given: the result of export_limits()
         and given: a limit name
         when: build_attributes() is called
         and when: the limit for the given limit name has a Remaining attribute
@@ -224,6 +231,7 @@ class TestLimitsReceiver(unittest.TestCase):
         '''
 
         # setup
+        config = mod_config.Config({})
         limits = {
             'Foo': { 'Max': 50, 'Remaining': 3 },
             'Bar': { 'Max': 300, 'Remaining': 10 },
@@ -232,7 +240,7 @@ class TestLimitsReceiver(unittest.TestCase):
         }
 
         # execute
-        attrs = receiver.build_attributes(limits, 'Foo')
+        attrs = receiver.build_attributes(config, limits, 'Foo')
 
         # verify
         self.assertTrue('name' in attrs)
@@ -241,6 +249,66 @@ class TestLimitsReceiver(unittest.TestCase):
         self.assertEqual(attrs['Max'], 50)
         self.assertTrue('Remaining' in attrs)
         self.assertEqual(attrs['Remaining'], 3)
+
+    def test_build_attributes_returns_default_event_type_given_no_event_type_option(self):
+        '''
+        build_attributes() returns a dict containing a limit with the default event type given no event type option is specified in the config
+        given: a set of limits options from the instance configuration
+        and given: the result of export_limits()
+        and given: a limit name
+        when: build_attributes() is called
+        and when: the event_type option is not set in the limits options
+        then: return a dict with the default EVENT_TYPE
+        '''
+
+        # setup
+        config = mod_config.Config({})
+        limits = {
+            'Foo': { 'Max': 50, 'Remaining': 3 },
+        }
+
+        # execute
+        attrs = receiver.build_attributes(config, limits, 'Foo')
+
+        # verify
+        self.assertTrue('name' in attrs)
+        self.assertEqual(attrs['name'], 'Foo')
+        self.assertTrue('Max' in attrs)
+        self.assertEqual(attrs['Max'], 50)
+        self.assertTrue('Remaining' in attrs)
+        self.assertEqual(attrs['Remaining'], 3)
+        self.assertTrue('EVENT_TYPE' in attrs)
+        self.assertEqual(attrs['EVENT_TYPE'], 'SalesforceOrgLimit')
+
+    def test_build_attributes_returns_custom_event_type_given_event_type_option(self):
+        '''
+        build_attributes() returns a dict containing a limit with a custom event type given an event type option is specified in the config
+        given: a set of limits options from the instance configuration
+        and given: the result of export_limits()
+        and given: a limit name
+        when: build_attributes() is called
+        and when: the event_type option is set in the limits options
+        then: return a dict with the custom EVENT_TYPE
+        '''
+
+        # setup
+        config = mod_config.Config({ 'event_type': 'CustomSFOrgLimit' })
+        limits = {
+            'Foo': { 'Max': 50, 'Remaining': 3 },
+        }
+
+        # execute
+        attrs = receiver.build_attributes(config, limits, 'Foo')
+
+        # verify
+        self.assertTrue('name' in attrs)
+        self.assertEqual(attrs['name'], 'Foo')
+        self.assertTrue('Max' in attrs)
+        self.assertEqual(attrs['Max'], 50)
+        self.assertTrue('Remaining' in attrs)
+        self.assertEqual(attrs['Remaining'], 3)
+        self.assertTrue('EVENT_TYPE' in attrs)
+        self.assertEqual(attrs['EVENT_TYPE'], 'CustomSFOrgLimit')
 
     def test_transform_limits_yields_no_results_given_no_matching_limit_names(self):
         '''

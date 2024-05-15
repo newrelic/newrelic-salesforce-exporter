@@ -23,7 +23,7 @@ def get_limit_names(config: Config, limits: dict) -> list[str]:
     return list(limits)
 
 
-def build_attributes(limits: dict, key) -> dict:
+def build_attributes(config: Config, limits: dict, key) -> dict:
     attributes = { 'name': key }
 
     if 'Max' in limits[key]:
@@ -31,6 +31,8 @@ def build_attributes(limits: dict, key) -> dict:
 
     if 'Remaining' in limits[key]:
         attributes['Remaining'] = int(limits[key]['Remaining'])
+
+    attributes['EVENT_TYPE'] = config.get('event_type', 'SalesforceOrgLimit')
 
     return attributes
 
@@ -47,7 +49,7 @@ def transform_limits(
 
         yield {
             'message': f'Salesforce Org Limit: {limit_name}',
-            'attributes': build_attributes(limits, limit_name),
+            'attributes': build_attributes(config, limits, limit_name),
             'timestamp': get_timestamp(),
         }
 
