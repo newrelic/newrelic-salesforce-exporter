@@ -32,6 +32,9 @@ def build_attributes(config: Config, limits: dict, key) -> dict:
     if 'Remaining' in limits[key]:
         attributes['Remaining'] = int(limits[key]['Remaining'])
 
+    if 'Max' in attributes and 'Remaining' in attributes:
+        attributes['Used'] = attributes['Max'] - attributes['Remaining']
+
     attributes['EVENT_TYPE'] = config.get('event_type', 'SalesforceOrgLimit')
 
     return attributes

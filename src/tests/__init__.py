@@ -196,8 +196,14 @@ class DataCacheStub:
 
 
 class NewRelicStub:
-    def __init__(self, config: Config = None, raise_error: bool = False):
+    def __init__(
+        self,
+        config: Config = None,
+        data_format: DataFormat = None,
+        raise_error: bool = False,
+    ):
         self.config = config
+        self.data_format = data_format
         self.logs = []
         self.events = []
         self.raise_error = raise_error
@@ -745,11 +751,11 @@ class FactoryStub:
             numeric_fields_list,
         )
 
-    def new_new_relic(self, config: Config):
+    def new_new_relic(self, config: Config, data_format: DataFormat):
         if self.new_relic:
             return self.new_relic
 
-        return NewRelicStub(config)
+        return NewRelicStub(config, data_format)
 
     def new_telemetry(
         self,
@@ -882,11 +888,11 @@ class DelegatingFactoryStub:
             numeric_fields_list,
         )
 
-    def new_new_relic(self, config: Config):
+    def new_new_relic(self, config: Config, data_format: DataFormat):
         if self.new_relic:
             return self.new_relic
 
-        return self.f.new_new_relic(config)
+        return self.f.new_new_relic(config, data_format)
 
     def new_telemetry(
         self,

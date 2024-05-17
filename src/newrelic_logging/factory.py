@@ -150,7 +150,7 @@ class Factory:
         else:
             raise ConfigException(f'invalid data format {data_format}')
 
-        new_relic = factory.new_new_relic(config)
+        new_relic = factory.new_new_relic(config, data_format)
         telemetry = factory.new_telemetry(config, new_relic)
         instances = []
 
@@ -180,38 +180,44 @@ class Factory:
 
         return Integration(telemetry, instances)
 
-    def new_new_relic(self, config: Config):
+    def new_new_relic(self, config: Config, data_format: DataFormat):
         license_key = config.get(
             'newrelic.license_key',
             env_var_name=newrelic.NR_LICENSE_KEY,
         )
-
-        account_id = config.get(
-            'newrelic.account_id',
-            env_var_name=newrelic.NR_ACCOUNT_ID,
-        )
-        if not account_id:
-            raise NewRelicApiException(f'missing New Relic account ID')
+        if not license_key:
+            raise NewRelicApiException(f'missing New Relic license key')
 
         region = config.get('newrelic.api_endpoint')
-        if region == "US":
-            logs_api_endpoint = newrelic.US_LOGGING_ENDPOINT
-            events_api_endpoint = newrelic.US_EVENTS_ENDPOINT.format(
-                account_id=account_id,
-            )
-        elif region == "EU":
-            logs_api_endpoint = newrelic.EU_LOGGING_ENDPOINT
-            events_api_endpoint = newrelic.EU_EVENTS_ENDPOINT.format(
-                account_id=account_id,
-            )
-        else:
+        if not region:
+            raise NewRelicApiException(f'missing New Relic API region')
+
+        region_l = region.lower()
+        if not region_l == 'us' and not region_l == 'eu':
             raise NewRelicApiException(f'invalid New Relic API region {region}')
 
+        if data_format == DataFormat.EVENTS:
+            account_id = config.get(
+                'newrelic.account_id',
+                env_var_name=newrelic.NR_ACCOUNT_ID,
+            )
+            if not account_id:
+                raise NewRelicApiException(f'missing New Relic account ID')
+
+            return newrelic.NewRelic(
+                license_key,
+                None,
+                (
+                    newrelic.US_EVENTS_ENDPOINT if region_l == 'us' \
+                        else newrelic.EU_EVENTS_ENDPOINT
+                ).format(account_id=account_id)
+            )
+
         return newrelic.NewRelic(
-            logs_api_endpoint,
             license_key,
-            events_api_endpoint,
-            license_key,
+            newrelic.US_LOGGING_ENDPOINT if region_l == 'us' \
+                else newrelic.EU_LOGGING_ENDPOINT,
+            None
         )
 
     def new_telemetry(

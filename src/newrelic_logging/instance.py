@@ -3,7 +3,6 @@ from requests import Session
 
 from . import \
     api as mod_api, \
-    config as mod_config, \
     pipeline
 
 

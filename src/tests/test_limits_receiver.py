@@ -155,6 +155,7 @@ class TestLimitsReceiver(unittest.TestCase):
         self.assertEqual(attrs['name'], 'Boop')
         self.assertFalse('Max' in attrs)
         self.assertFalse('Remaining' in attrs)
+        self.assertFalse('Used' in attrs)
 
     def test_build_attributes_returns_name_and_max_given_no_remaining(self):
         '''
@@ -186,6 +187,7 @@ class TestLimitsReceiver(unittest.TestCase):
         self.assertTrue('Max' in attrs)
         self.assertEqual(attrs['Max'], 20)
         self.assertFalse('Remaining' in attrs)
+        self.assertFalse('Used' in attrs)
 
     def test_build_attributes_returns_name_and_remaining_given_no_max(self):
         '''
@@ -217,8 +219,9 @@ class TestLimitsReceiver(unittest.TestCase):
         self.assertFalse('Max' in attrs)
         self.assertTrue('Remaining' in attrs)
         self.assertEqual(attrs['Remaining'], 10)
+        self.assertFalse('Used' in attrs)
 
-    def test_build_attributes_returns_name_and_max_and_remaining(self):
+    def test_build_attributes_returns_name_and_max_and_remaining_and_used(self):
         '''
         build_attributes() returns a dict containing the name, Max, and Remaining attributes when both Max and Remaining exist in the given limit dict
         given: a set of limits options from the instance configuration
@@ -227,7 +230,8 @@ class TestLimitsReceiver(unittest.TestCase):
         when: build_attributes() is called
         and when: the limit for the given limit name has a Remaining attribute
         and when: the limit for the given limit name has a Max attribute
-        then: return a dict with the limit name, a Max attribute, and a Remaining attribute
+        then: return a dict with the limit name, a Max attribute, a Remaining attribute,
+            and a Used attribute
         '''
 
         # setup
@@ -249,6 +253,8 @@ class TestLimitsReceiver(unittest.TestCase):
         self.assertEqual(attrs['Max'], 50)
         self.assertTrue('Remaining' in attrs)
         self.assertEqual(attrs['Remaining'], 3)
+        self.assertTrue('Used' in attrs)
+        self.assertEqual(attrs['Used'], 47)
 
     def test_build_attributes_returns_default_event_type_given_no_event_type_option(self):
         '''
@@ -258,7 +264,8 @@ class TestLimitsReceiver(unittest.TestCase):
         and given: a limit name
         when: build_attributes() is called
         and when: the event_type option is not set in the limits options
-        then: return a dict with the default EVENT_TYPE
+        then: return a dict with the limit name, a Max attribute, a Remaining attribute,
+            a Used attribute, and the default EVENT_TYPE.
         '''
 
         # setup
@@ -277,6 +284,8 @@ class TestLimitsReceiver(unittest.TestCase):
         self.assertEqual(attrs['Max'], 50)
         self.assertTrue('Remaining' in attrs)
         self.assertEqual(attrs['Remaining'], 3)
+        self.assertTrue('Used' in attrs)
+        self.assertEqual(attrs['Used'], 47)
         self.assertTrue('EVENT_TYPE' in attrs)
         self.assertEqual(attrs['EVENT_TYPE'], 'SalesforceOrgLimit')
 
@@ -288,7 +297,8 @@ class TestLimitsReceiver(unittest.TestCase):
         and given: a limit name
         when: build_attributes() is called
         and when: the event_type option is set in the limits options
-        then: return a dict with the custom EVENT_TYPE
+        then: return a dict with the limit name, a Max attribute, a Remaining attribute,
+            a Used attribute, and the custom EVENT_TYPE.
         '''
 
         # setup
@@ -307,6 +317,8 @@ class TestLimitsReceiver(unittest.TestCase):
         self.assertEqual(attrs['Max'], 50)
         self.assertTrue('Remaining' in attrs)
         self.assertEqual(attrs['Remaining'], 3)
+        self.assertTrue('Used' in attrs)
+        self.assertEqual(attrs['Used'], 47)
         self.assertTrue('EVENT_TYPE' in attrs)
         self.assertEqual(attrs['EVENT_TYPE'], 'CustomSFOrgLimit')
 

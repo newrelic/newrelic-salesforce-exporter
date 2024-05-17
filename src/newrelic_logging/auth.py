@@ -213,7 +213,7 @@ def validate_oauth_config(auth: dict) -> dict:
         raise ConfigException('username', 'missing OAuth username')
 
     if not auth['password']:
-        raise ConfigException('password', 'missing OAuth client secret')
+        raise ConfigException('password', 'missing OAuth password')
 
     return auth
 

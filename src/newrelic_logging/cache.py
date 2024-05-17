@@ -59,9 +59,13 @@ class BackendFactory:
         host = config.get(CONFIG_REDIS_HOST, DEFAULT_REDIS_HOST)
         port = config.get_int(CONFIG_REDIS_PORT, DEFAULT_REDIS_PORT)
         db = config.get_int(CONFIG_REDIS_DB_NUMBER, DEFAULT_REDIS_DB_NUMBER)
-        password = config.get(CONFIG_REDIS_PASSWORD)
         ssl = config.get_bool(CONFIG_REDIS_USE_SSL, DEFAULT_REDIS_SSL)
-        password_display = "XXXXXX" if password != None else None
+        password = config.get(CONFIG_REDIS_PASSWORD)
+
+        if not password:
+            raise CacheException('missing redis password')
+
+        password_display = "XXXXXX"
 
         print_info(
             f'connecting to redis instance {host}:{port}:{db}, ssl={ssl}, password={password_display}'

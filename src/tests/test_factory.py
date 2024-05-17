@@ -765,11 +765,98 @@ class TestFactory(unittest.TestCase):
         self.assertEqual(instance.instance_config.prefix, 'NR_')
         self.assertEqual(instance.numeric_fields_list, set())
 
+    def test_new_new_relic_raises_new_relic_api_exception_given_missing_license_key(self):
+        '''
+        new_new_relic() raises a NewRelicApiException given the New Relic license key is neither specified in the integration configuration nor environment
+        given: an integration configuration
+        when: new_new_relic() is called
+        and when: the 'license_key' property is not specified in the integration
+            configuration
+        and when: the license_key is not specified in the environment
+        then: raise a NewRelicApiException
+        '''
+
+        # setup
+        config = mod_config.Config({
+            'instances': [
+                {
+                    'name': 'test-inst-1',
+                },
+            ],
+            'newrelic': {
+                'data_format': 'logs',
+                'api_endpoint': 'US',
+            },
+        })
+
+        # execute / verify
+        with self.assertRaises(NewRelicApiException) as _:
+            f = factory.Factory()
+            _ = f.new_new_relic(config, DataFormat.LOGS)
+
+    def test_new_new_relic_raises_new_relic_api_exception_given_missing_region(self):
+        '''
+        new_new_relic() raises a NewRelicApiException given the region is missing in the integration configuration
+        given: an integration configuration
+        when: new_new_relic() is called
+        and when: the 'region' property is not specified in the integration
+            configuration
+        then: raise a NewRelicApiException
+        '''
+
+        # setup
+        config = mod_config.Config({
+            'instances': [
+                {
+                    'name': 'test-inst-1',
+                },
+            ],
+            'newrelic': {
+                'data_format': 'logs',
+                'license_key': '1234567abcdefg',
+            },
+        })
+
+        # execute / verify
+        with self.assertRaises(NewRelicApiException) as _:
+            f = factory.Factory()
+            _ = f.new_new_relic(config, DataFormat.LOGS)
+
+    def test_new_new_relic_raises_new_relic_api_exception_given_invalid_region(self):
+        '''
+        new_new_relic() raises a NewRelicApiException given the region is invalid in the integration configuration
+        given: an integration configuration
+        when: new_new_relic() is called
+        and when: the 'region' property in the integration configuration is
+            invalid
+        then: raise a NewRelicApiException
+        '''
+
+        # setup
+        config = mod_config.Config({
+            'instances': [
+                {
+                    'name': 'test-inst-1',
+                },
+            ],
+            'newrelic': {
+                'data_format': 'logs',
+                'api_endpoint': '__',
+                'license_key': '1234567abcdefg',
+            },
+        })
+
+        # execute / verify
+        with self.assertRaises(NewRelicApiException) as _:
+            f = factory.Factory()
+            _ = f.new_new_relic(config, DataFormat.LOGS)
+
     def test_new_new_relic_raises_new_relic_api_exception_given_missing_account_id(self):
         '''
         new_new_relic() raises a NewRelicApiException given the account ID is neither specified in the integration configuration nor environment
         given: an integration configuration
         when: new_new_relic() is called
+        and when: the data format is EVENTS
         and when: the 'account_id' property is not specified in the integration
             configuration
         and when: the account ID is not specified in the environment
@@ -784,55 +871,27 @@ class TestFactory(unittest.TestCase):
                 },
             ],
             'newrelic': {
-                'data_format': 'logs',
+                'data_format': 'events',
                 'api_endpoint': 'US',
+                'license_key': 'abcdefg1234567',
             },
         })
 
         # execute / verify
         with self.assertRaises(NewRelicApiException) as _:
             f = factory.Factory()
-            _ = f.new_new_relic(config)
+            _ = f.new_new_relic(config, DataFormat.EVENTS)
 
-    def test_new_new_relic_raises_new_relic_api_exception_given_missing_region(self):
+    def test_new_new_relic_returns_new_relic_instance_with_US_logs_endpoint_given_logs_US_and_license_key(self):
         '''
-        new_new_relic() raises a NewRelicApiException given the region is missing in the integration configuration
+        new_new_relic() returns a New Relic instance with US Logs API endpoint given the LOGS data format, the US region, and a license key
         given: an integration configuration
         when: new_new_relic() is called
-        and when: the 'account_id' property is set in the integration
-            configuration
-        and when: the 'region' property is missing in the integration configuration
-        then: raise a NewRelicApiException
-        '''
-
-        # setup
-        config = mod_config.Config({
-            'instances': [
-                {
-                    'name': 'test-inst-1',
-                },
-            ],
-            'newrelic': {
-                'data_format': 'logs',
-                'account_id': 123456,
-            },
-        })
-
-        # execute / verify
-        with self.assertRaises(NewRelicApiException) as _:
-            f = factory.Factory()
-            _ = f.new_new_relic(config)
-
-    def test_new_new_relic_returns_new_relic_instance_with_US_endpoints_given_US_region_and_account_id(self):
-        '''
-        new_new_relic() returns a New Relic instance with US API endpoints given the region in the integration configuration is set to US
-        given: an integration configuration
-        when: new_new_relic() is called
-        and when: the 'account_id' property is set in the integration
-            configuration
+        and when: the data format is LOGS
         and when: the 'region' property in the integration configuration is set
             to US
-        then: return a New Relic instance with US API endpoints
+        and when: a license key is specified
+        then: return a New Relic instance with US Logs API endpoint
         '''
 
         # setup
@@ -845,38 +904,37 @@ class TestFactory(unittest.TestCase):
             'newrelic': {
                 'data_format': 'logs',
                 'api_endpoint': 'US',
-                'account_id': 123456
+                'license_key': 'asdfghjkl',
             },
         })
 
         # execute
         f = factory.Factory()
-        new_relic = f.new_new_relic(config)
+        new_relic = f.new_new_relic(config, DataFormat.LOGS)
 
         # verify
         self.assertIsNotNone(new_relic)
         self.assertEqual(type(new_relic), newrelic.NewRelic)
+        self.assertEqual(new_relic.license_key, 'asdfghjkl')
         self.assertEqual(
             new_relic.logs_api_endpoint,
             newrelic.US_LOGGING_ENDPOINT,
         )
         self.assertEqual(
             new_relic.events_api_endpoint,
-            newrelic.US_EVENTS_ENDPOINT.format(
-                account_id=123456,
-            ),
+            None,
         )
 
-    def test_new_new_relic_returns_new_relic_instance_with_EU_endpoints_given_EU_region_and_account_id(self):
+    def test_new_new_relic_returns_new_relic_instance_with_EU_logs_endpoint_given_logs_EU_and_license_key(self):
         '''
-        new_new_relic() returns a New Relic instance with EU API endpoints given the region in the integration configuration is set to EU
+        new_new_relic() returns a New Relic instance with EU Logs API endpoint given the LOGS data format, the EU region, and a license key
         given: an integration configuration
         when: new_new_relic() is called
-        and when: the 'account_id' property is set in the integration
-            configuration
+        and when: the data format is LOGS
         and when: the 'region' property in the integration configuration is set
             to EU
-        then: return a New Relic instance with EU API endpoints
+        and when: a license key is specified
+        then: return a New Relic instance with EU Logs API endpoint
         '''
 
         # setup
@@ -889,40 +947,39 @@ class TestFactory(unittest.TestCase):
             'newrelic': {
                 'data_format': 'logs',
                 'api_endpoint': 'EU',
-                'account_id': 567890
+                'license_key': 'lkjhgfdsa',
             },
         })
 
         # execute
         f = factory.Factory()
-        new_relic = f.new_new_relic(config)
+        new_relic = f.new_new_relic(config, DataFormat.LOGS)
 
         # verify
         self.assertIsNotNone(new_relic)
         self.assertEqual(type(new_relic), newrelic.NewRelic)
+        self.assertEqual(new_relic.license_key, 'lkjhgfdsa')
         self.assertEqual(
             new_relic.logs_api_endpoint,
             newrelic.EU_LOGGING_ENDPOINT,
         )
         self.assertEqual(
             new_relic.events_api_endpoint,
-            newrelic.EU_EVENTS_ENDPOINT.format(
-                account_id=567890,
-            ),
+            None,
         )
 
-    def test_new_new_relic_returns_new_relic_instance_given_license_key_account_id_and_region(self):
+    def test_new_new_relic_returns_new_relic_instance_with_US_events_endpoint_given_events_US_account_id_and_license_key(self):
         '''
-        new_new_relic() returns a New Relic instance with the license key and account ID in the given configuration and the correct API endpoints for the given region
+        new_new_relic() returns a New Relic instance with US Events API endpoint given the EVENTS data format, the US region, an account ID, and a license key
         given: an integration configuration
         when: new_new_relic() is called
-        and when: the license key is set in the integration configuration
+        and when: the data format is EVENTS
         and when: the 'account_id' property is set in the integration
             configuration
         and when: the 'region' property in the integration configuration is set
             to US
-        then: return a New Relic instance with the given license key and the US
-            API endpoints
+        and when: a license key is specified
+        then: return a New Relic instance with US Events API endpoint
         '''
 
         # setup
@@ -933,30 +990,76 @@ class TestFactory(unittest.TestCase):
                 },
             ],
             'newrelic': {
-                'data_format': 'logs',
+                'data_format': 'events',
                 'api_endpoint': 'US',
-                'license_key': 'abcdefghijklmnop',
-                'account_id': 112358,
+                'account_id': 123456,
+                'license_key': '1234567890',
             },
         })
 
         # execute
         f = factory.Factory()
-        new_relic = f.new_new_relic(config)
+        new_relic = f.new_new_relic(config, DataFormat.EVENTS)
 
         # verify
         self.assertIsNotNone(new_relic)
         self.assertEqual(type(new_relic), newrelic.NewRelic)
-        self.assertEqual(new_relic.logs_license_key, 'abcdefghijklmnop')
-        self.assertEqual(new_relic.events_api_key, 'abcdefghijklmnop')
+        self.assertEqual(new_relic.license_key, '1234567890')
         self.assertEqual(
             new_relic.logs_api_endpoint,
-            newrelic.US_LOGGING_ENDPOINT,
+            None,
         )
         self.assertEqual(
             new_relic.events_api_endpoint,
             newrelic.US_EVENTS_ENDPOINT.format(
-                account_id=112358,
+                account_id=123456,
+            ),
+        )
+
+    def test_new_new_relic_returns_new_relic_instance_with_EU_events_endpoint_given_events_EU_account_id_and_license_key(self):
+        '''
+        new_new_relic() returns a New Relic instance with EU Events API endpoint given the EVENTS data format, the EU region, an account ID, and a license key
+        given: an integration configuration
+        when: new_new_relic() is called
+        and when: the 'account_id' property is set in the integration
+            configuration
+        and when: the 'region' property in the integration configuration is set
+            to EU
+        and when: a license key is specified
+        then: return a New Relic instance with EU Events API endpoint
+        '''
+
+        # setup
+        config = mod_config.Config({
+            'instances': [
+                {
+                    'name': 'test-inst-1',
+                },
+            ],
+            'newrelic': {
+                'data_format': 'events',
+                'api_endpoint': 'EU',
+                'account_id': 567890,
+                'license_key': '9876543210',
+            },
+        })
+
+        # execute
+        f = factory.Factory()
+        new_relic = f.new_new_relic(config, DataFormat.EVENTS)
+
+        # verify
+        self.assertIsNotNone(new_relic)
+        self.assertEqual(type(new_relic), newrelic.NewRelic)
+        self.assertEqual(new_relic.license_key, '9876543210')
+        self.assertEqual(
+            new_relic.logs_api_endpoint,
+            None,
+        )
+        self.assertEqual(
+            new_relic.events_api_endpoint,
+            newrelic.EU_EVENTS_ENDPOINT.format(
+                account_id=567890,
             ),
         )
 

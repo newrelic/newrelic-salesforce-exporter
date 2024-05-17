@@ -2,17 +2,12 @@ from requests import Session
 
 
 from . import \
-    ConfigException, \
     CacheException, \
-    DataFormat, \
     LoginException, \
     NewRelicApiException, \
     SalesforceApiException
-from . import config as mod_config, instance
-from .query import receiver as query_receiver
-from .limits import receiver as limits_receiver
-from .newrelic import new_new_relic
-from .telemetry import print_info, print_err, new_telemetry, Telemetry
+from . import instance
+from .telemetry import print_info, print_err, Telemetry
 from .http_session import new_retry_session
 
 
