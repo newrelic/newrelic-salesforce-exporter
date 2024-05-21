@@ -4,7 +4,7 @@ from datetime import timedelta
 
 from . import CacheException
 from .config import Config
-from .telemetry import print_info
+from .telemetry import print_info, print_warn
 
 
 CONFIG_CACHE_ENABLED = 'cache_enabled'
@@ -63,7 +63,7 @@ class BackendFactory:
         password = config.get(CONFIG_REDIS_PASSWORD)
 
         if not password:
-            raise CacheException('missing redis password')
+            print_warn('missing Redis password, connecting without a password')
 
         password_display = "XXXXXX"
 
