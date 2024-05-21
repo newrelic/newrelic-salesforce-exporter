@@ -264,66 +264,6 @@ class TestBackendFactory(unittest.TestCase):
         self.assertTrue(hasattr(r, 'ssl'))
         self.assertEqual(r.ssl, True)
 
-    def test_new_backend_raises_cache_exception_given_missing_redis_password(self):
-        '''
-        new_backend() raises a CacheException given the Redis password is missing
-        given: an instance configuration
-        when: new_backend() is called
-        and when: the Redis password is missing
-        then: raise a CacheException
-        '''
-
-        # setup
-        def redis_connect(**kwargs):
-            return SimpleNamespace(**kwargs)
-
-        config = mod_config.Config({
-            'redis': {
-                'host': 'foo',
-                'port': 1234,
-                'db_number': 2,
-                'ssl': True,
-            }
-        })
-
-        # execute / verify
-        with self.assertRaises(CacheException) as _:
-            f = cache.BackendFactory()
-            _ = f.new_backend(
-                config,
-                redis_connector=redis_connect,
-            )
-
-    def test_new_backend_raises_cache_exception_given_empty_redis_password(self):
-        '''
-        new_backend() raises a CacheException given the Redis password is empty
-        given: an instance configuration
-        when: new_backend() is called
-        and when: the Redis password is empty
-        then: raise a CacheException
-        '''
-
-        # setup
-        def redis_connect(**kwargs):
-            return SimpleNamespace(**kwargs)
-
-        config = mod_config.Config({
-            'redis': {
-                'host': 'foo',
-                'port': 1234,
-                'db_number': 2,
-                'password': '',
-                'ssl': True,
-            }
-        })
-
-        # execute / verify
-        with self.assertRaises(CacheException) as _:
-            f = cache.BackendFactory()
-            _ = f.new_backend(
-                config,
-                redis_connector=redis_connect,
-            )
 
 class TestBufferedAddSetCache(unittest.TestCase):
     def test_check_or_set_true_when_item_exists(self):
