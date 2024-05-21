@@ -1,23 +1,19 @@
-# Integration Telemetry
-
-import time
 import json
+import time
+from requests import Session
 
-def singleton(class_):
-    instances = {}
-    def getinstance(*args, **kwargs):
-        if class_ not in instances:
-            instances[class_] = class_(*args, **kwargs)
-        return instances[class_]
-    return getinstance
 
-@singleton
+from .config import Config
+from .newrelic import NewRelic
+
+
 class Telemetry:
     logs = []
     integration_name = None
 
-    def __init__(self, integration_name: str) -> None:
+    def __init__(self, integration_name: str, new_relic: NewRelic) -> None:
         self.integration_name = integration_name
+        self.new_relic = new_relic
 
     def is_empty(self):
         return len(self.logs) == 0
@@ -45,11 +41,16 @@ class Telemetry:
     def clear(self):
         self.logs = []
 
-    def build_model(self):
-        return [{
-            "common": {},
-            "logs": self.logs,
-        }]
+    def flush(self, session: Session):
+        self.new_relic.post_logs(
+            session,
+            [{
+                "common": {},
+                "logs": self.logs,
+            }]
+        )
+        self.clear()
+
 
 def print_log(msg: str, level: str):
     print(json.dumps({
@@ -58,11 +59,26 @@ def print_log(msg: str, level: str):
         "level": level
     }))
 
+
 def print_info(msg: str):
     print_log(msg, "info")
+
 
 def print_err(msg: str):
     print_log(msg, "error")
 
+
 def print_warn(msg: str):
     print_log(msg, "warn")
+
+
+def new_telemetry(
+   config: Config,
+   new_relic: NewRelic,
+):
+    return Telemetry(
+        config['integration_name'] \
+            if 'integration_name' in config \
+            else 'com.newrelic.labs.salesforce.exporter',
+        new_relic
+    )

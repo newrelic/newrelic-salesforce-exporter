@@ -85,6 +85,8 @@ class Api:
         if not api_ver is None:
             ver = api_ver
 
+        # @TODO handle pagination
+
         return get(
             self.authenticator,
             session,
@@ -106,9 +108,14 @@ class Api:
             stream=True,
         )
 
-class ApiFactory:
-    def __init__(self):
-        pass
+    def list_limits(self, session: Session, api_ver: str = None) -> dict:
+        ver = self.api_ver
+        if not api_ver is None:
+            ver = api_ver
 
-    def new(self, authenticator: Authenticator, api_ver: str) -> Api:
-        return Api(authenticator, api_ver)
+        return get(
+            self.authenticator,
+            session,
+            f'/services/data/v{ver}/limits/',
+            lambda response : response.json(),
+        )

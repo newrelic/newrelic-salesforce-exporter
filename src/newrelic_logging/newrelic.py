@@ -9,7 +9,6 @@ from . import \
     COLLECTOR_NAME, \
     NewRelicApiException
 from .config import Config
-from .telemetry import print_info
 
 
 NR_LICENSE_KEY = 'NR_LICENSE_KEY'
@@ -29,15 +28,13 @@ MAX_EVENTS = 2000
 class NewRelic:
     def __init__(
         self,
+        license_key,
         logs_api_endpoint,
-        logs_license_key,
-        events_api_endpoint,
-        events_api_key,
+        events_api_endpoint
     ):
+        self.license_key = license_key
         self.logs_api_endpoint = logs_api_endpoint
-        self.logs_license_key = logs_license_key
         self.events_api_endpoint = events_api_endpoint
-        self.events_api_key = events_api_key
 
     def post_logs(self, session: Session, data: list[dict]) -> None:
         # Append integration attributes
@@ -54,7 +51,7 @@ class NewRelic:
                 self.logs_api_endpoint,
                 data=gzip.compress(json.dumps(data).encode()),
                 headers={
-                    'X-License-Key': self.logs_license_key,
+                    'X-License-Key': self.license_key,
                     'X-Event-Source': LOGS_EVENT_SOURCE,
                     'Content-Encoding': CONTENT_ENCODING,
                 },
@@ -66,7 +63,6 @@ class NewRelic:
                 )
 
             response = r.content.decode("utf-8")
-            print_info(f"NR Log API response body = {response}")
         except RequestException:
             raise NewRelicApiException('newrelic logs api request failed')
 
@@ -91,7 +87,7 @@ class NewRelic:
                     self.events_api_endpoint,
                     data=gzip.compress(json.dumps(slice).encode()),
                     headers={
-                        'Api-Key': self.events_api_key,
+                        'Api-Key': self.license_key,
                         'Content-Encoding': CONTENT_ENCODING,
                     },
                 )
@@ -102,36 +98,5 @@ class NewRelic:
                     )
 
                 response = r.content.decode("utf-8")
-                print_info(f"NR Event API response body = {response}")
             except RequestException:
                 raise NewRelicApiException('newrelic events api request failed')
-
-
-class NewRelicFactory:
-    def __init__(self):
-        pass
-
-    def new(self, config: Config):
-        license_key = config.get(
-            'newrelic.license_key',
-            env_var_name=NR_LICENSE_KEY,
-        )
-
-        region = config.get('newrelic.api_endpoint')
-        account_id = config.get('newrelic.account_id', env_var_name=NR_ACCOUNT_ID)
-
-        if region == "US":
-            logs_api_endpoint = US_LOGGING_ENDPOINT
-            events_api_endpoint = US_EVENTS_ENDPOINT.format(account_id=account_id)
-        elif region == "EU":
-            logs_api_endpoint = EU_LOGGING_ENDPOINT
-            events_api_endpoint = EU_EVENTS_ENDPOINT.format(account_id=account_id)
-        else:
-            raise NewRelicApiException(f'Invalid region {region}')
-
-        return NewRelic(
-            logs_api_endpoint,
-            license_key,
-            events_api_endpoint,
-            license_key,
-        )

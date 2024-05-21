@@ -16,3 +16,4 @@ wheel==0.38.1
 setuptools==65.5.1
 future~=0.18.2
 newrelic==9.7.0
+coverage~=7.4

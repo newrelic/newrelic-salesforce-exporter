@@ -865,15 +865,18 @@ class TestApi(unittest.TestCase):
         self.assertEqual(session.headers['Authorization'], 'Bearer 123456')
         self.assertTrue(session.stream)
 
-
-class TestApiFactory(unittest.TestCase):
-    def test_new_returns_api_with_correct_authenticator_and_version(self):
+    def test_list_limits_requests_correct_url_with_access_token_and_returns_json_response_on_success(self):
         '''
-        new() returns a new Api instance with the given authenticator and version
+        list_limits() calls the correct query API url with the access token and returns a JSON response when no errors occur
         given: an authenticator
         and given: an api version
-        when: new() is called
-        then: returns a new Api instance with the given authenticator and version
+        and given: a session
+        and given: a query
+        when: list_limits() is called
+        then: session.get() is called with correct URL and access token
+        and: stream is set to False
+        and when: session.get() response status code is 200
+        then: calls callback with response and returns a JSON response
         '''
 
         # setup
@@ -881,11 +884,138 @@ class TestApiFactory(unittest.TestCase):
             instance_url='https://my.salesforce.test',
             access_token='123456',
         )
+        session = SessionStub()
+        session.response = ResponseStub(200, 'OK', '{"foo": "bar"}', [] )
 
         # execute
-        api_factory = api.ApiFactory()
-        sf_api = api_factory.new(auth, '55.0')
+        sf_api = api.Api(auth, '55.0')
+        resp = sf_api.list_limits(session)
 
         # verify
-        self.assertEqual(sf_api.authenticator, auth)
-        self.assertEqual(sf_api.api_ver, '55.0')
+
+        self.assertEqual(
+            session.url,
+            f'https://my.salesforce.test/services/data/v55.0/limits/',
+        )
+        self.assertTrue('Authorization' in session.headers)
+        self.assertEqual(session.headers['Authorization'], 'Bearer 123456')
+        self.assertFalse(session.stream)
+        self.assertIsNotNone(resp)
+        self.assertTrue(type(resp) is dict)
+        self.assertTrue('foo' in resp)
+        self.assertEqual(resp['foo'], 'bar')
+
+    def test_list_limits_requests_correct_url_with_access_token_given_api_version_and_returns_json_response_on_success(self):
+        '''
+        list_limits() calls the correct query API url with the access token when a specific api version is given and returns a JSON response
+        given: an authenticator
+        and given: an api version
+        and given: a session
+        and given: a query
+        when: list_limits() is called
+        and when: the api version parameter is specified
+        then: session.get() is called with correct URL and access token
+        and: stream is set to False
+        and when: response status code is 200
+        then: calls callback with response and returns a JSON response
+        '''
+
+        # setup
+        auth = AuthenticatorStub(
+            instance_url='https://my.salesforce.test',
+            access_token='123456',
+        )
+        session = SessionStub()
+        session.response = ResponseStub(200, 'OK', '{"foo": "bar"}', [] )
+
+        # execute
+        sf_api = api.Api(auth, '55.0')
+        resp = sf_api.list_limits(
+            session,
+            '52.0',
+        )
+
+        # verify
+
+        self.assertEqual(
+            session.url,
+            f'https://my.salesforce.test/services/data/v52.0/limits/',
+        )
+        self.assertTrue('Authorization' in session.headers)
+        self.assertEqual(session.headers['Authorization'], 'Bearer 123456')
+        self.assertFalse(session.stream)
+        self.assertIsNotNone(resp)
+        self.assertTrue(type(resp) is dict)
+        self.assertTrue('foo' in resp)
+        self.assertEqual(resp['foo'], 'bar')
+
+    def test_list_limits_raises_login_exception_if_get_does(self):
+        '''
+        list_limits() calls the correct query API url with the access token and raises LoginException if get does
+        given: an authenticator
+        and given: an api version
+        and given: a session
+        and given: a query
+        when: list_limits() is called
+        then: session.get() is called with correct URL and access token
+        and: stream is set to False
+        and when: session.get() raises a LoginException
+        then: list_limits() raises a LoginException
+        '''
+
+        # setup
+        auth = AuthenticatorStub(
+            instance_url='https://my.salesforce.test',
+            access_token='123456',
+            raise_login_error=True
+        )
+        session = SessionStub()
+        session.response = ResponseStub(401, 'Unauthorized', '{"foo": "bar"}', [] )
+
+        # execute / verify
+        with self.assertRaises(LoginException) as _:
+            sf_api = api.Api(auth, '55.0')
+            _ = sf_api.list_limits(session)
+
+        self.assertEqual(
+            session.url,
+            f'https://my.salesforce.test/services/data/v55.0/limits/',
+        )
+        self.assertTrue('Authorization' in session.headers)
+        self.assertEqual(session.headers['Authorization'], 'Bearer 123456')
+        self.assertFalse(session.stream)
+
+    def test_list_limits_raises_salesforce_exception_if_get_does(self):
+        '''
+        list_limits() calls the correct query API url with the access token and raises SalesforceApiException if get does
+        given: an authenticator
+        and given: an api version
+        and given: a session
+        and given: a query
+        when: list_limits() is called
+        then: session.get() is called with correct URL and access token
+        and: stream is set to False
+        and when: session.get() raises a SalesforceApiException
+        then: list_limits() raises a SalesforceApiException
+        '''
+
+        # setup
+        auth = AuthenticatorStub(
+            instance_url='https://my.salesforce.test',
+            access_token='123456',
+        )
+        session = SessionStub()
+        session.response = ResponseStub(500, 'ServerError', '{"foo": "bar"}', [] )
+
+        # execute / verify
+        with self.assertRaises(SalesforceApiException) as _:
+            sf_api = api.Api(auth, '55.0')
+            _ = sf_api.list_limits(session)
+
+        self.assertEqual(
+            session.url,
+            f'https://my.salesforce.test/services/data/v55.0/limits/',
+        )
+        self.assertTrue('Authorization' in session.headers)
+        self.assertEqual(session.headers['Authorization'], 'Bearer 123456')
+        self.assertFalse(session.stream)

@@ -1,0 +1,22 @@
+{
+    "ActiveScratchOrgs": {
+        "Max": 3,
+        "Remaining": 3
+    },
+    "AnalyticsExternalDataSizeMB": {
+        "Max": 40960,
+        "Remaining": 40960
+    },
+    "ConcurrentAsyncGetReportInstances": {
+        "Max": 200,
+        "Remaining": 200
+    },
+    "ConcurrentEinsteinDataInsightsStoryCreation": {
+        "Max": 5,
+        "Remaining": 5
+    },
+    "ConcurrentEinsteinDiscoveryStoryCreation": {
+        "Max": 2,
+        "Remaining": 2
+    }
+}

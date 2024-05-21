@@ -1,9 +1,12 @@
 from copy import deepcopy
 from datetime import datetime, timedelta
 import hashlib
+import pytz
 from typing import Any, Union
 
+
 from .telemetry import print_warn
+
 
 PRIMITIVE_TYPES = (str, int, float, bool, type(None))
 
@@ -125,6 +128,17 @@ def get_timestamp(date_string: str = None):
             '%Y-%m-%dT%H:%M:%S.%f%z'
         ).timestamp() * 1000
     )
+
+
+def get_log_line_timestamp(log_line: dict) -> float:
+    epoch = log_line.get('TIMESTAMP')
+
+    if epoch:
+        return pytz.utc.localize(
+            datetime.strptime(epoch, '%Y%m%d%H%M%S.%f')
+        ).replace(microsecond=0).timestamp()
+
+    return _UTCNOW().replace(microsecond=0).timestamp()
 
 
 # NOTE: this sandbox can be jailbroken using the trick to exec statements inside

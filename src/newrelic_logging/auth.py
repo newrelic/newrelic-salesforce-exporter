@@ -213,7 +213,7 @@ def validate_oauth_config(auth: dict) -> dict:
         raise ConfigException('username', 'missing OAuth username')
 
     if not auth['password']:
-        raise ConfigException('password', 'missing OAuth client secret')
+        raise ConfigException('password', 'missing OAuth password')
 
     return auth
 
@@ -287,27 +287,3 @@ def make_auth_from_env(config: Config) -> dict:
         })
 
     raise Exception(f'Wrong or missing grant_type')
-
-
-class AuthenticatorFactory:
-    def __init__(self):
-        pass
-
-    def new(self, config: Config, data_cache: DataCache) -> Authenticator:
-        token_url = config.get('token_url', env_var_name=SF_TOKEN_URL)
-
-        if not token_url:
-            raise ConfigException('token_url', 'missing token URL')
-
-        if 'auth' in config:
-            return Authenticator(
-                token_url,
-                make_auth_from_config(config.sub('auth')),
-                data_cache,
-            )
-
-        return Authenticator(
-            token_url,
-            make_auth_from_env(config),
-            data_cache
-        )
