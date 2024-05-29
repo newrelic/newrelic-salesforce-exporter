@@ -21,48 +21,225 @@ data to New Relic as either logs or events. The exporter currently supports
 sending the results of an SOQL query (with special handling for event log file
 queries) and sending information on Salesforce Org Limits.
 
-## Prerequisites
+## System Requirements
 
-* Python 3.x
-* The Salesforce Exporter extracts data using Salesforce APIs via a
-  [connected app](https://help.salesforce.com/s/articleView?id=sf.connected_app_overview.htm&type=5).
-  Therefore, you will need to create a connected app and
-  [enable OAuth settings for API integration](https://help.salesforce.com/s/articleView?id=sf.connected_app_create_api_integration.htm&type=5).
-  See the [Authentication section](#authentication) for more information.
+The New Relic Salesforce Exporter can be run on any host environment with
+Python 3.9+ installed.
 
-## Installation
+It can also be run inside a Docker container by leveraging
+[the published Docker image](https://hub.docker.com/r/newrelic/newrelic-salesforce-exporter)
+[directly](#run-directly-from-dockerhub), as a base image for
+[building a custom image](#extend-the-base-image), or using
+[the provided `Dockerfile`](./Dockerfile) to [build a custom image](#build-a-custom-image).
 
-### Locally
+In addition, the Salesforce Exporter requires the use of a Salesforce
+[connected app](https://help.salesforce.com/s/articleView?id=sf.connected_app_overview.htm&type=5)
+in order to extract data via the Salesforce APIs. The connected app _must_ be
+[configured](https://help.salesforce.com/s/articleView?id=sf.connected_app_create_api_integration.htm&type=5)
+to allow OAuth authentication and authorization for API integration. See the
+[Authentication section](#authentication) for more information.
+
+## Usage
+
+### On-host
+
+To use the Salesforce Exporter on a host, perform the following steps.
 
 1. Clone this repository
 1. Run `pip install -r requirements.txt` to install dependencies
 
+Once installed, the Salesforce Exporter can be run from the repository root
+using the command `python src/__main__.py`. See the section
+[Command Line Options](#command-line-options) and [Configuration](#configuration)
+for more details on using the exporter.
+
 ### Docker
+
+A Docker image for the Salesforce Exporter is available at
+[https://hub.docker.com/r/newrelic/newrelic-salesforce-exporter](https://hub.docker.com/r/newrelic/newrelic-salesforce-exporter). This image can be used in one of two ways.
+
+#### Run directly from [DockerHub](https://hub.docker.com/)
+
+The Salesforce Exporter [Docker image](https://hub.docker.com/r/newrelic/newrelic-salesforce-exporter)
+can be run directly from [DockerHub](https://hub.docker.com/). To do this, the
+[`config.yml`](#configyml) must be mapped into the running container. It can
+be mapped using the default filename or using a custom filename. In the case of
+the latter, the `-f` [command line option](#command-line-options) must be
+specified with the custom filename. One of the same methods can be used to map
+an [event type fields mapping file](#event-type-fields-mapping-file) and/or a
+[numeric fields mapping file](#numeric-fields-mapping-file) into the running
+container. In addition, environment variables can be passed to the container
+using `docker run` with [the `-e`, `--env`, or `--env-file` options](https://docs.docker.com/reference/cli/docker/container/run/#env)
+for [configuration parameters](#configuration) that can be specified via
+environment variables. See below for examples.
+
+**Example 1: Using the default configuration filename**
+
+In the following example, the file `config.yml` in the current directory on the
+host system is mapped with the default configuration filename in the container
+(`config.yml`). In addition, the [`license_key`](#license_key) value is
+specified using the `NR_LICENSE_KEY` environment variable and the
+[application name](https://docs.newrelic.com/docs/apm/agents/python-agent/configuration/python-agent-configuration/#app_name)
+and [license key](https://docs.newrelic.com/docs/apm/agents/python-agent/configuration/python-agent-configuration/#license_key)
+agent parameters for the built-in [New Relic Python agent](#new-relic-python-agent)
+are specified using the `NEW_RELIC_APP_NAME` AND `NEW_RELIC_LICENSE_KEY`
+environment variables, respectively. No command line argument are passed to the
+exporter.
+
+```bash
+docker run -t --rm --name salesforce-exporter \
+   -v "$PWD/config.yml":/usr/src/app/config.yml \
+   -e NR_LICENSE_KEY=$NR_LICENSE_KEY \
+   -e NEW_RELIC_APP_NAME="New Relic Salesforce Exporter" \
+   -e NEW_RELIC_LICENSE_KEY=$NEW_RELIC_LICENSE_KEY \
+   newrelic/newrelic-salesforce-exporter
+```
+
+**Example 2: Using a custom configuration filename**
+
+In the following example, the file `config.yml` in the current directory on the
+host system is mapped with a custom configuration filename in the container
+(`my_custom_config.yml`) and the `-f` [command line option](#command-line-options)
+is used to specify the custom filename. The full path is not needed as
+`/usr/src/app` is the working directory when the exporter runs in the container.
+The environment variables are the same as in Example 1.
+
+```bash
+docker run -t --rm --name salesforce-exporter \
+   -v "$PWD/config.yml":/usr/src/app/my_custom_config.yml \
+   -e NR_LICENSE_KEY=$NR_LICENSE_KEY \
+   -e NEW_RELIC_APP_NAME="New Relic Salesforce Exporter" \
+   -e NEW_RELIC_LICENSE_KEY=$NEW_RELIC_LICENSE_KEY \
+   newrelic/newrelic-salesforce-exporter \
+   -f my_custom_config.yml
+```
+
+**Example 3: Using an [event type fields mapping file](#event-type-fields-mapping-file)**
+
+The following example is the same as Example 1 except that an
+[event type fields mapping file](#event-type-fields-mapping-file) is mapped into
+the container with a custom filename in the container
+(`my_event_type_fields.yml`) and the `-e` [command line option](#command-line-options)
+is used to specify the custom filename. Again, the full path is not needed as
+`/usr/src/app` is the working directory when the exporter runs in the container.
+
+```bash
+docker run -t --rm --name salesforce-exporter \
+   -v "$PWD/config.yml":/usr/src/app/config.yml \
+   -v "$PWD/my_event_type_fields.yml":/usr/src/app/my_event_type_fields.yml \
+   -e NR_LICENSE_KEY=$NR_LICENSE_KEY \
+   -e NEW_RELIC_APP_NAME="New Relic Salesforce Exporter" \
+   -e NEW_RELIC_LICENSE_KEY=$NEW_RELIC_LICENSE_KEY \
+   newrelic/newrelic-salesforce-exporter \
+   -e my_event_type_fields.yml
+```
+
+**Example 4: Using additional environment variables**
+
+In the following example, additional environment variables are passed to the
+container to configure the exporter. In this case, caching is enabled via the
+[`CACHE_ENABLED`](#cache_enabled) environment variable (in order to address
+[data de-duplication](#data-de-duplication)) and the Redis connection parameters
+are set using the `REDIS_*` environment variables.
+
+```bash
+docker run -t --rm --name salesforce-exporter \
+   -v "$PWD/config.yml":/usr/src/app/config.yml \
+   -e CACHE_ENABLED="yes" \
+   -e REDIS_HOST="my.redis.test" \
+   -e REDIS_PORT="15432" \
+   -e REDIS_DB_NUMBER="2" \
+   -e REDIS_SSL="on" \
+   -e REDIS_PASSWORD="R3d1s1sGr3@t" \
+   -e NR_LICENSE_KEY=$NR_LICENSE_KEY \
+   -e NEW_RELIC_APP_NAME="New Relic Salesforce Exporter" \
+   -e NEW_RELIC_LICENSE_KEY=$NEW_RELIC_LICENSE_KEY \
+   newrelic/newrelic-salesforce-exporter
+```
+
+**NOTE:** In this scenario, the container will need to have access to the Redis
+instance.
+
+#### Extend the base image
+
+The Salesforce Exporter [Docker image](https://hub.docker.com/r/newrelic/newrelic-salesforce-exporter)
+can be used as the base image for building custom images. This scenario can be
+easier as the [`config.yml`](#configyml) can be packaged into the custom image
+and does not need to be mounted in. However, it does require access to
+[a Docker registry](https://docs.docker.com/guides/docker-concepts/the-basics/what-is-a-registry/)
+where the custom image can be pushed (e.g. [ECR](https://aws.amazon.com/ecr/)
+and that is accessible to the technology used to manage the container
+(e.g. [ECS](https://aws.amazon.com/ecs/)). In addition, this scenario requires
+maintenance of a custom `Dockerfile` and the processes to build and publish the
+image to a registry.
+
+The minimal example of a `Dockerfile` for building a custom image simply extends
+the base image (`newrelic/newrelic-salesforce-exporter`) and copies a
+configuration file to the default location (`/usr/src/app/config.yml`).
+
+```dockerfile
+FROM newrelic/newrelic-salesforce-exporter
+
+#
+# Copy your config file into the default location.
+# Adjust the local path as necessary.
+#
+COPY ./config.yml .
+```
+
+Note that the directory path in the container does not need to be specified.
+This is because the base image sets the [`WORKDIR`](https://docs.docker.com/reference/dockerfile/#workdir)
+to `/usr/src/app`. In fact, custom `Dockerfile`s should _not_ change the
+`WORKDIR`.
+
+The following commands can be used to build a custom image using a custom
+`Dockerfile` that extends the base image.
+
+```bash
+docker build -t newrelic-salesforce-exporter-custom -f Dockerfile-custom .
+docker tag newrelic-salesforce-exporter-custom someregistry/username/newrelic-salesforce-exporter-custom
+docker push someregistry/username/newrelic-salesforce-exporter-custom
+```
+
+Subsequently, the exporter can be run using the custom image as in the previous
+examples but without the need to mount the configuration file. Similarly, if
+an [event type fields mapping file](#event-type-fields-mapping-file) and/or
+a [numeric fields mapping file](#numeric-fields-mapping-file) are required,
+these can be copied into the default locations using the custom `Dockerfile` as
+well, eliminating the need for these files to be mounted into the container.
+
+#### Build a custom image
+
+The Salesforce Exporter [Docker image](https://hub.docker.com/r/newrelic/newrelic-salesforce-exporter)
+can also be built locally using the provided [`Dockerfile`](./Dockerfile)
+"as-is" or as the basis for building a custom `Dockerfile`. As is the case when
+extending the base image, this scenario does require access to
+[a Docker registry](https://docs.docker.com/guides/docker-concepts/the-basics/what-is-a-registry/)
+where the custom image can be pushed (e.g. [ECR](https://aws.amazon.com/ecr/)
+and that is accessible to the technology used to manage the container
+(e.g. [ECS](https://aws.amazon.com/ecs/)). Similarly, it requires maintenance of
+a custom `Dockerfile` and the processes to build and publish the image to a
+registry.
+
+The general set of steps for building a custom image using the provided
+`Dockerfile` "as-is" are as follows.
 
 1. Clone this repository
-1. Run `docker build -t nr-sf-eventlogs .` to build the docker image.
+1. Navigate to the repository root
+1. Run the following commands
 
-## Usage
+```bash
+docker build -t newrelic-salesforce-exporter .
+docker tag newrelic-salesforce-exporter someregistry/username/newrelic-salesforce-exporter
+docker push someregistry/username/newrelic-salesforce-exporter
+```
 
-### Locally
+To use a custom `Dockerfile`, backup the provided `Dockerfile`, make necessary
+changes to the original, and follow the steps above.
 
-1. Run `python src/__main__.py` to run the exporter
-
-#### Command Line Options
-
-| Option | Alias | Description | Default |
-| --- | --- | --- | --- |
-| -f | --config_file | name of [configuration file](#configyml) | `config.yml` |
-| -c | --config_dir | path to the directory containing the [configuration file](#configyml) | `.` |
-| -e | --event_type_fields_mapping | path to the [event type fields mapping](#event-type-fields-mapping-file) file | `''` |
-| -n | --num_fields_mapping | path to the [numeric fields mapping](#numeric-fields-mapping-file) file | `''` |
-
-For historical purposes, you can also use the `CONFIG_DIR` environment variable
-to specify the directory containing the [configuration file](#configyml).
-
-### Docker
-
-1. Run `docker run nr-sf-eventlogs` to run the exporter.
+As is the case when extending the base image, the exporter can be run using the
+custom image as in the previous examples but without the need to mount any files
+into the container.
 
 ### Features
 
@@ -83,6 +260,18 @@ The Salesforce Exporter supports the following capabilities.
 
   The exporter can collect Salesforce Org Limits and send either all limits or
   only select limits to New Relic as logs or events.
+
+### Command Line Options
+
+| Option | Alias | Description | Default |
+| --- | --- | --- | --- |
+| -f | --config_file | name of [configuration file](#configyml) | `config.yml` |
+| -c | --config_dir | path to the directory containing the [configuration file](#configyml) | `.` |
+| -e | --event_type_fields_mapping | path to the [event type fields mapping file](#event-type-fields-mapping-file) | `event_type_fields.yml` |
+| -n | --num_fields_mapping | path to the [numeric fields mapping file](#numeric-fields-mapping-file) | `numeric_fields.yml` |
+
+For historical purposes, you can also use the `CONFIG_DIR` environment variable
+to specify the directory containing the [configuration file](#configyml).
 
 ### Configuration
 

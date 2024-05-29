@@ -1,0 +1,19 @@
+FROM newrelic/newrelic-salesforce-exporter
+
+#
+# Copy your config file into the base directory.
+# Adjust the local path as necessary.
+#
+COPY ./config.yml .
+
+#
+# If needed, copy your event type fields mapping file into the base directory.
+# Adjust the local path as necessary.
+#
+#COPY ./event_type_fields.yml .
+
+#
+# If needed, copy your numeric fields mapping file into the base directory.
+# Adjust the local path as necessary.
+#
+#COPY ./numeric_fields.yml .
