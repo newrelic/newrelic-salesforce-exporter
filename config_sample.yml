@@ -2,7 +2,7 @@ integration_name: com.newrelic.labs.sfdc.eventlogfiles
 run_as_service: False
 cron_interval_minutes: 60
 service_schedule:
-  hour: *
+  hour: "*"
   minute: "0,15,30,45"
 instances:
   - name: sfdc-logs
@@ -28,8 +28,8 @@ instances:
       generation_interval: Hourly
       time_lag_minutes: 300
       queries:
-      - query: SELECT * FROM Account
-      - query: SELECT * FROM SetupAuditTrail
+      - query: "SELECT * FROM Account"
+      - query: "SELECT * FROM SetupAuditTrail"
       limits:
         api_ver: "55.0"
         names:
