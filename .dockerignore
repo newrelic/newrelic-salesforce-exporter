@@ -1,14 +1,11 @@
-# Git stuff
-.git
-.github
-.gitignore
-
-# NR One Dashbords
-dashboards
-
-# Docs and samples
-*.md
-config.yml.sample
+# Tests
+src/tests
 
 # Python cache
 src/newrelic_logging/__pycache__
+
+# Coverage reports
+**/.coverage
+
+# Any local files
+**/*.local.*

@@ -1,11 +1,11 @@
-# NOTE: remove the "-slim" if you need a full featured base image.
-FROM python:3.11-slim
+FROM python:3.9
 
 WORKDIR /usr/src/app
 
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY . .
+COPY ./src ./src
+COPY ./newrelic.ini .
 
-CMD [ "python", "./src/__main__.py" ]
+ENTRYPOINT [ "python3", "./src/__main__.py" ]
