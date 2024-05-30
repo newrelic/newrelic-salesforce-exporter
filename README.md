@@ -312,7 +312,7 @@ When set to `True`, the exporter will run on a schedule specified in the
 when not specified, the exporter will run once and exit. In this case, the
 [`cron_interval_minutes`](#cron-interval-minutes) parameter should be used to
 indicate the interval configured in the external scheduler. For example, if
-using cron, this would be the frequency (in seconds) between runs setup in the
+using cron, this would be the frequency (in minutes) between runs setup in the
 `crontab`.
 
 ###### `service_schedule`
@@ -342,12 +342,12 @@ service_schedule:
 
 | Description | Valid Values | Required | Default |
 | --- | --- | --- | --- |
-| The execution interval (in seconds) used by the external scheduler | integer | N | 60 |
+| The execution interval (in minutes) used by the external scheduler | integer | N | 60 |
 
 This parameter is used when the [`run_as_service`](#run_as_service) parameter
 is set to `False` or is not set at all. This parameter is intended for use when
 an external scheduling mechanism is being used to execute the exporter. The
-value of this parameter is a number representing the interval (in seconds) at
+value of this parameter is a number representing the interval (in minutes) at
 which the external scheduler executes the exporter. For example, if using
 CRON, this would be the frequency at which CRON invokes the process as
 represented by the CRON expression in the `crontab`.
@@ -1045,16 +1045,19 @@ Salesforce event log file data is mapped to New Relic data as follows.
            mapping, copy the fields listed in the mapping from the log message
            to the `attributes`.
         1. Otherwise, copy all the fields.
-        1. If a `TIMESTAMP` field exists on the log message, convert it to the
-           number of seconds since the epoch and remove `TIMESTAMP` from the
-           `attributes`.
+        1. A timestamp to use in subsequent steps is calculated as follows.
+            1. If a `TIMESTAMP` field exists on the log message, convert it to
+               the number of seconds since the epoch and remove `TIMESTAMP` from
+               the `attributes`.
+            1. Otherwise, use the _current_ number of seconds since the epoch
+               for the timestamp.
         1. Set the `LogFileId` attribute in `attributes` to the `Id` field of
            the `EventLogFile` record (not the log message).
         1. Set the `EVENT_TYPE` attribute in `attributes` to either the
            [`event_type`](#event_type-custom-queries) value or the `EVENT_TYPE`
            field from the log message. If neither exists, it is set to
            `SFEvent`.
-        1. The converted timestamp value is set with the attribute name
+        1. The calculated timestamp value is set with the attribute name
            specified in [`rename_timestamp`](#rename_timestamp) or the name
            `timestamp`.
     1. The `message` for the New Relic log entry is set to
@@ -1063,7 +1066,7 @@ Salesforce event log file data is mapped to New Relic data as follows.
        the CSV file currently being processed.
     1. If, and only if, the calculated name of the `timestamp` field is
        `timestamp`, the `timestamp` for the New Relic log entry is set to the
-       converted timestamp value. Otherwise, the time of ingestion will be used
+       calculated timestamp value. Otherwise, the time of ingestion will be used
        as the timestamp of the log entry.
 1. If the target New Relic data type is an event, the calculated log entry is
    converted to an event as follows.
@@ -1460,7 +1463,7 @@ Query records are mapped to New Relic data as follows.
        value of the `CreatedDate` field, or the empty string.
     1. If, and only if, the calculated name of the `timestamp` field is
        `timestamp`, the `timestamp` for the New Relic log entry is set to the
-       converted timestamp value. Otherwise, the time of ingestion will be used
+       calculated timestamp value. Otherwise, the time of ingestion will be used
        as the timestamp of the log entry.
 
 Below is an example of an SOQL query, a query result record, and the New Relic
