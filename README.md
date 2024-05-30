@@ -933,6 +933,19 @@ this should be set to the authorization server's URL.
 The audience can also be specified using the `{optional-prefix}SF_AUDIENCE`
 environment variable.
 
+##### `expiration_offset`
+
+| Description | Valid Values | Required | Default |
+| --- | --- | --- | --- |
+| An offset duration (in _minutes_) to use when calculating the JWT `exp` claim | integer | N | 5 |
+
+This value of this parameter is added to the current time and the result is used
+as the value of the `exp` claim in the JSON Claims Set for the JWT. The value
+_must_ be a positive integer.
+
+The expiration offset can also be specified using the
+`{optional-prefix}SF_EXPIRATION_OFFSET` environment variable.
+
 ##### Example
 
 Below is an example OAuth 2.0 JWT Bearer Flow configuration in the

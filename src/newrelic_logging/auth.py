@@ -19,6 +19,8 @@ SF_PRIVATE_KEY = 'SF_PRIVATE_KEY'
 SF_SUBJECT = 'SF_SUBJECT'
 SF_AUDIENCE = 'SF_AUDIENCE'
 SF_TOKEN_URL = 'SF_TOKEN_URL'
+SF_EXPIRATION_OFFSET = 'SF_EXPIRATION_OFFSET'
+DEFAULT_EXPIRATION_OFFSET = 5
 
 
 class Authenticator:
@@ -104,7 +106,9 @@ class Authenticator:
         client_id = self.auth_data['client_id']
         subject = self.auth_data['subject']
         audience = self.auth_data['audience']
-        exp = int((datetime.utcnow() - timedelta(minutes=5)).timestamp())
+        exp = int((
+            datetime.utcnow() + timedelta(minutes=self.auth_data['exp_offset']),
+        ).timestamp())
 
         with open(private_key_file, 'r') as f:
             try:
@@ -231,6 +235,12 @@ def validate_jwt_config(auth: dict) -> dict:
     if not auth['audience']:
         raise ConfigException('audience', 'missing JWT audience')
 
+    if auth['exp_offset'] < 0:
+        raise ConfigException(
+            'exp_offset',
+            'JWT expiration offset must not be negative',
+        )
+
     return auth
 
 
@@ -254,12 +264,19 @@ def make_auth_from_config(auth: Config) -> dict:
         })
 
     if grant_type == 'urn:ietf:params:oauth:grant-type:jwt-bearer':
+        exp_offset = auth.get(
+            'expiration_offset',
+            env_var_name=SF_EXPIRATION_OFFSET,
+        )
+
         return validate_jwt_config({
             'grant_type': grant_type,
             'client_id': auth.get('client_id', env_var_name=SF_CLIENT_ID),
             'private_key': auth.get('private_key', env_var_name=SF_PRIVATE_KEY),
             'subject': auth.get('subject', env_var_name=SF_SUBJECT),
             'audience': auth.get('audience', env_var_name=SF_AUDIENCE),
+            'exp_offset': int(exp_offset) if not exp_offset is None \
+                else DEFAULT_EXPIRATION_OFFSET,
         })
 
     raise Exception(f'Wrong or missing grant_type')
@@ -278,12 +295,16 @@ def make_auth_from_env(config: Config) -> dict:
         })
 
     if grant_type == 'urn:ietf:params:oauth:grant-type:jwt-bearer':
+        exp_offset = config.getenv(SF_EXPIRATION_OFFSET)
+
         return validate_jwt_config({
             'grant_type': grant_type,
             'client_id': config.getenv(SF_CLIENT_ID),
             'private_key': config.getenv(SF_PRIVATE_KEY),
             'subject': config.getenv(SF_SUBJECT),
             'audience': config.getenv(SF_AUDIENCE),
+            'exp_offset': int(exp_offset) if not exp_offset is None \
+                else DEFAULT_EXPIRATION_OFFSET,
         })
 
     raise Exception(f'Wrong or missing grant_type')
