@@ -235,10 +235,10 @@ def validate_jwt_config(auth: dict) -> dict:
     if not auth['audience']:
         raise ConfigException('audience', 'missing JWT audience')
 
-    if auth['exp_offset'] < 0:
+    if auth['exp_offset'] <= 0:
         raise ConfigException(
             'exp_offset',
-            'JWT expiration offset must not be negative',
+            'JWT expiration offset must be greater than zero',
         )
 
     return auth

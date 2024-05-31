@@ -768,7 +768,7 @@ e.g. `https://hostname/services/oauth2/token`.
 
 The OAuth 2.0 token endpoint URL can be specified either as a
 [configuration parameter](#token_url) or using the
-`{optional-prefix}SF_TOKEN_URL` environment variable.
+`{auth_env_prefix}SF_TOKEN_URL` environment variable.
 
 #### OAuth 2.0 Username-Password Flow
 
@@ -780,7 +780,7 @@ the following parameters are required.
 The `grant_type` for the OAuth 2.0 Username-Password Flow _must_ be set to
 `password` (case-sensitive).
 
-The grant type can also be specified using the `{optional-prefix}SF_GRANT_TYPE`
+The grant type can also be specified using the `{auth_env_prefix}SF_GRANT_TYPE`
 environment variable.
 
 ##### `client_id`
@@ -793,7 +793,7 @@ This parameter specifies the **consumer key** of the connected app. To access
 this value, navigate to "Manage Consumer Details" when viewing the Connected App
 details.
 
-The client ID can also be specified using the `{optional-prefix}SF_CLIENT_ID`
+The client ID can also be specified using the `{auth_env_prefix}SF_CLIENT_ID`
 environment variable.
 
 ##### `client_secret`
@@ -807,7 +807,7 @@ this value, navigate to "Manage Consumer Details" when viewing the Connected App
 details.
 
 The client secret can also be specified using the
-`{optional-prefix}SF_CLIENT_SECRET` environment variable.
+`{auth_env_prefix}SF_CLIENT_SECRET` environment variable.
 
 ##### `username`
 
@@ -818,7 +818,7 @@ The client secret can also be specified using the
 This parameter specifies the **username** that the connected app will
 impersonate/imitate for authentication and authorization purposes.
 
-The username can also be specified using the `{optional-prefix}SF_USERNAME`
+The username can also be specified using the `{auth_env_prefix}SF_USERNAME`
 environment variable.
 
 ##### `password`
@@ -830,7 +830,7 @@ environment variable.
 This parameter specifies the **password** of the user that the connected app
 will impersonate/imitate for authentication and authorization purposes.
 
-The password can also be specified using the `{optional-prefix}SF_PASSWORD`
+The password can also be specified using the `{auth_env_prefix}SF_PASSWORD`
 environment variable.
 
 **NOTE:** As noted in [the OAuth 2.0 Username-Password flow documentation](https://help.salesforce.com/s/articleView?id=sf.remoteaccess_oauth_username_password_flow.htm&type=5),
@@ -876,7 +876,7 @@ the following parameters are required.
 The `grant_type` for the OAuth 2.0 JWT Bearer Flow _must_ be set to
 `urn:ietf:params:oauth:grant-type:jwt-bearer` (case-sensitive).
 
-The grant type can also be specified using the `{optional-prefix}SF_GRANT_TYPE`
+The grant type can also be specified using the `{auth_env_prefix}SF_GRANT_TYPE`
 environment variable.
 
 ##### `client_id`
@@ -889,7 +889,7 @@ This parameter specifies the **client_id** generated and assigned to the
 connected app when it is saved after
 [registering the X509 certificate](https://help.salesforce.com/s/articleView?id=sf.remoteaccess_oauth_jwt_flow.htm&type=5)
 
-The client ID can also be specified using the `{optional-prefix}SF_CLIENT_ID`
+The client ID can also be specified using the `{auth_env_prefix}SF_CLIENT_ID`
 environment variable.
 
 ##### `private_key`
@@ -904,7 +904,7 @@ key that is associated with the X509 certificate that is
 with the connected app. The private key is used to sign the JWT.
 
 The private key file path can also be specified using the
-`{optional-prefix}SF_PRIVATE_KEY` environment variable.
+`{auth_env_prefix}SF_PRIVATE_KEY` environment variable.
 
 ##### `subject`
 
@@ -917,7 +917,7 @@ Set for the JWT. Per [the documentation](https://help.salesforce.com/s/articleVi
 this should be set to the user's username when accessing an Experience Cloud
 site.
 
-The subject can also be specified using the `{optional-prefix}SF_SUBJECT`
+The subject can also be specified using the `{auth_env_prefix}SF_SUBJECT`
 environment variable.
 
 ##### `audience`
@@ -930,7 +930,7 @@ This parameter specifies the value used for the `aud` claim in the JSON Claims
 Set for the JWT. Per [the documentation](https://help.salesforce.com/s/articleView?id=sf.remoteaccess_oauth_jwt_flow.htm&type=5),
 this should be set to the authorization server's URL.
 
-The audience can also be specified using the `{optional-prefix}SF_AUDIENCE`
+The audience can also be specified using the `{auth_env_prefix}SF_AUDIENCE`
 environment variable.
 
 ##### `expiration_offset`
@@ -944,7 +944,7 @@ as the value of the `exp` claim in the JSON Claims Set for the JWT. The value
 _must_ be a positive integer.
 
 The expiration offset can also be specified using the
-`{optional-prefix}SF_EXPIRATION_OFFSET` environment variable.
+`{auth_env_prefix}SF_EXPIRATION_OFFSET` environment variable.
 
 ##### Example
 
@@ -1740,7 +1740,7 @@ The following configuration parameters are supported.
 
 This parameter specifies the hostname or IP address of the Redis server.
 
-The host can also be specified using the `{optional-prefix}REDIS_HOST`
+The host can also be specified using the `{auth_env_prefix}REDIS_HOST`
 environment variable.
 
 ##### `port`
@@ -1751,7 +1751,7 @@ environment variable.
 
 This parameter specifies the port to connect to on the Redis server.
 
-The port can also be specified using the `{optional-prefix}REDIS_PORT`
+The port can also be specified using the `{auth_env_prefix}REDIS_PORT`
 environment variable.
 
 ##### `db_number`
@@ -1763,7 +1763,7 @@ environment variable.
 This parameter specifies the database number to connect to on the Redis server.
 
 The database number can also be specified using the
-`{optional-prefix}REDIS_DB_NUMBER` environment variable.
+`{auth_env_prefix}REDIS_DB_NUMBER` environment variable.
 
 ##### `ssl`
 
@@ -1774,7 +1774,7 @@ The database number can also be specified using the
 This parameter specifies whether or not to use an SSL connection to connect to
 the Redis server.
 
-The SSL flag can also be specified using the `{optional-prefix}REDIS_SSL`
+The SSL flag can also be specified using the `{auth_env_prefix}REDIS_SSL`
 environment variable.
 
 ##### `password`
@@ -1785,7 +1785,7 @@ environment variable.
 
 This parameter specifies the password to use to connect to the Redis server.
 
-The password can also be specified using the `{optional-prefix}REDIS_PASSWORD`
+The password can also be specified using the `{auth_env_prefix}REDIS_PASSWORD`
 environment variable.
 
 ##### `expire_days`
@@ -1797,7 +1797,7 @@ environment variable.
 This parameter specifies the expiration time to use when putting any entry into
 the cache. The time is specified in days.
 
-The expiry can also be specified using the `{optional-prefix}REDIS_EXPIRE_DAYS`
+The expiry can also be specified using the `{auth_env_prefix}REDIS_EXPIRE_DAYS`
 environment variable.
 
 ##### Example
