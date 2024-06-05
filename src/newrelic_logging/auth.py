@@ -107,7 +107,7 @@ class Authenticator:
         subject = self.auth_data['subject']
         audience = self.auth_data['audience']
         exp = int((
-            datetime.utcnow() + timedelta(minutes=self.auth_data['exp_offset']),
+            datetime.utcnow() + timedelta(minutes=self.auth_data['exp_offset'])
         ).timestamp())
 
         with open(private_key_file, 'r') as f:
