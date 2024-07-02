@@ -85,12 +85,22 @@ class Api:
         if not api_ver is None:
             ver = api_ver
 
-        # @TODO handle pagination
-
         return get(
             self.authenticator,
             session,
             f'/services/data/v{ver}/query?q={soql}',
+            lambda response : response.json()
+        )
+
+    def query_more(
+        self,
+        session: Session,
+        next_records_url: str,
+    ) -> dict:
+        return get(
+            self.authenticator,
+            session,
+            next_records_url,
             lambda response : response.json()
         )
 

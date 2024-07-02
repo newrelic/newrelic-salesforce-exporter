@@ -14,7 +14,8 @@ from ..util import \
     get_iso_date_with_offset, \
     get_log_line_timestamp, \
     is_logfile_response, \
-    process_query_result
+    process_query_result, \
+    regenerator
 
 
 DEFAULT_CHUNK_SIZE = 4096
@@ -292,10 +293,10 @@ class QueryReceiver:
     def process_query_records(
         self,
         query: Query,
-        records: list[dict],
+        iter,
     ):
         return transform_query_records(
-            records,
+            iter,
             query,
             self.data_cache,
         )
@@ -304,10 +305,16 @@ class QueryReceiver:
         self,
         session: Session,
         query: Query,
-        records: list[dict],
+        iter,
     ):
-        if is_logfile_response(records):
-            for record in records:
+        first = next(iter, None)
+        if first is None:
+            return
+
+        reiter = regenerator([first], iter)
+
+        if is_logfile_response(first):
+            for record in reiter:
                 if 'LogFile' in record:
                     yield from self.process_log_record(
                         session,
@@ -320,7 +327,7 @@ class QueryReceiver:
 
             return
 
-        yield from self.process_query_records(query, records)
+        yield from self.process_query_records(query, reiter)
 
         # Flush the cache
         if self.data_cache:
@@ -347,16 +354,10 @@ class QueryReceiver:
                 self.generation_interval,
             )
 
-            response = query.execute(session)
-
-            if not response or not 'records' in response:
-                print_warn(f'no records returned for query {query.query}')
-                continue
-
             yield from self.process_records(
                 session,
                 query,
-                response['records'],
+                query.execute(session),
             )
 
         self.slide_time_range()
