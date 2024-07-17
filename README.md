@@ -53,6 +53,41 @@ using the command `python src/__main__.py`. See the section
 [Command Line Options](#command-line-options) and [Configuration](#configuration)
 for more details on using the exporter.
 
+#### Upgrading on-host deployments
+
+New Relic recommends that you update the Salesforce Exporter regularly and at a
+minimum every 3 months. To check that you are running the most current version,
+perform the following steps.
+
+1. Navigate to the repository root
+1. Run `git describe --tags --abbrev=0`
+1. Run `git describe --tags --abbrev=0 origin/main`
+1. Compare the output of the two commands. If they are the same, no action is
+   required. If the version listed in the output of the second command is
+   greater than the version listed in the output of the first command, perform
+   the steps listed below.
+
+   **NOTE:** The above steps may not work if custom tags or branches have been
+   added to the local repository or when operating on a fork. For these
+   scenarios, please consult the [git documentation](https://git-scm.com/docs)
+   for the appropriate commands to use to compare the latest tag in this
+   repository with the latest tag in the local repository or fork.
+
+To upgrade the Salesforce Exporter on a host, perform the following steps.
+
+1. Navigate to the repository root.
+1. Run the following commands.
+
+   ```bash
+   git checkout main
+   git pull origin/main
+   ```
+
+   **NOTE:** The above steps may not work if there are pending changes to the
+   local repository or when operating on a fork. For these scenarios, please
+   consult the [git documentation](https://git-scm.com/docs) for the appropriate
+   commands to use to update the local repository or fork to the latest version.
+
 ### Docker
 
 A Docker image for the Salesforce Exporter is available at
@@ -235,11 +270,54 @@ docker push someregistry/username/newrelic-salesforce-exporter
 ```
 
 To use a custom `Dockerfile`, backup the provided `Dockerfile`, make necessary
-changes to the original, and follow the steps above.
+changes to the original, and test the image to ensure that the Salesforce
+Exporter functions as expected. The example commands in the section
+[run directly from DockerHub](#run-directly-from-dockerhub) can be used as a way
+to verify basic functionality. Run additional tests as needed based on the
+nature of the changes to the custom `Dockerfile`. Then follow the steps above to
+tag the image and publish it to a registry.
 
 As is the case when extending the base image, the exporter can be run using the
 custom image as in the previous examples but without the need to mount any files
 into the container.
+
+**NOTE:** When using a custom `Dockerfile`, the base image in the `FROM`
+instruction should not be changed and will not be supported.
+
+#### Upgrading Docker deployments
+
+New Relic recommends that you update the Salesforce Exporter regularly and at a
+minimum every 3 months.
+
+When [running directly from DockerHub](#run-directly-from-dockerhub), ensure
+that you are not referencing a specific tag in the `docker run` command or that
+you are using the tag ['latest'](https://hub.docker.com/r/newrelic/newrelic-salesforce-exporter/tags).
+
+Similarly, if you are [extending the base image](#extend-the-base-image), ensure
+that you are not referencing a specific tag in the `FROM` instruction or that
+you are using the tag ['latest'](https://hub.docker.com/r/newrelic/newrelic-salesforce-exporter/tags).
+Additionally, ensure that you rebuild your image and push the new image to your
+custom [Docker registries](https://docs.docker.com/guides/docker-concepts/the-basics/what-is-a-registry/)
+and that all containers running from previous versions of the image are
+recreated to use the new image.
+
+When [building a custom image](#build-a-custom-image) using the provided
+`Dockerfile` "as-is", follow the steps to [upgrade your local repository](#upgrading-on-host-deployments)
+and then follow the steps to [build a custom image](#build-a-custom-image) using
+the provided `Dockerfile`. Ensure that you rebuild your image and push the new
+image to your custom [Docker registries](https://docs.docker.com/guides/docker-concepts/the-basics/what-is-a-registry/)
+and that all containers running from previous versions of the image are
+recreated to use the new image.
+
+When [building a custom image](#build-a-custom-image) using a custom
+`Dockerfile`, a new version of the custom `Dockerfile` should be created by
+reapplying changes to the provided `Dockerfile` each time the Salesforce
+Exporter is updated to ensure changes to major functionality and critical fixes
+are included in images produced from the custom `Dockerfile`. Ensure that you
+rebuild your image and push the new image to your custom
+[Docker registries](https://docs.docker.com/guides/docker-concepts/the-basics/what-is-a-registry/)
+and that all containers running from previous versions of the image are
+recreated to use the new image.
 
 ### Features
 
@@ -1977,6 +2055,14 @@ the project here on GitHub.
 We encourage you to bring your experiences and questions to the
 [Explorers Hub](https://discuss.newrelic.com/) where our community members
 collaborate on solutions and new ideas.
+
+### Upgrading
+
+New Relic recommends that you update the Salesforce Exporter regularly and at a
+minimum every 3 months.
+
+To upgrade on-host deployments, see the section [Upgrading on-host deployments](#upgrading-on-host-deployments).
+To upgrade Docker deployments, see the section [Upgrading Docker deployments](#upgrading-docker-deployments).
 
 ### Privacy
 
