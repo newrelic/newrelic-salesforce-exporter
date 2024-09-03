@@ -9,33 +9,103 @@ from newrelic_logging import util
 class TestUtilities(unittest.TestCase):
     def test_is_logfile_response(self):
         '''
-        given: a set of query result records
-        when: the set is the empty set
+        given: a query result record
+        when: the record contains a 'LogFile' property
         then: return true
         '''
 
         # execute/verify
-        self.assertTrue(util.is_logfile_response([]))
-
-        '''
-        given: a set of query result records
-        when: the first record in the set contains a 'LogFile' property
-        then: return true
-        '''
-
-        # execute/verify
-        self.assertTrue(util.is_logfile_response([
+        self.assertTrue(util.is_logfile_response(
             { 'LogFile': 'example' }
-        ]))
+        ))
 
         '''
-        given: a set of query result records
-        when: the first record in the set does not contain a 'LogFile' property
+        given: a query result record
+        when: the record does not contain a 'LogFile' property
         then: return false
         '''
 
         # execute/verify
-        self.assertFalse(util.is_logfile_response([{}]))
+        self.assertFalse(util.is_logfile_response({}))
+
+    def test_regenerator_yields_all_given_items_and_iter_has_no_more(self):
+        '''
+        regenerator() returns an iterator over items given itr has no more elements
+        given: an array of items
+        and given: an iterator
+        when: the array is not empty
+        and when: the iterator has no more elements
+        and when: regenerator() is called
+        then: regenerator() yields all items
+        '''
+
+        # setup
+        items = [1]
+        itr = iter([])
+
+        # execute
+        result = []
+        for r in util.regenerator(items, itr):
+            result.append(r)
+
+        # verify
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0], 1)
+
+    def test_regenerator_yields_all_given_iter_has_more_and_no_items(self):
+        '''
+        regenerator() returns an iterator over the elements in itr given items is empty
+        given: an array of items
+        and given: an iterator
+        when: the array is empty
+        and when: the iterator has more elements
+        and when: regenerator() is called
+        then: regenerator() yields all elements from the iterator
+        '''
+
+        # setup
+        items = []
+        itr = iter([1, 2, 3])
+
+        # execute
+        result = []
+        for r in util.regenerator(items, itr):
+            result.append(r)
+
+        # verify
+        self.assertEqual(len(result), 3)
+        self.assertEqual(result[0], 1)
+        self.assertEqual(result[1], 2)
+        self.assertEqual(result[2], 3)
+
+    def test_regenerator_yields_all_given_items_and_iter_has_more(self):
+        '''
+        regenerator() returns an iterator over items and the elements in itr given items is not empty and itr has more elements
+        given: an array of items
+        and given: an iterator
+        when: the array is not empty
+        and when: the iterator has more elements
+        and when: regenerator() is called
+        then: regenerator() yields all items and all elements from the iterator
+        '''
+
+        # setup
+        items = [1, 2, 3]
+        itr = iter([4, 5, 6])
+
+        # execute
+        result = []
+        for r in util.regenerator(items, itr):
+            result.append(r)
+
+        # verify
+        self.assertEqual(len(result), 6)
+        self.assertEqual(result[0], 1)
+        self.assertEqual(result[1], 2)
+        self.assertEqual(result[2], 3)
+        self.assertEqual(result[3], 4)
+        self.assertEqual(result[4], 5)
+        self.assertEqual(result[5], 6)
 
     def test_generate_record_id(self):
         '''

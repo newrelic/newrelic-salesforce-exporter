@@ -1406,7 +1406,7 @@ class TestQueryReceiver(unittest.TestCase):
         and given: a read chunk size
         and given: an http session
         when: QueryReceiver.execute() is called
-        and when: no queries are specified
+        and when: the list of queries is empty
         and when: the data cache is None
         then: yield no results
         '''
@@ -1440,9 +1440,9 @@ class TestQueryReceiver(unittest.TestCase):
 
         self.assertEqual(len(logs), 0)
 
-    def test_query_receiver_execute_yields_all_results_given_multiple_queries(self):
+    def test_query_receiver_execute_yields_results_given_single_query(self):
         '''
-        QueryReceiver.execute() executes each query given multiple queries and yields results from each query
+        QueryReceiver.execute() executes the given query and yields the results
         given: a data cache
         and given: an api
         and given: a query factory
@@ -1454,7 +1454,73 @@ class TestQueryReceiver(unittest.TestCase):
         and given: a read chunk size
         and given: an http session
         when: QueryReceiver.execute() is called
-        and when: one or more queries are specified
+        and when: the list of queries contains a single query
+        and when: the data cache is None
+        then: execute the query
+        and: yield the results of the query
+        '''
+
+        # setup
+        api = ApiStub()
+        query_factory = QueryFactoryStub()
+        queries = [
+            {
+                'query': 'foo',
+                'results': [{ 'foo': 'bar' }]
+            },
+        ]
+        session = SessionStub()
+
+        # execute
+        r = receiver.QueryReceiver(
+            None,
+            api,
+            query_factory,
+            queries,
+            {},
+            5,
+            300,
+            'Hourly',
+            4096,
+        )
+
+        # execute
+        iter = r.execute(session)
+
+        logs = []
+        for log in iter:
+            logs.append(log)
+
+        # verify
+        self.assertEqual(len(query_factory.queries), 1)
+
+        query1 = query_factory.queries[0]
+        self.assertEqual(query1.query, 'foo')
+        self.assertTrue(query1.executed)
+
+        self.assertEqual(len(logs), 1)
+        log = logs[0]
+        self.assertTrue('message' in log)
+        self.assertEqual(log['message'], 'SFEvent')
+        self.assertTrue('attributes' in log)
+        self.assertTrue('foo' in log['attributes'])
+        self.assertEqual(log['attributes']['foo'], 'bar')
+
+    def test_query_receiver_execute_yields_all_results_given_multiple_queries(self):
+        '''
+        QueryReceiver.execute() executes each query given multiple queries and yields combined results from each query
+        given: a data cache
+        and given: an api
+        and given: a query factory
+        and given: a list of queries
+        and given: an event type fields mapping
+        and given: an initial delay value
+        and given: a time lag minutes value
+        and given: a generation interval
+        and given: a read chunk size
+        and given: an http session
+        when: QueryReceiver.execute() is called
+        and when: multiple queries are specified
         and when: the data cache is None
         then: execute each query
         and: yield the combined results of all queries
@@ -1521,117 +1587,29 @@ class TestQueryReceiver(unittest.TestCase):
 
         self.assertEqual(len(logs), 4)
         log = logs[0]
-        self.assertEqual(logs[0]['attributes']['foo'], 'bar')
-
-    def test_query_receiver_execute_yields_nothing_given_query_returns_no_result(self):
-        '''
-        QueryReceiver.execute() yields no results when the query result is not truthy
-        given: a data cache
-        and given: an api
-        and given: a query factory
-        and given: a list of queries
-        and given: an event type fields mapping
-        and given: an initial delay value
-        and given: a time lag minutes value
-        and given: a generation interval
-        and given: a read chunk size
-        and given: an http session
-        when: QueryReceiver.execute() is called
-        and when: a query is specified
-        and when: the data cache is None
-        then: execute the query
-        and when: the query result is not truthy
-        then: yield no results
-        '''
-
-        # setup
-        api = ApiStub()
-        query = QueryStub(result=None)
-        query_factory = QueryFactoryStub(query)
-        queries = [
-            {
-                'query': 'foo',
-            },
-        ]
-        session = SessionStub()
-
-        # execute
-        r = receiver.QueryReceiver(
-            None,
-            api,
-            query_factory,
-            queries,
-            {},
-            5,
-            300,
-            'Hourly',
-            4096,
-        )
-
-        # execute
-        iter = r.execute(session)
-
-        logs = []
-        for log in iter:
-            logs.append(log)
-
-        # verify
-        self.assertEqual(len(logs), 0)
-
-    def test_query_receiver_execute_yields_nothing_given_query_returns_no_records(self):
-        '''
-        QueryReceiver.execute() yields no results when the query result has no 'records' key
-        given: a data cache
-        and given: an api
-        and given: a query factory
-        and given: a list of queries
-        and given: an event type fields mapping
-        and given: an initial delay value
-        and given: a time lag minutes value
-        and given: a generation interval
-        and given: a read chunk size
-        and given: an http session
-        when: QueryReceiver.execute() is called
-        and when: a query is specified
-        and when: the data cache is None
-        then: execute the query
-        and when: the query result has no 'records' key
-        then: yield no results
-        '''
-
-        # setup
-        api = ApiStub()
-        query = QueryStub(result={ 'foo': 'bar' })
-        query_factory = QueryFactoryStub(query)
-        queries = [
-            {
-                'query': 'foo',
-            },
-        ]
-        session = SessionStub()
-
-        # execute
-        r = receiver.QueryReceiver(
-            None,
-            api,
-            query_factory,
-            queries,
-            {},
-            5,
-            300,
-            'Hourly',
-            4096,
-        )
-
-        # execute
-        iter = r.execute(session)
-
-        logs = []
-        for log in iter:
-            logs.append(log)
-
-        # verify
-        self.assertEqual(len(logs), 0)
+        self.assertTrue('message' in log)
+        self.assertEqual(log['message'], 'SFEvent')
+        self.assertTrue('attributes' in log)
+        self.assertTrue('foo' in log['attributes'])
+        self.assertEqual(log['attributes']['foo'], 'bar')
+        log = logs[1]
+        self.assertTrue('message' in log)
+        self.assertEqual(log['message'], 'SFEvent')
+        self.assertTrue('attributes' in log)
+        self.assertTrue('bar' in log['attributes'])
+        self.assertEqual(log['attributes']['bar'], 'foo')
+        log = logs[2]
+        self.assertTrue('message' in log)
+        self.assertEqual(log['message'], 'SFEvent')
+        self.assertTrue('attributes' in log)
+        self.assertTrue('beep' in log['attributes'])
+        self.assertEqual(log['attributes']['beep'], 'boop')
+        log = logs[3]
+        self.assertTrue('message' in log)
+        self.assertEqual(log['message'], 'SFEvent')
+        self.assertTrue('attributes' in log)
+        self.assertTrue('boop' in log['attributes'])
+        self.assertEqual(log['attributes']['boop'], 'beep')
 
     def test_query_receiver_execute_raises_login_exception_if_query_execute_does(self):
         '''
@@ -2135,6 +2113,64 @@ class TestQueryReceiver(unittest.TestCase):
         self.assertTrue('Name' in log2['attributes'])
         self.assertEqual(log2['attributes']['Name'], f'My Last Account')
 
+    def test_query_receiver_process_records_yields_nothing_given_iter_has_no_more(self):
+        '''
+        QueryReceiver.process_records() yields nothing given no elements are returned from the iterator
+        given: a data cache
+        and given: an api
+        and given: a query factory
+        and given: a list of queries
+        and given: an event type fields mapping
+        and given: an initial delay value
+        and given: a time lag minutes value
+        and given: a generation interval
+        and given: a read chunk size
+        and given: a query object
+        and given: an iterator over records
+        when: the iterator has no more elements
+        and when: QueryReceiver.process_records() is called
+        and when: no data cache is specified
+        then: yield nothing
+        '''
+
+        # setup
+        api = ApiStub()
+        session = SessionStub()
+        query = QueryStub()
+        query_factory = QueryFactoryStub()
+        queries = [
+            {
+                'query': 'foo',
+            },
+        ]
+        records = iter([])
+
+        # execute
+        r = receiver.QueryReceiver(
+            None,
+            api,
+            query_factory,
+            queries,
+            {},
+            5,
+            300,
+            'Hourly',
+            4096,
+        )
+
+        itr = r.process_records(
+            session,
+            query,
+            records,
+        )
+
+        logs = []
+        for log in itr:
+            logs.append(log)
+
+        # verify
+        self.assertEqual(len(logs), 0)
+
     def test_query_receiver_process_records_yields_log_entries_given_log_records(self):
         '''
         QueryReceiver.process_records() yields one log entry for each log line given log records
@@ -2166,7 +2202,7 @@ class TestQueryReceiver(unittest.TestCase):
                 'query': 'foo',
             },
         ]
-        records = self.log_records
+        records = iter(self.log_records)
 
         # execute
         r = receiver.QueryReceiver(
@@ -2181,18 +2217,65 @@ class TestQueryReceiver(unittest.TestCase):
             4096,
         )
 
-        iter = r.process_records(
+        itr = r.process_records(
             session,
             query,
             records,
         )
 
         logs = []
-        for log in iter:
+        for log in itr:
             logs.append(log)
 
         # verify
         self.assertEqual(len(logs), 4)
+        log = logs[0]
+        self.assertTrue('message' in log)
+        self.assertEqual(f'LogFile 00001111AAAABBBB row 0', log['message'])
+        self.assertTrue('attributes' in log)
+        attrs = log['attributes']
+        self.assertTrue('LogFileId' in attrs)
+        self.assertEqual(attrs['LogFileId'], '00001111AAAABBBB')
+        self.assertTrue('EVENT_TYPE' in attrs)
+        self.assertEqual(attrs['EVENT_TYPE'], 'ApexCallout')
+        self.assertTrue('REQUEST_ID' in attrs)
+        self.assertEqual(attrs['REQUEST_ID'], 'YYZ:abcdef123456')
+
+        log = logs[1]
+        self.assertTrue('message' in log)
+        self.assertEqual(f'LogFile 00001111AAAABBBB row 1', log['message'])
+        self.assertTrue('attributes' in log)
+        attrs = log['attributes']
+        self.assertTrue('LogFileId' in attrs)
+        self.assertEqual(attrs['LogFileId'], '00001111AAAABBBB')
+        self.assertTrue('EVENT_TYPE' in attrs)
+        self.assertEqual(attrs['EVENT_TYPE'], 'ApexCallout')
+        self.assertTrue('REQUEST_ID' in attrs)
+        self.assertEqual(attrs['REQUEST_ID'], 'YYZ:fedcba654321')
+
+        log = logs[2]
+        self.assertTrue('message' in log)
+        self.assertEqual(f'LogFile 00002222AAAABBBB row 0', log['message'])
+        self.assertTrue('attributes' in log)
+        attrs = log['attributes']
+        self.assertTrue('LogFileId' in attrs)
+        self.assertEqual(attrs['LogFileId'], '00002222AAAABBBB')
+        self.assertTrue('EVENT_TYPE' in attrs)
+        self.assertEqual(attrs['EVENT_TYPE'], 'ApexCallout')
+        self.assertTrue('REQUEST_ID' in attrs)
+        self.assertEqual(attrs['REQUEST_ID'], 'YYZ:abcdef123456')
+
+        log = logs[3]
+        self.assertTrue('message' in log)
+        self.assertEqual(f'LogFile 00002222AAAABBBB row 1', log['message'])
+        self.assertTrue('attributes' in log)
+        attrs = log['attributes']
+        self.assertTrue('LogFileId' in attrs)
+        self.assertEqual(attrs['LogFileId'], '00002222AAAABBBB')
+        self.assertTrue('EVENT_TYPE' in attrs)
+        self.assertEqual(attrs['EVENT_TYPE'], 'ApexCallout')
+        self.assertTrue('REQUEST_ID' in attrs)
+        self.assertEqual(attrs['REQUEST_ID'], 'YYZ:fedcba654321')
 
     def test_query_receiver_process_records_yields_log_entries_given_log_records_and_flushes_cache_given_cache(self):
         '''
@@ -2227,7 +2310,7 @@ class TestQueryReceiver(unittest.TestCase):
                 'query': 'foo',
             },
         ]
-        records = self.log_records
+        records = iter(self.log_records)
 
         # execute
         r = receiver.QueryReceiver(
@@ -2242,19 +2325,67 @@ class TestQueryReceiver(unittest.TestCase):
             4096,
         )
 
-        iter = r.process_records(
+        itr = r.process_records(
             session,
             query,
             records,
         )
 
         logs = []
-        for log in iter:
+        for log in itr:
             logs.append(log)
 
         # verify
         self.assertEqual(len(logs), 4)
         self.assertTrue(data_cache.flush_called)
+
+        log = logs[0]
+        self.assertTrue('message' in log)
+        self.assertEqual(f'LogFile 00001111AAAABBBB row 0', log['message'])
+        self.assertTrue('attributes' in log)
+        attrs = log['attributes']
+        self.assertTrue('LogFileId' in attrs)
+        self.assertEqual(attrs['LogFileId'], '00001111AAAABBBB')
+        self.assertTrue('EVENT_TYPE' in attrs)
+        self.assertEqual(attrs['EVENT_TYPE'], 'ApexCallout')
+        self.assertTrue('REQUEST_ID' in attrs)
+        self.assertEqual(attrs['REQUEST_ID'], 'YYZ:abcdef123456')
+
+        log = logs[1]
+        self.assertTrue('message' in log)
+        self.assertEqual(f'LogFile 00001111AAAABBBB row 1', log['message'])
+        self.assertTrue('attributes' in log)
+        attrs = log['attributes']
+        self.assertTrue('LogFileId' in attrs)
+        self.assertEqual(attrs['LogFileId'], '00001111AAAABBBB')
+        self.assertTrue('EVENT_TYPE' in attrs)
+        self.assertEqual(attrs['EVENT_TYPE'], 'ApexCallout')
+        self.assertTrue('REQUEST_ID' in attrs)
+        self.assertEqual(attrs['REQUEST_ID'], 'YYZ:fedcba654321')
+
+        log = logs[2]
+        self.assertTrue('message' in log)
+        self.assertEqual(f'LogFile 00002222AAAABBBB row 0', log['message'])
+        self.assertTrue('attributes' in log)
+        attrs = log['attributes']
+        self.assertTrue('LogFileId' in attrs)
+        self.assertEqual(attrs['LogFileId'], '00002222AAAABBBB')
+        self.assertTrue('EVENT_TYPE' in attrs)
+        self.assertEqual(attrs['EVENT_TYPE'], 'ApexCallout')
+        self.assertTrue('REQUEST_ID' in attrs)
+        self.assertEqual(attrs['REQUEST_ID'], 'YYZ:abcdef123456')
+
+        log = logs[3]
+        self.assertTrue('message' in log)
+        self.assertEqual(f'LogFile 00002222AAAABBBB row 1', log['message'])
+        self.assertTrue('attributes' in log)
+        attrs = log['attributes']
+        self.assertTrue('LogFileId' in attrs)
+        self.assertEqual(attrs['LogFileId'], '00002222AAAABBBB')
+        self.assertTrue('EVENT_TYPE' in attrs)
+        self.assertEqual(attrs['EVENT_TYPE'], 'ApexCallout')
+        self.assertTrue('REQUEST_ID' in attrs)
+        self.assertEqual(attrs['REQUEST_ID'], 'YYZ:fedcba654321')
 
     def test_query_receiver_process_records_yields_log_entries_given_query_records(self):
         '''
@@ -2287,7 +2418,7 @@ class TestQueryReceiver(unittest.TestCase):
                 'query': 'foo',
             },
         ]
-        records = self.event_records
+        records = iter(self.event_records)
 
         # execute
         r = receiver.QueryReceiver(
@@ -2302,18 +2433,53 @@ class TestQueryReceiver(unittest.TestCase):
             4096,
         )
 
-        iter = r.process_records(
+        itr = r.process_records(
             session,
             query,
             records,
         )
 
         logs = []
-        for log in iter:
+        for log in itr:
             logs.append(log)
 
         # verify
         self.assertEqual(len(logs), 3)
+
+        log = logs[0]
+        self.assertTrue('message' in log)
+        self.assertEqual(f'Account 2024-03-11T00:00:00.000+0000', log['message'])
+        self.assertTrue('attributes' in log)
+        attrs = log['attributes']
+        self.assertTrue('Id' in attrs)
+        self.assertEqual(attrs['Id'], '000012345')
+        self.assertTrue('EVENT_TYPE' in attrs)
+        self.assertEqual(attrs['EVENT_TYPE'], 'Account')
+        self.assertTrue('CreatedBy.Profile.Name' in attrs)
+        self.assertEqual(attrs['CreatedBy.Profile.Name'], 'Beep Boop')
+
+        log = logs[1]
+        self.assertTrue('message' in log)
+        self.assertEqual(f'Account 2024-03-10T00:00:00.000+0000', log['message'])
+        self.assertTrue('attributes' in log)
+        attrs = log['attributes']
+        self.assertTrue('Id' in attrs)
+        self.assertEqual(attrs['Id'], '000054321')
+        self.assertTrue('EVENT_TYPE' in attrs)
+        self.assertEqual(attrs['EVENT_TYPE'], 'Account')
+        self.assertTrue('CreatedBy.Profile.Name' in attrs)
+        self.assertEqual(attrs['CreatedBy.Profile.Name'], 'Beep Boop')
+
+        log = logs[2]
+        self.assertTrue('message' in log)
+        self.assertEqual(f'Account 2024-03-09T00:00:00.000+0000', log['message'])
+        self.assertTrue('attributes' in log)
+        attrs = log['attributes']
+        self.assertFalse('Id' in attrs)
+        self.assertTrue('EVENT_TYPE' in attrs)
+        self.assertEqual(attrs['EVENT_TYPE'], 'Account')
+        self.assertTrue('CreatedBy.Profile.Name' in attrs)
+        self.assertEqual(attrs['CreatedBy.Profile.Name'], 'Beep Boop')
 
     def test_query_receiver_process_records_yields_log_entries_given_query_records_and_flushes_cache_given_cache(self):
         '''
@@ -2347,7 +2513,7 @@ class TestQueryReceiver(unittest.TestCase):
                 'query': 'foo',
             },
         ]
-        records = self.event_records
+        records = iter(self.event_records)
 
         # execute
         r = receiver.QueryReceiver(
@@ -2362,19 +2528,54 @@ class TestQueryReceiver(unittest.TestCase):
             4096,
         )
 
-        iter = r.process_records(
+        itr = r.process_records(
             session,
             query,
             records,
         )
 
         logs = []
-        for log in iter:
+        for log in itr:
             logs.append(log)
 
         # verify
         self.assertEqual(len(logs), 3)
         self.assertTrue(data_cache.flush_called)
+
+        log = logs[0]
+        self.assertTrue('message' in log)
+        self.assertEqual(f'Account 2024-03-11T00:00:00.000+0000', log['message'])
+        self.assertTrue('attributes' in log)
+        attrs = log['attributes']
+        self.assertTrue('Id' in attrs)
+        self.assertEqual(attrs['Id'], '000012345')
+        self.assertTrue('EVENT_TYPE' in attrs)
+        self.assertEqual(attrs['EVENT_TYPE'], 'Account')
+        self.assertTrue('CreatedBy.Profile.Name' in attrs)
+        self.assertEqual(attrs['CreatedBy.Profile.Name'], 'Beep Boop')
+
+        log = logs[1]
+        self.assertTrue('message' in log)
+        self.assertEqual(f'Account 2024-03-10T00:00:00.000+0000', log['message'])
+        self.assertTrue('attributes' in log)
+        attrs = log['attributes']
+        self.assertTrue('Id' in attrs)
+        self.assertEqual(attrs['Id'], '000054321')
+        self.assertTrue('EVENT_TYPE' in attrs)
+        self.assertEqual(attrs['EVENT_TYPE'], 'Account')
+        self.assertTrue('CreatedBy.Profile.Name' in attrs)
+        self.assertEqual(attrs['CreatedBy.Profile.Name'], 'Beep Boop')
+
+        log = logs[2]
+        self.assertTrue('message' in log)
+        self.assertEqual(f'Account 2024-03-09T00:00:00.000+0000', log['message'])
+        self.assertTrue('attributes' in log)
+        attrs = log['attributes']
+        self.assertFalse('Id' in attrs)
+        self.assertTrue('EVENT_TYPE' in attrs)
+        self.assertEqual(attrs['EVENT_TYPE'], 'Account')
+        self.assertTrue('CreatedBy.Profile.Name' in attrs)
+        self.assertEqual(attrs['CreatedBy.Profile.Name'], 'Beep Boop')
 
     def test_query_receiver_slide_time_range(self):
         '''

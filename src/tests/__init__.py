@@ -41,6 +41,7 @@ class ApiStub:
         self.limits_result = limits_result
         self.soql = None
         self.query_api_ver = None
+        self.next_records_url = None
         self.limits_api_ver = None
         self.log_file_path = None
         self.chunk_size = None
@@ -64,6 +65,21 @@ class ApiStub:
             raise LoginException()
 
         return self.query_result
+
+    def query_more(
+        self,
+        session: Session,
+        next_records_url: str,
+    ) -> dict:
+        self.next_records_url = next_records_url
+
+        if self.raise_error:
+            raise SalesforceApiException()
+
+        if self.raise_login_error:
+            raise LoginException()
+
+        return self.query_result[next_records_url]
 
     def get_log_file(
         self,
@@ -242,7 +258,7 @@ class QueryStub:
         self.raise_error = raise_error
         self.wrapped = None
         if 'results' in config:
-            self.result = { 'records': config['results'] }
+            self.result = config['results']
         elif wrapped:
             self.wrapped = wrapped
         else:
@@ -270,9 +286,10 @@ class QueryStub:
         self.executed = True
 
         if self.wrapped:
-            return self.wrapped.execute(session)
+            yield from self.wrapped.execute(session)
+            return
 
-        return self.result
+        yield from self.result
 
 
 class QueryFactoryStub:

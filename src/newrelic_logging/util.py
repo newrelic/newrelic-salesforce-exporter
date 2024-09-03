@@ -11,11 +11,13 @@ from .telemetry import print_warn
 PRIMITIVE_TYPES = (str, int, float, bool, type(None))
 
 
-def is_logfile_response(records):
-    if len(records) > 0:
-        return 'LogFile' in records[0]
+def is_logfile_response(record):
+    return 'LogFile' in record
 
-    return True
+
+def regenerator(items: list[Any], itr):
+    yield from items
+    yield from itr
 
 
 def generate_record_id(id_keys: list[str], record: dict) -> str:

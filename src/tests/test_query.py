@@ -8,6 +8,151 @@ from . import \
     SessionStub
 
 class TestQuery(unittest.TestCase):
+    def test_is_valid_records_response_returns_false_given_response_is_none(self):
+        '''
+        is_valid_records_response() returns false when the response is None
+        given: the query API response is None
+        when: is_valid_records_response() is called
+        then: return False
+        '''
+
+        # execute
+        b = query.is_valid_records_response(None)
+
+        # verify
+        self.assertFalse(b)
+
+    def test_is_valid_records_response_returns_false_given_response_has_no_records(self):
+        '''
+        is_valid_records_response() returns false when the response has no 'records' property
+        given: a query API response
+        when: the response has no 'records' property
+        and when: is_valid_records_response() is called
+        then: return False
+        '''
+
+        # execute
+        b = query.is_valid_records_response({})
+
+        # verify
+        self.assertFalse(b)
+
+    def test_is_valid_records_response_returns_false_given_response_has_records_but_type_is_not_list(self):
+        '''
+        is_valid_records_response() returns false when the response has a 'records' property but it is not a list
+        given: a query API response
+        when: the response has a 'records' property
+        and when: the type of the 'records' property is not a list
+        and when: is_valid_records_response() is called
+        then: return False
+        '''
+
+        # execute
+        b = query.is_valid_records_response({ 'records': 'foo' })
+
+        # verify
+        self.assertFalse(b)
+
+    def test_is_valid_records_response_returns_true_given_valid_response(self):
+        '''
+        is_valid_records_response() returns true when the response has a 'records' property that is a list
+        given: a query API response
+        when: the response has a 'records' property
+        and when: the 'records' property is a list
+        and when: is_valid_records_response() is called
+        then: return True
+        '''
+
+        # execute
+        b = query.is_valid_records_response({ 'records': [] })
+
+        # verify
+        self.assertTrue(b)
+
+    def test_has_more_records_returns_false_given_valid_response_but_done_missing(self):
+        '''
+        has_more_records() returns false when the response is valid but it has no 'done' property
+        given: a valid query API response
+        when: the response has no 'done' property
+        and when: has_more_records() is called
+        then: return False
+        '''
+
+        # execute
+        b = query.has_more_records({})
+
+        # verify
+        self.assertFalse(b)
+
+    def test_has_more_records_returns_false_given_valid_response_but_next_records_url_missing(self):
+        '''
+        has_more_records() returns false when the response is valid but it has no 'nextRecordsUrl' property
+        given: a valid query API response
+        when: the response has a 'done' property
+        and when: the response has no 'nextRecordsUrl' property
+        when: has_more_records() is called
+        then: return False
+        '''
+
+        # execute
+        b = query.has_more_records({ 'done': False })
+
+        # verify
+        self.assertFalse(b)
+
+    def test_has_more_records_returns_false_given_valid_response_and_done_is_true(self):
+        '''
+        has_more_records() returns false when the response is valid and 'done' is True
+        given: a valid query API response
+        when: the response has a 'done' property
+        and when: the response has a 'nextRecordsUrl' property
+        and when: the 'done' property is True
+        when: has_more_records() is called
+        then: return False
+        '''
+
+        # execute
+        b = query.has_more_records({ 'done': True, 'nextRecordsUrl': 'foo' })
+
+        # verify
+        self.assertFalse(b)
+
+    def test_has_more_records_returns_false_given_valid_response_but_next_records_url_is_empty(self):
+        '''
+        has_more_records() returns false when the response is valid but 'nextRecordsUrl' is the empty string
+        given: a valid query API response
+        when: the response has a 'done' property
+        and when: the response has a 'nextRecordsUrl' property
+        and when: the 'done' property is False
+        and when: the 'nextRecordsUrl' property is the empty string
+        when: has_more_records() is called
+        then: return False
+        '''
+
+        # execute
+        b = query.has_more_records({ 'done': False, 'nextRecordsUrl': '' })
+
+        # verify
+        self.assertFalse(b)
+
+    def test_has_more_records_returns_true_given_valid_response_and_done_is_false_and_next_records_url_is_not_empty(self):
+        '''
+        has_more_records() returns true when the response is valid, 'done' is False, and 'nextRecordsUrl' is not the empty string
+        given: a valid query API response
+        when: the response has a 'done' property
+        and when: the response has a 'nextRecordsUrl' property
+        and when: the 'done' property is False
+        and when: the 'nextRecordsUrl' property is not the empty string
+        when: has_more_records() is called
+        then: return True
+        '''
+
+        # execute
+        b = query.has_more_records({ 'done': False, 'nextRecordsUrl': 'foo' })
+
+        # verify
+        self.assertTrue(b)
+
     def test_get_returns_backing_config_value_when_key_exists(self):
         '''
         get() returns the value of the key in the backing config when the key exists
@@ -87,7 +232,11 @@ class TestQuery(unittest.TestCase):
         )
 
         with self.assertRaises(LoginException) as _:
-            q.execute(session)
+            resp = q.execute(session)
+            # Have to use next to cause the generator to execute the function
+            # else query() won't get executed and our stub won't have
+            # a chance to throw the fake exception.
+            next(resp)
 
     def test_execute_raises_salesforce_api_exception_if_api_query_does(self):
         '''
@@ -115,45 +264,15 @@ class TestQuery(unittest.TestCase):
         )
 
         with self.assertRaises(SalesforceApiException) as _:
-            q.execute(session)
+            resp = q.execute(session)
+            # Have to use next to cause the generator to execute the function
+            # else query() won't get executed and our stub won't have
+            # a chance to throw the fake exception.
+            next(resp)
 
-    def test_execute_calls_query_api_with_query_and_returns_result(self):
+    def test_execute_calls_query_api_with_query_and_api_ver_and_yields_result(self):
         '''
-        execute() calls api.query() with the given session, query string, and no api version and returns the result
-        given: an api instance
-        and given: a query string
-        and given: a configuration
-        and given: an http session
-        when: execute() is called
-        then: calls api.query() with the given session, query string, and no api version
-        and: return query result
-        '''
-
-        # setup
-        api = ApiStub(query_result={ 'foo': 'bar' })
-        config = mod_config.Config({})
-        session = SessionStub()
-
-        # execute
-        q = query.Query(
-            api,
-            'SELECT+LogFile+FROM+EventLogFile',
-            config,
-        )
-
-        resp = q.execute(session)
-
-        # verify
-        self.assertEqual('SELECT+LogFile+FROM+EventLogFile', api.soql)
-        self.assertIsNone(api.query_api_ver)
-        self.assertIsNotNone(resp)
-        self.assertTrue(type(resp) is dict)
-        self.assertTrue('foo' in resp)
-        self.assertEqual(resp['foo'], 'bar')
-
-    def test_execute_calls_query_api_with_query_and_api_ver_and_returns_result(self):
-        '''
-        execute() calls api.query() with the given session, query string, and api version and returns the result
+        execute() calls api.query() with the given session, query string, and api version and returns a generator over the results
         given: an api instance
         and given: a query string
         and given: a configuration
@@ -161,11 +280,12 @@ class TestQuery(unittest.TestCase):
         and given: an http session
         when: execute() is called
         then: calls api.query() with the given session, query string, and api version
-        and: return query result
+        and when: the result is a valid response
+        then: return a result generator
         '''
 
         # setup
-        api = ApiStub(query_result={ 'foo': 'bar' })
+        api = ApiStub(query_result={ 'records': [ { 'foo': 'bar' } ] })
         config = mod_config.Config({})
         session = SessionStub()
 
@@ -178,15 +298,233 @@ class TestQuery(unittest.TestCase):
         )
 
         resp = q.execute(session)
+        record = next(resp)
 
         # verify
         self.assertEqual('SELECT+LogFile+FROM+EventLogFile', api.soql)
         self.assertEqual(api.query_api_ver, '52.0')
         self.assertIsNotNone(resp)
-        self.assertTrue(type(resp) is dict)
-        self.assertTrue('foo' in resp)
-        self.assertEqual(resp['foo'], 'bar')
+        self.assertIsNotNone(record)
+        self.assertTrue(type(record) is dict)
+        self.assertTrue('foo' in record)
+        self.assertEqual(record['foo'], 'bar')
 
+    def test_execute_calls_query_api_with_query_and_yields_nothing_given_invalid_response(self):
+        '''
+        execute() calls api.query() with the given session, query string, and no api version and returns an "empty" generator when the result is not a valid response
+        given: an api instance
+        and given: a query string
+        and given: a configuration
+        and given: an http session
+        when: execute() is called
+        then: calls api.query() with the given session, query string, and no api version
+        and when: the result is not a valid response
+        then: return an "empty" result generator
+        '''
+
+        # setup
+        api = ApiStub(query_result={})
+        config = mod_config.Config({})
+        session = SessionStub()
+
+        # execute
+        q = query.Query(
+            api,
+            'SELECT+LogFile+FROM+EventLogFile',
+            config,
+        )
+
+        resp = q.execute(session)
+        record = next(resp, None)
+
+        # verify
+        self.assertEqual('SELECT+LogFile+FROM+EventLogFile', api.soql)
+        self.assertIsNone(api.query_api_ver)
+        self.assertIsNotNone(resp)
+        self.assertIsNone(record)
+
+    def test_execute_calls_query_api_with_query_and_yields_all_given_single_page_of_results(self):
+        '''
+        execute() calls api.query() with the given session, query string, and no api version and returns a generator over the results when there is a single page of results
+        given: an api instance
+        and given: a query string
+        and given: a configuration
+        and given: an http session
+        when: execute() is called
+        then: calls api.query() with the given session, query string, and no api version
+        and when: the response is valid
+        and when: there is a single page of results
+        then: return a generator over the results.
+        '''
+
+        # setup
+        api = ApiStub(query_result={
+            'done': True,
+            'nextRecordsUrl': '',
+            'records': [ { 'foo': 'bar' } ],
+        })
+        config = mod_config.Config({})
+        session = SessionStub()
+
+        # execute
+        q = query.Query(
+            api,
+            'SELECT+LogFile+FROM+EventLogFile',
+            config,
+        )
+
+        resp = q.execute(session)
+        records = []
+        for rec in resp:
+            records.append(rec)
+
+        # verify
+        self.assertEqual('SELECT+LogFile+FROM+EventLogFile', api.soql)
+        self.assertIsNone(api.query_api_ver)
+        self.assertIsNotNone(resp)
+        self.assertEqual(len(records), 1)
+        self.assertTrue(type(records[0]) is dict)
+        self.assertTrue('foo' in records[0])
+        self.assertEqual(records[0]['foo'], 'bar')
+
+    def test_execute_calls_query_api_with_query_and_yields_all_given_multiple_pages_of_results(self):
+        '''
+        execute() calls api.query() with the given session, query string, and no api version and returns a generator over all pages of results when there are multiple pages of results
+        given: an api instance
+        and given: a query string
+        and given: a configuration
+        and given: an http session
+        when: execute() is called
+        then: calls api.query() with the given session, query string, and no api version
+        and when: the response is valid
+        and when: there are multiple pages of results
+        then: return a generator over all pages of results.
+        '''
+
+        # setup
+        api = ApiStub(query_result={
+            'done': False,
+            'nextRecordsUrl': '/more1',
+            'records': [ { 'foo': 'bar' } ],
+            '/more1': {
+                'done': False,
+                'nextRecordsUrl': '/more2',
+                'records': [ { 'beep': 'boop' } ],
+            },
+            '/more2': {
+                'done': False,
+                'nextRecordsUrl': '/more3',
+                'records': [ { 'bip': 'bop' } ],
+            },
+            '/more3': {
+                'done': False,
+                'nextRecordsUrl': '/more4',
+                'records': [ { 'one': 'two' } ],
+            },
+            '/more4': {
+                'done': True,
+                'nextRecordsUrl': '',
+                'records': [ { 'this': 'that' } ],
+            },
+        })
+        config = mod_config.Config({})
+        session = SessionStub()
+
+        # execute
+        q = query.Query(
+            api,
+            'SELECT+LogFile+FROM+EventLogFile',
+            config,
+        )
+
+        resp = q.execute(session)
+        records = []
+        for rec in resp:
+            records.append(rec)
+
+        # verify
+        self.assertEqual('SELECT+LogFile+FROM+EventLogFile', api.soql)
+        self.assertIsNone(api.query_api_ver)
+        self.assertIsNotNone(resp)
+        self.assertEqual(len(records), 5)
+        self.assertTrue(type(records[0]) is dict)
+        self.assertTrue('foo' in records[0])
+        self.assertEqual(records[0]['foo'], 'bar')
+        self.assertTrue(type(records[1]) is dict)
+        self.assertTrue('beep' in records[1])
+        self.assertEqual(records[1]['beep'], 'boop')
+        self.assertTrue(type(records[2]) is dict)
+        self.assertTrue('bip' in records[2])
+        self.assertEqual(records[2]['bip'], 'bop')
+        self.assertTrue(type(records[3]) is dict)
+        self.assertTrue('one' in records[3])
+        self.assertEqual(records[3]['one'], 'two')
+        self.assertTrue(type(records[4]) is dict)
+        self.assertTrue('this' in records[4])
+        self.assertEqual(records[4]['this'], 'that')
+
+    def test_execute_calls_query_api_with_query_and_yields_all_given_multiple_pages_of_results_with_invalid_last_result(self):
+        '''
+        execute() calls api.query() with the given session, query string, and no api version and returns a generator over all pages of results when there are multiple pages of results and ends when an invalid set of results is encountered
+        given: an api instance
+        and given: a query string
+        and given: a configuration
+        and given: an http session
+        when: execute() is called
+        then: calls api.query() with the given session, query string, and no api version
+        and when: the response is valid
+        and when: there are multiple pages of results
+        and when: an invalid set of results is encountered
+        the: return a generator over all pages of the response up to the invalid set of results
+        '''
+
+        # setup
+        api = ApiStub(query_result={
+            'done': False,
+            'nextRecordsUrl': '/more1',
+            'records': [ { 'foo': 'bar' } ],
+            '/more1': {
+                'done': False,
+                'nextRecordsUrl': '/more2',
+                'records': [ { 'beep': 'boop' } ],
+            },
+            '/more2': {
+                'done': False,
+                'nextRecordsUrl': '/more3',
+                'records': [ { 'bip': 'bop' } ],
+            },
+            '/more3': {
+            },
+        })
+        config = mod_config.Config({})
+        session = SessionStub()
+
+        # execute
+        q = query.Query(
+            api,
+            'SELECT+LogFile+FROM+EventLogFile',
+            config,
+        )
+
+        resp = q.execute(session)
+        records = []
+        for rec in resp:
+            records.append(rec)
+
+        # verify
+        self.assertEqual('SELECT+LogFile+FROM+EventLogFile', api.soql)
+        self.assertIsNone(api.query_api_ver)
+        self.assertIsNotNone(resp)
+        self.assertEqual(len(records), 3)
+        self.assertTrue(type(records[0]) is dict)
+        self.assertTrue('foo' in records[0])
+        self.assertEqual(records[0]['foo'], 'bar')
+        self.assertTrue(type(records[1]) is dict)
+        self.assertTrue('beep' in records[1])
+        self.assertEqual(records[1]['beep'], 'boop')
+        self.assertTrue(type(records[2]) is dict)
+        self.assertTrue('bip' in records[2])
+        self.assertEqual(records[2]['bip'], 'bop')
 
 class TestQueryFactory(unittest.TestCase):
     def test_build_args_creates_expected_dict(self):

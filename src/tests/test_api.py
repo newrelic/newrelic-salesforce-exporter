@@ -714,6 +714,128 @@ class TestApi(unittest.TestCase):
         self.assertEqual(session.headers['Authorization'], 'Bearer 123456')
         self.assertFalse(session.stream)
 
+    def test_query_more_requests_correct_url_with_access_token_and_returns_json_response_on_success(self):
+        '''
+        query_more() calls the correct next records URL with the access token and returns a JSON response when no errors occur
+        given: an authenticator
+        and given: an api version
+        and given: a session
+        and given: a next records URL
+        when: query_more() is called
+        then: session.get() is called with correct URL and access token
+        and: stream is set to False
+        and when: session.get() response status code is 200
+        then: returns the JSON response
+        '''
+
+        # setup
+        auth = AuthenticatorStub(
+            instance_url='https://my.salesforce.test',
+            access_token='123456',
+        )
+        session = SessionStub()
+        session.response = ResponseStub(200, 'OK', '{"foo": "bar"}', [] )
+
+        # execute
+        sf_api = api.Api(auth, '55.0')
+        resp = sf_api.query_more(
+            session,
+            '/services/data/v55.0/query/01gRO0000016PIAYA2-500'
+        )
+
+        # verify
+
+        self.assertEqual(
+            session.url,
+            f'https://my.salesforce.test/services/data/v55.0/query/01gRO0000016PIAYA2-500',
+        )
+        self.assertTrue('Authorization' in session.headers)
+        self.assertEqual(session.headers['Authorization'], 'Bearer 123456')
+        self.assertFalse(session.stream)
+        self.assertIsNotNone(resp)
+        self.assertTrue(type(resp) is dict)
+        self.assertTrue('foo' in resp)
+        self.assertEqual(resp['foo'], 'bar')
+
+    def test_query_more_raises_login_exception_if_get_does(self):
+        '''
+        query_more() calls the correct next records URL with the access token and raises LoginException if get does
+        given: an authenticator
+        and given: an api version
+        and given: a session
+        and given: a next records URL
+        when: query_more() is called
+        then: session.get() is called with correct URL and access token
+        and: stream is set to False
+        and when: session.get() response status code is 401
+        and when: authenticator raises a LoginException
+        then: query_more() raises a LoginException
+        '''
+
+        # setup
+        auth = AuthenticatorStub(
+            instance_url='https://my.salesforce.test',
+            access_token='123456',
+            raise_login_error=True
+        )
+        session = SessionStub()
+        session.response = ResponseStub(401, 'Unauthorized', '{"foo": "bar"}', [] )
+
+        # execute / verify
+        with self.assertRaises(LoginException) as _:
+            sf_api = api.Api(auth, '55.0')
+            _ = sf_api.query_more(
+                session,
+                '/services/data/v55.0/query/01gRO0000016PIAYA2-500',
+            )
+
+        self.assertEqual(
+            session.url,
+            f'https://my.salesforce.test/services/data/v55.0/query/01gRO0000016PIAYA2-500',
+        )
+        self.assertTrue('Authorization' in session.headers)
+        self.assertEqual(session.headers['Authorization'], 'Bearer 123456')
+        self.assertFalse(session.stream)
+
+    def test_query_raises_salesforce_exception_if_get_does(self):
+        '''
+        query_more() calls the correct next records URL with the access token and raises SalesforceApiException if get does
+        given: an authenticator
+        and given: an api version
+        and given: a session
+        and given: a next records URL
+        when: query_more() is called
+        then: session.get() is called with correct URL and access token
+        and: stream is set to False
+        and when: session.get() response status code is not 200 or 401
+        and when: get() raises a SalesforceApiException
+        then: query_more() raises a SalesforceApiException
+        '''
+
+        # setup
+        auth = AuthenticatorStub(
+            instance_url='https://my.salesforce.test',
+            access_token='123456',
+        )
+        session = SessionStub()
+        session.response = ResponseStub(500, 'ServerError', '{"foo": "bar"}', [] )
+
+        # execute / verify
+        with self.assertRaises(SalesforceApiException) as _:
+            sf_api = api.Api(auth, '55.0')
+            _ = sf_api.query_more(
+                session,
+                '/services/data/v55.0/query/01gRO0000016PIAYA2-500',
+            )
+
+        self.assertEqual(
+            session.url,
+            f'https://my.salesforce.test/services/data/v55.0/query/01gRO0000016PIAYA2-500',
+        )
+        self.assertTrue('Authorization' in session.headers)
+        self.assertEqual(session.headers['Authorization'], 'Bearer 123456')
+        self.assertFalse(session.stream)
+
     def test_get_log_file_requests_correct_url_with_access_token_and_returns_generator_on_success(self):
         '''
         get_log_file() calls the correct url with the access token and returns a generator iterator

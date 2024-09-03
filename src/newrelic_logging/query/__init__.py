@@ -4,10 +4,23 @@ from requests import Session
 
 from ..api import Api
 from ..config import Config
-from ..telemetry import print_info
+from ..telemetry import print_info, print_warn
 from ..util import \
     get_iso_date_with_offset, \
     substitute
+
+
+def is_valid_records_response(response: dict) -> bool:
+    return response is not None and \
+        'records' in response and \
+        isinstance(response['records'], list)
+
+
+def has_more_records(response: dict) -> bool:
+    return 'done' in response and \
+        'nextRecordsUrl' in response and \
+        not response['done'] and \
+        not response['nextRecordsUrl'] == ''
 
 
 class Query:
@@ -34,7 +47,36 @@ class Query:
         session: Session,
     ):
         print_info(f'Running query {self.query}...')
-        return self.api.query(session, self.query, self.api_ver)
+        response = self.api.query(session, self.query, self.api_ver)
+
+        if not is_valid_records_response(response):
+            print_warn(f'no records returned for query {self.query}')
+            return
+
+        done = False
+        while not done:
+            yield from response['records']
+
+            if not has_more_records(response):
+                done = True
+                continue
+
+            next_records_url = response['nextRecordsUrl']
+
+            print_info(
+                f'Retrieving more query results using {next_records_url}...'
+            )
+
+            response = self.api.query_more(
+                session,
+                next_records_url,
+            )
+
+            if not is_valid_records_response(response):
+                print_warn(
+                    f'no records returned for next records URL {next_records_url}'
+                )
+                done = True
 
 
 class QueryFactory:
