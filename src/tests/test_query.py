@@ -2,7 +2,7 @@ from datetime import datetime
 import unittest
 
 from newrelic_logging import LoginException, SalesforceApiException
-from newrelic_logging import config as mod_config, util, query
+from newrelic_logging import api as mod_api, config as mod_config, util, query
 from . import \
     ApiStub, \
     SessionStub
@@ -303,6 +303,48 @@ class TestQuery(unittest.TestCase):
         # verify
         self.assertEqual('SELECT+LogFile+FROM+EventLogFile', api.soql)
         self.assertEqual(api.query_api_ver, '52.0')
+        self.assertIsNone(api.query_api_name)
+        self.assertIsNotNone(resp)
+        self.assertIsNotNone(record)
+        self.assertTrue(type(record) is dict)
+        self.assertTrue('foo' in record)
+        self.assertEqual(record['foo'], 'bar')
+
+    def test_execute_calls_query_api_with_query_and_api_name_and_yields_result(self):
+        '''
+        execute() calls api.query() with the given session, query string, and api name and returns a generator over the results
+        given: an api instance
+        and given: a query string
+        and given: a configuration
+        and given: an api type
+        and given: an http session
+        when: execute() is called
+        then: calls api.query() with the given session, query string, and api name
+        and when: the result is a valid response
+        then: return a result generator
+        '''
+
+        # setup
+        api = ApiStub(query_result={ 'records': [ { 'foo': 'bar' } ] })
+        config = mod_config.Config({})
+        session = SessionStub()
+
+        # execute
+        q = query.Query(
+            api,
+            'SELECT+LogFile+FROM+EventLogFile',
+            config,
+            None,
+            mod_api.API_NAME_TOOLING,
+        )
+
+        resp = q.execute(session)
+        record = next(resp)
+
+        # verify
+        self.assertEqual('SELECT+LogFile+FROM+EventLogFile', api.soql)
+        self.assertIsNone(api.query_api_ver)
+        self.assertEqual(api.query_api_name, mod_api.API_NAME_TOOLING)
         self.assertIsNotNone(resp)
         self.assertIsNotNone(record)
         self.assertTrue(type(record) is dict)
@@ -311,13 +353,13 @@ class TestQuery(unittest.TestCase):
 
     def test_execute_calls_query_api_with_query_and_yields_nothing_given_invalid_response(self):
         '''
-        execute() calls api.query() with the given session, query string, and no api version and returns an "empty" generator when the result is not a valid response
+        execute() calls api.query() with the given session, query string, and no api version or name and returns an "empty" generator when the result is not a valid response
         given: an api instance
         and given: a query string
         and given: a configuration
         and given: an http session
         when: execute() is called
-        then: calls api.query() with the given session, query string, and no api version
+        then: calls api.query() with the given session, query string, and no api version or name
         and when: the result is not a valid response
         then: return an "empty" result generator
         '''
@@ -340,18 +382,19 @@ class TestQuery(unittest.TestCase):
         # verify
         self.assertEqual('SELECT+LogFile+FROM+EventLogFile', api.soql)
         self.assertIsNone(api.query_api_ver)
+        self.assertIsNone(api.query_api_name)
         self.assertIsNotNone(resp)
         self.assertIsNone(record)
 
     def test_execute_calls_query_api_with_query_and_yields_all_given_single_page_of_results(self):
         '''
-        execute() calls api.query() with the given session, query string, and no api version and returns a generator over the results when there is a single page of results
+        execute() calls api.query() with the given session, query string, and no api version or name and returns a generator over the results when there is a single page of results
         given: an api instance
         and given: a query string
         and given: a configuration
         and given: an http session
         when: execute() is called
-        then: calls api.query() with the given session, query string, and no api version
+        then: calls api.query() with the given session, query string, and no api version or name
         and when: the response is valid
         and when: there is a single page of results
         then: return a generator over the results.
@@ -381,6 +424,7 @@ class TestQuery(unittest.TestCase):
         # verify
         self.assertEqual('SELECT+LogFile+FROM+EventLogFile', api.soql)
         self.assertIsNone(api.query_api_ver)
+        self.assertIsNone(api.query_api_name)
         self.assertIsNotNone(resp)
         self.assertEqual(len(records), 1)
         self.assertTrue(type(records[0]) is dict)
@@ -389,13 +433,13 @@ class TestQuery(unittest.TestCase):
 
     def test_execute_calls_query_api_with_query_and_yields_all_given_multiple_pages_of_results(self):
         '''
-        execute() calls api.query() with the given session, query string, and no api version and returns a generator over all pages of results when there are multiple pages of results
+        execute() calls api.query() with the given session, query string, and no api version or name and returns a generator over all pages of results when there are multiple pages of results
         given: an api instance
         and given: a query string
         and given: a configuration
         and given: an http session
         when: execute() is called
-        then: calls api.query() with the given session, query string, and no api version
+        then: calls api.query() with the given session, query string, and no api version or name
         and when: the response is valid
         and when: there are multiple pages of results
         then: return a generator over all pages of results.
@@ -445,6 +489,7 @@ class TestQuery(unittest.TestCase):
         # verify
         self.assertEqual('SELECT+LogFile+FROM+EventLogFile', api.soql)
         self.assertIsNone(api.query_api_ver)
+        self.assertIsNone(api.query_api_name)
         self.assertIsNotNone(resp)
         self.assertEqual(len(records), 5)
         self.assertTrue(type(records[0]) is dict)
@@ -465,13 +510,13 @@ class TestQuery(unittest.TestCase):
 
     def test_execute_calls_query_api_with_query_and_yields_all_given_multiple_pages_of_results_with_invalid_last_result(self):
         '''
-        execute() calls api.query() with the given session, query string, and no api version and returns a generator over all pages of results when there are multiple pages of results and ends when an invalid set of results is encountered
+        execute() calls api.query() with the given session, query string, and no api version or name and returns a generator over all pages of results when there are multiple pages of results and ends when an invalid set of results is encountered
         given: an api instance
         and given: a query string
         and given: a configuration
         and given: an http session
         when: execute() is called
-        then: calls api.query() with the given session, query string, and no api version
+        then: calls api.query() with the given session, query string, and no api version or name
         and when: the response is valid
         and when: there are multiple pages of results
         and when: an invalid set of results is encountered
@@ -514,6 +559,7 @@ class TestQuery(unittest.TestCase):
         # verify
         self.assertEqual('SELECT+LogFile+FROM+EventLogFile', api.soql)
         self.assertIsNone(api.query_api_ver)
+        self.assertIsNone(api.query_api_name)
         self.assertIsNotNone(resp)
         self.assertEqual(len(records), 3)
         self.assertTrue(type(records[0]) is dict)
@@ -799,3 +845,68 @@ class TestQueryFactory(unittest.TestCase):
 
         # verify
         self.assertIsNone(q.api_ver)
+
+    def test_new_returns_query_obj_with_given_api_name(self):
+        '''
+        new() returns a query instance with the api name specified in the query dict
+        given: a query factory
+        and given: a query dict
+        and given: a lag time value
+        and given: a timestamp
+        and given: a generation interval value
+        when: new() is called
+        and when: an api name is specified in the query dict
+        then: return a query instance with the api name specified in the query dict
+        '''
+
+        # setup
+        api = ApiStub(api_ver='54.0')
+        last_to_timestamp = util.get_iso_date_with_offset(time_lag_minutes=1000)
+
+        # execute
+        f = query.QueryFactory()
+        q = f.new(
+            api,
+            {
+                'query': 'SELECT LogFile FROM EventLogFile',
+                'api_name': mod_api.API_NAME_TOOLING,
+            },
+            500,
+            last_to_timestamp,
+            'Daily',
+        )
+
+        # verify
+        self.assertEqual(q.api_name, mod_api.API_NAME_TOOLING)
+
+    def test_new_returns_query_obj_with_default_api_name(self):
+        '''
+        new() returns a query instance without an api name
+        given: a query factory
+        and given: a query dict
+        and given: a lag time value
+        and given: a timestamp
+        and given: a generation interval value
+        when: new() is called
+        and when: no api name is specified in the query dict
+        then: return a query instance without an api name
+        '''
+
+        # setup
+        api = ApiStub(api_ver='54.0')
+        last_to_timestamp = util.get_iso_date_with_offset(time_lag_minutes=1000)
+
+        # execute
+        f = query.QueryFactory()
+        q = f.new(
+            api,
+            {
+                'query': 'SELECT LogFile FROM EventLogFile',
+            },
+            500,
+            last_to_timestamp,
+            'Daily',
+        )
+
+        # verify
+        self.assertIsNone(q.api_name)
