@@ -5,6 +5,10 @@ from . import SalesforceApiException
 from .auth import Authenticator
 from .telemetry import print_warn
 
+API_NAME_REST = 'rest'
+API_NAME_TOOLING = 'tooling'
+DEFAULT_API_NAME = API_NAME_REST
+
 def get(
     auth: Authenticator,
     session: Session,
@@ -72,6 +76,21 @@ def stream_lines(response: Response, chunk_size: int):
     )
 
 
+def get_query_api_path(api_ver: str, api_name: str) -> str:
+    l_api_name = api_name.lower()
+
+    if l_api_name == API_NAME_REST:
+        return f'/services/data/v{api_ver}/query'
+
+    if l_api_name == API_NAME_TOOLING:
+        return f'/services/data/v{api_ver}/tooling/query'
+
+    raise SalesforceApiException(
+        -1,
+        f'invalid query api name {api_name}',
+    )
+
+
 class Api:
     def __init__(self, authenticator: Authenticator, api_ver: str):
         self.authenticator = authenticator
@@ -80,15 +99,27 @@ class Api:
     def authenticate(self, session: Session) -> None:
         self.authenticator.authenticate(session)
 
-    def query(self, session: Session, soql: str, api_ver: str = None) -> dict:
+    def query(
+        self,
+        session: Session,
+        soql: str,
+        api_ver: str = None,
+        api_name: str = None,
+    ) -> dict:
         ver = self.api_ver
         if not api_ver is None:
             ver = api_ver
 
+        api = DEFAULT_API_NAME
+        if not api_name is None:
+            api = api_name
+
+        url = get_query_api_path(ver, api)
+
         return get(
             self.authenticator,
             session,
-            f'/services/data/v{ver}/query?q={soql}',
+            f'{url}?q={soql}',
             lambda response : response.json()
         )
 

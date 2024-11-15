@@ -1306,6 +1306,8 @@ queries:
   env:
     end_date: "now()"
     start_date: "now(timedelta(minutes=-60))"
+- query: "SELECT FullName FROM EntityDefinition WHERE Label='Opportunity'"
+  api_name: tooling
 ```
 
 #### Query configuration
@@ -1331,6 +1333,32 @@ query to execute.
 
 The `api_ver` attribute can be used to customize the version of the Salesforce
 API that the exporter should use when executing query API calls.
+
+##### `api_name`
+
+| Description | Valid Values | Required | Default |
+| --- | --- | --- | --- |
+| The name of the Salesforce Platform API to use  | `rest` / `tooling` | N | `rest` |
+
+The `api_name` attribute can be used to specify the name of the Salesforce
+Platform API that the exporter should use when executing query API calls.
+
+When the `api_name` attribute is not set or when it is set to the value `rest`,
+the [ReST API](https://developer.salesforce.com/docs/atlas.en-us.api_rest.meta/api_rest/intro_rest.htm)
+will be used to execute the
+[SOQL](https://developer.salesforce.com/docs/atlas.en-us.soql_sosl.meta/soql_sosl/sforce_api_calls_soql.htm)
+query.
+
+When the `api_name` attribute is set to `tooling`, the
+[Tooling API](https://developer.salesforce.com/docs/atlas.en-us.api_tooling.meta/api_tooling/intro_api_tooling.htm)
+will be used to execute the
+[SOQL](https://developer.salesforce.com/docs/atlas.en-us.soql_sosl.meta/soql_sosl/sforce_api_calls_soql.htm)
+query.
+
+Specifying any other value will cause an error and the exporter will terminate.
+
+**NOTE:** Not all queries can be executed with both APIs. Ensure that the query
+being used is appropriate for the specified Salesforce Platform API.
 
 ##### `id`
 

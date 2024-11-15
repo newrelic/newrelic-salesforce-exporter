@@ -498,6 +498,49 @@ class TestApi(unittest.TestCase):
         self.assertTrue(response.decode_unicode)
         self.assertTrue(response.iter_lines_called)
 
+    def test_get_query_api_path_returns_rest_api_path_given_api_ver_and_rest_api_name(self):
+        '''
+        get_query_api_path() returns the ReST API query path given an api version and the rest API name
+        given: an api version
+        and given: an api name
+        when: the api name is API_NAME_REST
+        then: return the ReST API query path with the given api name
+        '''
+
+        # execute
+        url = api.get_query_api_path('55.0', api.API_NAME_REST)
+
+        # verify
+        self.assertEqual(url, '/services/data/v55.0/query')
+
+    def test_get_query_api_path_returns_tooling_api_path_given_api_ver_and_tooling_api_name(self):
+        '''
+        get_query_api_path() returns the Tooling API query path given an api version and the tooling API name
+        given: an api version
+        and given: an api name
+        when: the api name is API_NAME_TOOLING
+        then: return the tooling API query path with the given api name
+        '''
+
+        # execute
+        url = api.get_query_api_path('55.0', api.API_NAME_TOOLING)
+
+        # verify
+        self.assertEqual(url, '/services/data/v55.0/tooling/query')
+
+    def test_get_query_api_path_raises_salesforce_api_exception_given_invalid_api_name(self):
+        '''
+        get_query_api_path() raises a SalesforceApiException given an invalid API name
+        given: an api version
+        and given: an api name
+        when: the api name is invalid
+        then: raise a SalesforceApiException
+        '''
+
+        # execute / verify
+        with self.assertRaises(SalesforceApiException) as _:
+            api.get_query_api_path('55.0', 'invalid')
+
     def test_authenticate_calls_authenticator_authenticate(self):
         '''
         authenticate() calls authenticate() on the backing authenticator
@@ -636,6 +679,83 @@ class TestApi(unittest.TestCase):
         self.assertTrue(type(resp) is dict)
         self.assertTrue('foo' in resp)
         self.assertEqual(resp['foo'], 'bar')
+
+    def test_query_requests_correct_url_with_access_token_given_api_name_and_returns_json_response_on_success(self):
+        '''
+        query() calls the correct query API url with the access token when a specific api name is given and returns a JSON response
+        given: an authenticator
+        and given: an api version
+        and given: a session
+        and given: a query
+        when: query() is called
+        and when: the api name parameter is specified
+        then: session.get() is called with correct URL and access token
+        and: stream is set to False
+        and when: response status code is 200
+        then: calls callback with response and returns a JSON response
+        '''
+
+        # setup
+        auth = AuthenticatorStub(
+            instance_url='https://my.salesforce.test',
+            access_token='123456',
+        )
+        session = SessionStub()
+        session.response = ResponseStub(200, 'OK', '{"foo": "bar"}', [])
+
+        # execute
+        sf_api = api.Api(auth, '55.0')
+        resp = sf_api.query(
+            session,
+            'SELECT+LogFile+FROM+EventLogFile',
+            None,
+            api.API_NAME_TOOLING,
+        )
+
+        # verify
+
+        self.assertEqual(
+            session.url,
+            f'https://my.salesforce.test/services/data/v55.0/tooling/query?q=SELECT+LogFile+FROM+EventLogFile',
+        )
+        self.assertTrue('Authorization' in session.headers)
+        self.assertEqual(session.headers['Authorization'], 'Bearer 123456')
+        self.assertFalse(session.stream)
+        self.assertIsNotNone(resp)
+        self.assertTrue(type(resp) is dict)
+        self.assertTrue('foo' in resp)
+        self.assertEqual(resp['foo'], 'bar')
+
+    def test_query_raises_salesforce_api_exception_if_get_query_api_path_does(self):
+        '''
+        query() raises a SalesforceApiException if get_query_api_path() does
+        given: an authenticator
+        and given: an api version
+        and given: a session
+        and given: a query
+        when: query() is called
+        and when: get_query_api_path() raises a SalesforceApiException
+        then: query() raises a SalesforceApiException
+        '''
+
+        # setup
+        auth = AuthenticatorStub(
+            instance_url='https://my.salesforce.test',
+            access_token='123456',
+        )
+        session = SessionStub()
+        session.response = ResponseStub(200, 'OK', '{"foo": "bar"}', [])
+
+        # execute / verify
+        with self.assertRaises(SalesforceApiException) as _:
+            sf_api = api.Api(auth, '55.0')
+            sf_api.query(
+                session,
+                'SELECT+LogFile+FROM+EventLogFile',
+                None,
+                'invalid',
+            )
+
 
     def test_query_raises_login_exception_if_get_does(self):
         '''

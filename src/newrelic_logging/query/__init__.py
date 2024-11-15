@@ -30,11 +30,13 @@ class Query:
         query: str,
         options: Config,
         api_ver: str = None,
+        api_name: str = None,
     ):
         self.api = api
         self.query = query
         self.options = options
         self.api_ver = api_ver
+        self.api_name = api_name
 
     def get(self, key: str, default = None):
         return self.options.get(key, default)
@@ -47,7 +49,12 @@ class Query:
         session: Session,
     ):
         print_info(f'Running query {self.query}...')
-        response = self.api.query(session, self.query, self.api_ver)
+        response = self.api.query(
+            session,
+            self.query,
+            self.api_ver,
+            self.api_name,
+        )
 
         if not is_valid_records_response(response):
             print_warn(f'no records returned for query {self.query}')
@@ -124,5 +131,6 @@ class QueryFactory:
                 self.get_env(qp),
             ).replace(' ', '+'),
             Config(qp),
-            qp.get('api_ver', None)
+            qp.get('api_ver', None),
+            qp.get('api_name', None),
         )

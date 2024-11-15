@@ -41,6 +41,7 @@ class ApiStub:
         self.limits_result = limits_result
         self.soql = None
         self.query_api_ver = None
+        self.query_api_name = None
         self.next_records_url = None
         self.limits_api_ver = None
         self.log_file_path = None
@@ -54,9 +55,16 @@ class ApiStub:
 
         self.authenticator.authenticate(session)
 
-    def query(self, session: Session, soql: str, api_ver: str = None) -> dict:
+    def query(
+        self,
+        session: Session,
+        soql: str,
+        api_ver: str = None,
+        api_name: str = None,
+    ) -> dict:
         self.soql = soql
         self.query_api_ver = api_ver
+        self.query_api_name = api_name
 
         if self.raise_error:
             raise SalesforceApiException()
