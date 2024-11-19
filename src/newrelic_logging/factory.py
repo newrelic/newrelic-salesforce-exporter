@@ -192,10 +192,6 @@ class Factory:
         if not region:
             raise NewRelicApiException(f'missing New Relic API region')
 
-        region_l = region.lower()
-        if not region_l == 'us' and not region_l == 'eu':
-            raise NewRelicApiException(f'invalid New Relic API region {region}')
-
         if data_format == DataFormat.EVENTS:
             account_id = config.get(
                 'newrelic.account_id',
@@ -207,16 +203,12 @@ class Factory:
             return newrelic.NewRelic(
                 license_key,
                 None,
-                (
-                    newrelic.US_EVENTS_ENDPOINT if region_l == 'us' \
-                        else newrelic.EU_EVENTS_ENDPOINT
-                ).format(account_id=account_id)
+                newrelic.get_events_endpoint(region, account_id)
             )
 
         return newrelic.NewRelic(
             license_key,
-            newrelic.US_LOGGING_ENDPOINT if region_l == 'us' \
-                else newrelic.EU_LOGGING_ENDPOINT,
+            newrelic.get_logs_endpoint(region),
             None
         )
 
