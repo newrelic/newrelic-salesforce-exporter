@@ -181,6 +181,7 @@ GitHub.sublime-settings
 
 #config_files since they contain sensitive data
 config.yml
+newrelic.ini
 
 #logs
 logs/**
@@ -190,3 +191,4 @@ run.sh
 
 #local files
 *.local.*
+.DS_Store
