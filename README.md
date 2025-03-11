@@ -21,10 +21,12 @@ data to New Relic as either logs or events. The exporter currently supports
 sending the results of an SOQL query (with special handling for event log file
 queries) and sending information on Salesforce Org Limits.
 
+TODO: add "on this page" index. Check Roku agent repo: https://github.com/newrelic/video-agent-roku?tab=readme-ov-file#on-this-page
+
 ## System Requirements
 
 The New Relic Salesforce Exporter can be run on any host environment with
-Python 3.9+ installed.
+Python 3.9, 3.10 or 3.11 installed.
 
 It can also be run inside a Docker container by leveraging
 [the published Docker image](https://hub.docker.com/r/newrelic/newrelic-salesforce-exporter)
@@ -46,10 +48,17 @@ to allow OAuth authentication and authorization for API integration. See the
 To use the Salesforce Exporter on a host, perform the following steps.
 
 1. Clone this repository
-1. Run `pip install -r requirements.txt` to install dependencies
+2. Create a virtual environment (how to install [venv](https://virtualenv.pypa.io/en/latest/installation.html)):
+```bash
+   python<version> -m venv sf_env
+   source sf_env/bin/activate
+```
+3. Run `pip install -r requirements.txt` to install dependencies
+
+> NOTE: `<version>` must be one of the supported versions: 3.9, 3.10 or 3.11.
 
 Once installed, the Salesforce Exporter can be run from the repository root
-using the command `python src/__main__.py`. See the section
+using the command `python src`. See the section
 [Command Line Options](#command-line-options) and [Configuration](#configuration)
 for more details on using the exporter.
 
@@ -2046,7 +2055,7 @@ As with any [New Relic APM agent](https://docs.newrelic.com/docs/apm/new-relic-a
 a license key is required to report agent telemetry. The license key used by the
 Python agent must be defined either
 [in the agent configuration file](https://docs.newrelic.com/install/python/?python-non-web=non-web-yes#config-file-option)
-located at [`newrelic.ini`](./newrelic.ini) or
+located at [`newrelic.ini`](./newrelic_sample.ini) or
 [using environment variables](https://docs.newrelic.com/install/python/#env-variables).
 
 ##### Application name
@@ -2054,7 +2063,7 @@ located at [`newrelic.ini`](./newrelic.ini) or
 By default, the name of the application which the Python agent reports telemetry
 to is `New Relic Salesforce Exporter`. This name can be changed either
 [in the agent configuration file](https://docs.newrelic.com/install/python/?python-non-web=non-web-yes#config-file-option)
-located at [`newrelic.ini`](./newrelic.ini) or
+located at [`newrelic.ini`](./newrelic_sample.ini) or
 [using environment variables](https://docs.newrelic.com/install/python/#env-variables).
 
 ##### Other agent configuration
