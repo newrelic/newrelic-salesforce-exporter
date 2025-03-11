@@ -173,30 +173,44 @@ def run_as_service(
 ):
     scheduler = BlockingScheduler(
         jobstores={ 'default': MemoryJobStore() },
-        executors={ 'default': ThreadPoolExecutor(20) },
+        # NOTE: I have serious doubts regarding the thread-safety of `Integration.run()`,
+        #       so until provent to be safe, we better use a single thread for the scheduler.
+        #       This way jobs are executed one after the other.
+        executors={ 'default': ThreadPoolExecutor(1) },
         job_defaults={
             'coalesce': False,
-            'max_instances': 3
+            'max_instances': 5
         },
         timezone=utc
     )
+
+    # TODO:
+    # - if there is a general SERVICE_SCHEDULE config, use it.
+    # - Otherwise, get instance-specific SERVICE_SCHEDULE config.
 
     if not SERVICE_SCHEDULE in config:
         raise Exception('"run_as_service" configured but no "service_schedule" property found')
 
     service_schedule = config[SERVICE_SCHEDULE]
-    scheduler.add_job(
-        factory.new_integration(
-            factory,
-            config,
-            receivers,
-            numeric_fields_list,
-        ).run,
-        trigger='cron',
-        hour=service_schedule['hour'],
-        minute=service_schedule['minute'],
-        second='0',
-    )
+
+    # build one scheduler job per instance
+    for index in range(0, len(config['instances'])):
+        print("New job for instance " + config['instances'][index]["name"])
+        scheduler.add_job(
+            factory.new_integration(
+                factory,
+                config,
+                receivers,
+                numeric_fields_list,
+                # pass index to know the exact instance we need to create the new integration
+                index
+            ).run,
+            trigger='cron',
+            # TODO: get hour and minute for current instance, or generic if not defined per instance
+            hour=service_schedule['hour'],
+            minute=service_schedule['minute'],
+            second='0',
+        )
 
     print_info('Press Ctrl+{0} to exit'.format('Break' if os.name == 'nt' else 'C'))
     scheduler.start()

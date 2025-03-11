@@ -138,6 +138,7 @@ class Factory:
         config: Config,
         receivers: list[callable],
         numeric_fields_list: set = set(),
+        instance_index: int = None
     ):
         if not 'instances' in config or len(config['instances']) == 0:
             raise ConfigException('no instances found to run')
@@ -154,9 +155,9 @@ class Factory:
         telemetry = factory.new_telemetry(config, new_relic)
         instances = []
 
-        for index, i in enumerate(config['instances']):
-            if not 'name' in i:
-                raise ConfigException(f'missing instance name for instance {i}')
+        def append_instance(inst, index):
+            if not 'name' in inst:
+                raise ConfigException(f'missing instance name for instance {inst}')
 
             instance_config = config.sub(f'instances.{index}.arguments')
             instance_config.set_prefix(
@@ -164,12 +165,12 @@ class Factory:
                 if 'auth_env_prefix' in instance_config else ''
             )
 
-            labels = i['labels'] if 'labels' in i else {}
+            labels = inst['labels'] if 'labels' in inst else {}
             labels['nr-labs'] = 'data'
 
             instances.append(factory.new_instance(
                 factory,
-                i['name'],
+                inst['name'],
                 instance_config,
                 data_format,
                 new_relic,
@@ -177,6 +178,14 @@ class Factory:
                 labels,
                 numeric_fields_list,
             ))
+        
+        # Either create an integration with all instance or a single instance.
+        if instance_index is None:
+            for index, inst in enumerate(config['instances']):
+                append_instance(inst, index)
+        else:
+            inst = config['instances'][instance_index]
+            append_instance(inst, instance_index)
 
         return Integration(telemetry, instances)
 
