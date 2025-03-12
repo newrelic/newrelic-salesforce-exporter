@@ -118,6 +118,8 @@ To upgrade the Salesforce Exporter on a host, perform the following steps.
 A Docker image for the Salesforce Exporter is available at
 [https://hub.docker.com/r/newrelic/newrelic-salesforce-exporter](https://hub.docker.com/r/newrelic/newrelic-salesforce-exporter). This image can be used in one of two ways.
 
+> Before building and running any docker image, you must set up your New Relic credentials in the Python agent configuration file, `newrelic.ini`. Read [this section](#telemetry) for more information.
+
 #### Run directly from [DockerHub](https://hub.docker.com/)
 
 The Salesforce Exporter [Docker image](https://hub.docker.com/r/newrelic/newrelic-salesforce-exporter)
@@ -2074,7 +2076,7 @@ Python agent must be defined either
 located at [`newrelic.ini`](./newrelic_sample.ini) or
 [using environment variables](https://docs.newrelic.com/install/python/#env-variables).
 
-> We provide a sample config file in this repository: `newrelic_sample.ini`. You should rename it to `newrelic.ini` and fill in with your credentials before using this integration or building the docker image.
+> We provide a sample config file in this repository: `newrelic_sample.ini`. You should rename it to `newrelic.ini` and fill in with your license key before using this integration or building the docker image.
 
 ##### Application name
 
