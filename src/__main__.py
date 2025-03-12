@@ -202,9 +202,6 @@ def run_as_service(
         else:
             sched_hours = service_schedule['hour']
             sched_minutes = service_schedule['minute']
-        
-        print("sched_hours = ", sched_hours)
-        print("sched_minutes = ", sched_minutes)
 
         scheduler.add_job(
             factory.new_integration(
