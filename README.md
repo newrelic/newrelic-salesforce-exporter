@@ -62,12 +62,14 @@ to allow OAuth authentication and authorization for API integration. See the
 To use the Salesforce Exporter on a host, perform the following steps.
 
 1. Clone this repository
-2. Create a virtual environment (how to install [venv](https://virtualenv.pypa.io/en/latest/installation.html)):
-```bash
-   python<version> -m venv sf_env
-   source sf_env/bin/activate
-```
-3. Run `pip install -r requirements.txt` to install dependencies
+1. (Optional) Create a virtual environment (how to install [venv](https://virtualenv.pypa.io/en/latest/installation.html)):
+
+   ```bash
+      python<version> -m venv sf_env
+      source sf_env/bin/activate
+   ```
+
+1. Run `pip install -r requirements.txt` to install dependencies
 
 > NOTE: `<version>` must be one of the supported versions: 3.9, 3.10 or 3.11.
 
