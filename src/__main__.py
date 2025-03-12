@@ -184,18 +184,25 @@ def run_as_service(
         timezone=utc
     )
 
-    # TODO:
-    # - if there is a general SERVICE_SCHEDULE config, use it.
-    # - Otherwise, get instance-specific SERVICE_SCHEDULE config.
-
-    if not SERVICE_SCHEDULE in config:
-        raise Exception('"run_as_service" configured but no "service_schedule" property found')
-
-    service_schedule = config[SERVICE_SCHEDULE]
+    if SERVICE_SCHEDULE in config:
+        service_schedule = config[SERVICE_SCHEDULE]
+    else:
+        # use instance-specific SERVICE_SCHEDULE config
+        service_schedule = None
 
     # build one scheduler job per instance
     for index in range(0, len(config['instances'])):
-        print("New job for instance " + config['instances'][index]["name"])
+        if service_schedule is None:
+            if SERVICE_SCHEDULE not in config['instances'][index]:
+                raise Exception('"run_as_service" configured but no "service_schedule" property found, either general or instance specific')
+            
+            sched_conf = config['instances'][index][SERVICE_SCHEDULE]
+            sched_hours = sched_conf['hour']
+            sched_minutes = sched_conf['minute']
+        else:
+            sched_hours = service_schedule['hour'],
+            sched_minutes = service_schedule['minute'],
+
         scheduler.add_job(
             factory.new_integration(
                 factory,
@@ -206,9 +213,8 @@ def run_as_service(
                 index
             ).run,
             trigger='cron',
-            # TODO: get hour and minute for current instance, or generic if not defined per instance
-            hour=service_schedule['hour'],
-            minute=service_schedule['minute'],
+            hour=sched_hours,
+            minute=sched_minutes,
             second='0',
         )
 
