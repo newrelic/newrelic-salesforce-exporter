@@ -179,7 +179,10 @@ def run_as_service(
         executors={ 'default': ThreadPoolExecutor(1) },
         job_defaults={
             'coalesce': False,
-            'max_instances': 5
+            'max_instances': 5,
+            # Allow jobs to be late for an unlimited amount of time. Useful when two jobs start at the same
+            # time and they have to share the same thread.
+            'misfire_grace_time': None
         },
         timezone=utc
     )
