@@ -191,12 +191,12 @@ def run_as_service(
         service_schedule = None
 
     # build one scheduler job per instance
-    for index in range(0, len(config['instances'])):
+    for index, i in enumerate(config['instances']):
         if service_schedule is None:
-            if SERVICE_SCHEDULE not in config['instances'][index]:
+            if SERVICE_SCHEDULE not in i:
                 raise Exception('"run_as_service" configured but no "service_schedule" property found, either general or instance specific')
             
-            sched_conf = config['instances'][index][SERVICE_SCHEDULE]
+            sched_conf = i[SERVICE_SCHEDULE]
             sched_hours = sched_conf['hour']
             sched_minutes = sched_conf['minute']
         else:
