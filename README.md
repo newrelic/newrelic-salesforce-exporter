@@ -2074,7 +2074,7 @@ Python agent must be defined either
 located at [`newrelic.ini`](./newrelic_sample.ini) or
 [using environment variables](https://docs.newrelic.com/install/python/#env-variables).
 
-> We provide a sample config file in this repository: `newrelic_sample.ini`. You should rename it to `newrelic.ini` and fill in with your credentials before using this integration.
+> We provide a sample config file in this repository: `newrelic_sample.ini`. You should rename it to `newrelic.ini` and fill in with your credentials before using this integration or building the docker image.
 
 ##### Application name
 
@@ -2084,7 +2084,7 @@ to is `New Relic Salesforce Exporter`. This name can be changed either
 located at [`newrelic.ini`](./newrelic_sample.ini) or
 [using environment variables](https://docs.newrelic.com/install/python/#env-variables).
 
-> We provide a sample config file in this repository: `newrelic_sample.ini`. You should rename it to `newrelic.ini` and fill in with your app name before using this integration.
+> We provide a sample config file in this repository: `newrelic_sample.ini`. You should rename it to `newrelic.ini` and fill in with your app name before using this integration or building the docker image.
 
 ##### Other agent configuration
 
