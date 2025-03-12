@@ -21,7 +21,21 @@ data to New Relic as either logs or events. The exporter currently supports
 sending the results of an SOQL query (with special handling for event log file
 queries) and sending information on Salesforce Org Limits.
 
-TODO: add "on this page" index. Check Roku agent repo: https://github.com/newrelic/video-agent-roku?tab=readme-ov-file#on-this-page
+## On This Page
+  * [System Requirements](#system-requirements)
+  * [Usage](#usage)
+    * [On-host](#on-host)
+    * [Docker](#docker)
+    * [Features](#features)
+    * [Command Line Options](#command-line-options)
+    * [Configuration](#configuration)
+    * [Authentication](#authentication)
+    * [Event Log Files](#event-log-files)
+    * [Custom queries](#custom-queries)
+    * [Org Limits](#org-limits)
+    * [Data De-duplication](#data-de-duplication)
+    * [Telemetry](#telemetry)
+  * [Support](#support)
 
 ## System Requirements
 
