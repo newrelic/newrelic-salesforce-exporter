@@ -21,7 +21,7 @@ data to New Relic as either logs or events. The exporter currently supports
 sending the results of an SOQL query (with special handling for event log file
 queries) and sending information on Salesforce Org Limits.
 
-## On This Page
+## Table of Contents
   * [System Requirements](#system-requirements)
   * [Usage](#usage)
     * [On-host](#on-host)
@@ -117,9 +117,12 @@ To upgrade the Salesforce Exporter on a host, perform the following steps.
 ### Docker
 
 A Docker image for the Salesforce Exporter is available at
-[https://hub.docker.com/r/newrelic/newrelic-salesforce-exporter](https://hub.docker.com/r/newrelic/newrelic-salesforce-exporter). This image can be used in one of two ways.
+[https://hub.docker.com/r/newrelic/newrelic-salesforce-exporter](https://hub.docker.com/r/newrelic/newrelic-salesforce-exporter).
+This image can be used in one of two ways.
 
-> Before building and running any docker image, you must set up your New Relic credentials in the Python agent configuration file, `newrelic.ini`. Read [this section](#telemetry) for more information.
+> Before building and running any docker image, you must set up your New Relic
+> credentials in the Python agent configuration file, `newrelic.ini`.
+> Read [this section](#telemetry) for more information.
 
 #### Run directly from [DockerHub](https://hub.docker.com/)
 
@@ -2077,7 +2080,9 @@ Python agent must be defined either
 located at [`newrelic.ini`](./newrelic_sample.ini) or
 [using environment variables](https://docs.newrelic.com/install/python/#env-variables).
 
-> We provide a sample config file in this repository: `newrelic_sample.ini`. You should rename it to `newrelic.ini` and fill in with your license key before using this integration or building the docker image.
+> We provide a sample config file in this repository: `newrelic_sample.ini`.
+> You should rename it to `newrelic.ini` and fill in with your license key
+> before using this integration or building the docker image.
 
 ##### Application name
 
@@ -2087,7 +2092,9 @@ to is `New Relic Salesforce Exporter`. This name can be changed either
 located at [`newrelic.ini`](./newrelic_sample.ini) or
 [using environment variables](https://docs.newrelic.com/install/python/#env-variables).
 
-> We provide a sample config file in this repository: `newrelic_sample.ini`. You should rename it to `newrelic.ini` and fill in with your app name before using this integration or building the docker image.
+> We provide a sample config file in this repository: `newrelic_sample.ini`.
+> You should rename it to `newrelic.ini` and fill in with your app name before
+> using this integration or building the docker image.
 
 ##### Other agent configuration
 
@@ -2108,14 +2115,16 @@ keys:
 
 ## Testing
 
-### Run all
+### Run all tests
 
 ```
 cd src
 python<version> -m unittest -v tests/*.py
 ```
 
-### Run just the factory tests
+### Run individual tests
+
+Test can be run individually. For example, to run the TestFactory test:
 
 ```
 cd src
