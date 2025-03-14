@@ -35,6 +35,7 @@ queries) and sending information on Salesforce Org Limits.
     * [Org Limits](#org-limits)
     * [Data De-duplication](#data-de-duplication)
     * [Telemetry](#telemetry)
+  * [Testing](#testing)
   * [Support](#support)
 
 ## System Requirements
@@ -2104,6 +2105,22 @@ keys:
 - `message`: String. The log message.
 - `timestamp`: Integer. Unix timestamp in milliseconds.
 - `level`: String. `info`, `error` or `warn`.
+
+## Testing
+
+### Run all
+
+```
+cd src
+python<version> -m unittest -v tests/*.py
+```
+
+### Run just the factory tests
+
+```
+cd src
+python<version> -m unittest -v tests.test_factory.TestFactory
+```
 
 ## Support
 
