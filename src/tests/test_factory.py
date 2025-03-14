@@ -766,6 +766,22 @@ class TestFactory(unittest.TestCase):
         self.assertEqual(instance.numeric_fields_list, set())
 
     def test_new_integration_returns_integration_given_default_data_format_and_single_instance_and_instance_index(self):
+        '''
+        new_integration() returns an integration instance with the events data format and a single instance with the given instance configuration
+        and given: an integration configuration
+        and given: a list of receiver creation functions
+        and given: a numeric fields set
+        and given: an instance index
+        when: new_instance() is called
+        and when: the integration configuration contains a single valid instance
+            configuration
+        and when: the instance configuration contains a labels property
+        and when: 'events' is specified as the data format
+        then: return an integration with the events data format and a single
+            instance with the given instance configuration, including the given
+            labels
+        '''
+        
         # setup
         def new_receiver_func(
             instance_config: mod_config.Config,
