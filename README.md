@@ -527,10 +527,14 @@ the New Relic Events API.
 
 | Description | Valid Values | Required | Default |
 | --- | --- | --- | --- |
-| New Relic region identifier | `US` / `EU` | Y | N/a |
+| New Relic region identifier | `US` / `EU` / `FEDRAMP` | Y | N/a |
 
 This attribute specifies which New Relic region should be used to send
 generated telemetry.
+
+**NOTE:** The exporter supports sending data to the New Relic
+[FedRAMP-compliant endpoints](https://docs.newrelic.com/docs/security/security-privacy/compliance/fedramp-compliant-endpoints/).
+To do this, use the region identifier `FEDRAMP`.
 
 ###### `account_id`
 

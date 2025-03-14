@@ -950,6 +950,35 @@ class TestFactory(unittest.TestCase):
             f = factory.Factory()
             _ = f.new_new_relic(config, DataFormat.EVENTS)
 
+    def test_new_new_relic_raises_new_relic_api_exception_when_get_logs_endpoint_does(self):
+        '''
+        new_new_relic() raises a NewRelicApiException when get_logs_endpoint() does
+        given: an integration configuration
+        when: new_new_relic() is called
+        and when: get_logs_endpoint() is called
+        and when: get_logs_endpoint() raises a NewRelicApiException
+        then: raise a NewRelicApiException
+        '''
+
+        # setup
+        config = mod_config.Config({
+            'instances': [
+                {
+                    'name': 'test-inst-1',
+                },
+            ],
+            'newrelic': {
+                'data_format': 'logs',
+                'api_endpoint': 'invalid',
+                'license_key': 'acegikm13579',
+            },
+        })
+
+        # execute / verify
+        with self.assertRaises(NewRelicApiException) as _:
+            f = factory.Factory()
+            f.new_new_relic(config, DataFormat.LOGS)
+
     def test_new_new_relic_returns_new_relic_instance_with_US_logs_endpoint_given_logs_US_and_license_key(self):
         '''
         new_new_relic() returns a New Relic instance with US Logs API endpoint given the LOGS data format, the US region, and a license key
@@ -986,7 +1015,7 @@ class TestFactory(unittest.TestCase):
         self.assertEqual(new_relic.license_key, 'asdfghjkl')
         self.assertEqual(
             new_relic.logs_api_endpoint,
-            newrelic.US_LOGGING_ENDPOINT,
+            newrelic.US_LOGS_ENDPOINT,
         )
         self.assertEqual(
             new_relic.events_api_endpoint,
@@ -1029,12 +1058,85 @@ class TestFactory(unittest.TestCase):
         self.assertEqual(new_relic.license_key, 'lkjhgfdsa')
         self.assertEqual(
             new_relic.logs_api_endpoint,
-            newrelic.EU_LOGGING_ENDPOINT,
+            newrelic.EU_LOGS_ENDPOINT,
         )
         self.assertEqual(
             new_relic.events_api_endpoint,
             None,
         )
+
+    def test_new_new_relic_returns_new_relic_instance_with_FEDRAMP_logs_endpoint_given_logs_FEDRAMP_and_license_key(self):
+        '''
+        new_new_relic() returns a New Relic instance with FedRAMP Logs API endpoint given the LOGS data format, the FEDRAMP region, and a license key
+        given: an integration configuration
+        when: new_new_relic() is called
+        and when: the data format is LOGS
+        and when: the 'region' property in the integration configuration is set
+            to FEDRAMP
+        and when: a license key is specified
+        then: return a New Relic instance with FedRAMP Logs API endpoint
+        '''
+
+        # setup
+        config = mod_config.Config({
+            'instances': [
+                {
+                    'name': 'test-inst-1',
+                },
+            ],
+            'newrelic': {
+                'data_format': 'logs',
+                'api_endpoint': 'FEDRAMP',
+                'license_key': 'ytrewq09876',
+            },
+        })
+
+        # execute
+        f = factory.Factory()
+        new_relic = f.new_new_relic(config, DataFormat.LOGS)
+
+        # verify
+        self.assertIsNotNone(new_relic)
+        self.assertEqual(type(new_relic), newrelic.NewRelic)
+        self.assertEqual(new_relic.license_key, 'ytrewq09876')
+        self.assertEqual(
+            new_relic.logs_api_endpoint,
+            newrelic.FEDRAMP_LOGS_ENDPOINT,
+        )
+        self.assertEqual(
+            new_relic.events_api_endpoint,
+            None,
+        )
+
+    def test_new_new_relic_raises_new_relic_api_exception_when_get_events_endpoint_does(self):
+        '''
+        new_new_relic() raises a NewRelicApiException when get_events_endpoint() does
+        given: an integration configuration
+        when: new_new_relic() is called
+        and when: get_events_endpoint() is called
+        and when: get_events_endpoint() raises a NewRelicApiException
+        then: raise a NewRelicApiException
+        '''
+
+        # setup
+        config = mod_config.Config({
+            'instances': [
+                {
+                    'name': 'test-inst-1',
+                },
+            ],
+            'newrelic': {
+                'data_format': 'events',
+                'api_endpoint': 'invalid',
+                'account_id': 773311,
+                'license_key': 'piyrw086420',
+            },
+        })
+
+        # execute / verify
+        with self.assertRaises(NewRelicApiException) as _:
+            f = factory.Factory()
+            f.new_new_relic(config, DataFormat.EVENTS)
 
     def test_new_new_relic_returns_new_relic_instance_with_US_events_endpoint_given_events_US_account_id_and_license_key(self):
         '''
@@ -1128,6 +1230,53 @@ class TestFactory(unittest.TestCase):
             new_relic.events_api_endpoint,
             newrelic.EU_EVENTS_ENDPOINT.format(
                 account_id=567890,
+            ),
+        )
+
+    def test_new_new_relic_returns_new_relic_instance_with_FEDRAMP_events_endpoint_given_events_FEDRAMP_account_id_and_license_key(self):
+        '''
+        new_new_relic() returns a New Relic instance with FedRAMP Events API endpoint given the EVENTS data format, the FEDRAMP region, an account ID, and a license key
+        given: an integration configuration
+        when: new_new_relic() is called
+        and when: the 'account_id' property is set in the integration
+            configuration
+        and when: the 'region' property in the integration configuration is set
+            to FEDRAMP
+        and when: a license key is specified
+        then: return a New Relic instance with FedRAMP Events API endpoint
+        '''
+
+        # setup
+        config = mod_config.Config({
+            'instances': [
+                {
+                    'name': 'test-inst-1',
+                },
+            ],
+            'newrelic': {
+                'data_format': 'events',
+                'api_endpoint': 'FEDRAMP',
+                'account_id': 135790,
+                'license_key': 'mnbvcx123456',
+            },
+        })
+
+        # execute
+        f = factory.Factory()
+        new_relic = f.new_new_relic(config, DataFormat.EVENTS)
+
+        # verify
+        self.assertIsNotNone(new_relic)
+        self.assertEqual(type(new_relic), newrelic.NewRelic)
+        self.assertEqual(new_relic.license_key, 'mnbvcx123456')
+        self.assertEqual(
+            new_relic.logs_api_endpoint,
+            None,
+        )
+        self.assertEqual(
+            new_relic.events_api_endpoint,
+            newrelic.FEDRAMP_EVENTS_ENDPOINT.format(
+                account_id=135790,
             ),
         )
 

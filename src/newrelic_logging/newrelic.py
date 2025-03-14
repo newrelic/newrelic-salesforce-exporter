@@ -1,3 +1,4 @@
+from enum import Enum
 import gzip
 import json
 from requests import RequestException, Session
@@ -14,15 +15,69 @@ from .config import Config
 NR_LICENSE_KEY = 'NR_LICENSE_KEY'
 NR_ACCOUNT_ID = 'NR_ACCOUNT_ID'
 
-US_LOGGING_ENDPOINT = 'https://log-api.newrelic.com/log/v1'
-EU_LOGGING_ENDPOINT = 'https://log-api.eu.newrelic.com/log/v1'
+US_LOGS_ENDPOINT = 'https://log-api.newrelic.com/log/v1'
+EU_LOGS_ENDPOINT = 'https://log-api.eu.newrelic.com/log/v1'
+FEDRAMP_LOGS_ENDPOINT = 'https://gov-log-api.newrelic.com/log/v1'
 LOGS_EVENT_SOURCE = 'logs'
 
 US_EVENTS_ENDPOINT = 'https://insights-collector.newrelic.com/v1/accounts/{account_id}/events'
 EU_EVENTS_ENDPOINT = 'https://insights-collector.eu01.nr-data.net/v1/accounts/{account_id}/events'
+FEDRAMP_EVENTS_ENDPOINT = 'https://gov-insights-collector.newrelic.com/v1/accounts/{account_id}/events'
 
 CONTENT_ENCODING = 'gzip'
 MAX_EVENTS = 2000
+
+
+class Region(Enum):
+    US = 'US'
+    EU = 'EU'
+    FEDRAMP = 'FEDRAMP'
+
+
+def get_region(region: str) -> Region:
+    region_u = region.upper()
+
+    if region_u == Region.US.value:
+        return Region.US
+
+    if region_u == Region.EU.value:
+        return Region.EU
+
+    if region_u == Region.FEDRAMP.value:
+        return Region.FEDRAMP
+
+    raise NewRelicApiException(f'invalid New Relic API region {region}')
+
+
+def get_logs_endpoint(region: str) -> str:
+    r = get_region(region)
+
+    if r == Region.EU:
+        return EU_LOGS_ENDPOINT
+
+    if r == Region.FEDRAMP:
+        return FEDRAMP_LOGS_ENDPOINT
+
+    # Since get_region() either returns a valid Region or raises an exception,
+    # the only other possible value is Region.US so return the US logs endpoint.
+
+    return US_LOGS_ENDPOINT
+
+
+def get_events_endpoint(region: str, account_id: str) -> str:
+    r = get_region(region)
+
+    if r == Region.EU:
+        return EU_EVENTS_ENDPOINT.format(account_id=account_id)
+
+    if r == Region.FEDRAMP:
+        return FEDRAMP_EVENTS_ENDPOINT.format(account_id=account_id)
+
+    # Since get_region() either returns a valid Region or raises an exception,
+    # the only other possible value is Region.US so return the US events
+    # endpoint.
+
+    return US_EVENTS_ENDPOINT.format(account_id=account_id)
 
 
 class NewRelic:
