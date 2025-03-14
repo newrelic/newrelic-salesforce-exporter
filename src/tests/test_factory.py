@@ -765,6 +765,74 @@ class TestFactory(unittest.TestCase):
         self.assertEqual(instance.instance_config.prefix, 'NR_')
         self.assertEqual(instance.numeric_fields_list, set())
 
+    def test_new_integration_returns_integration_given_default_data_format_and_single_instance_and_instance_index(self):
+        '''
+        new_integration() returns an integration instance with the events data format and a single instance with the given instance configuration
+        and given: an integration configuration
+        and given: a list of receiver creation functions
+        and given: a numeric fields set
+        and given: an instance index
+        when: new_instance() is called
+        and when: the integration configuration contains a single valid instance
+            configuration
+        and when: the instance configuration contains a labels property
+        and when: 'events' is specified as the data format
+        then: return an integration with the events data format and a single
+            instance with the given instance configuration, including the given
+            labels
+        '''
+        
+        # setup
+        def new_receiver_func(
+            instance_config: mod_config.Config,
+            data_cache: cache.DataCache,
+            api: mod_api.Api,
+        ):
+            return ReceiverStub()
+
+        config = mod_config.Config({
+            'instances': [
+                {
+                    'name': 'test-inst-1',
+                    'arguments': {
+                        'api_ver': '60.0',
+                        'token_url': 'https://my.salesforce.test',
+                    }
+                },
+            ],
+        })
+        new_relic = NewRelicStub()
+        telemetry = TelemetryStub()
+
+        # execute
+        f = factory.Factory()
+        fs = FactoryStub(
+            new_relic=new_relic,
+            telemetry=telemetry
+        )
+
+        i = f.new_integration(fs, config, [new_receiver_func], set(), 0)
+
+        # verify
+        self.assertIsNotNone(i)
+        self.assertEqual(type(i), integration.Integration)
+        self.assertEqual(i.telemetry, telemetry)
+        self.assertEqual(len(i.instances), 1)
+        instance = i.instances[0]
+        self.assertEqual(type(instance), InstanceStub)
+        self.assertEqual(instance.name, 'test-inst-1')
+        self.assertEqual(instance.instance_config.prefix, '')
+        self.assertEqual(
+            instance.instance_config.config,
+            config['instances'][0]['arguments'],
+        )
+        self.assertEqual(instance.data_format, DataFormat.LOGS)
+        self.assertEqual(instance.new_relic, new_relic)
+        self.assertEqual(len(instance.receivers), 1)
+        self.assertEqual(instance.receivers[0], new_receiver_func)
+        self.assertEqual(instance.labels, { 'nr-labs': 'data' })
+        self.assertEqual(instance.numeric_fields_list, set())
+
     def test_new_new_relic_raises_new_relic_api_exception_given_missing_license_key(self):
         '''
         new_new_relic() raises a NewRelicApiException given the New Relic license key is neither specified in the integration configuration nor environment

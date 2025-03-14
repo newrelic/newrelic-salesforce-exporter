@@ -173,30 +173,53 @@ def run_as_service(
 ):
     scheduler = BlockingScheduler(
         jobstores={ 'default': MemoryJobStore() },
-        executors={ 'default': ThreadPoolExecutor(20) },
+        # NOTE: I have serious doubts regarding the thread-safety of `Integration.run()`,
+        #       so until provent to be safe, we better use a single thread for the scheduler.
+        #       This way jobs are executed one after the other.
+        executors={ 'default': ThreadPoolExecutor(1) },
         job_defaults={
             'coalesce': False,
-            'max_instances': 3
+            'max_instances': 5,
+            # Allow jobs to be late for an unlimited amount of time. Useful when two jobs start at the same
+            # time and they have to share the same thread.
+            'misfire_grace_time': None
         },
         timezone=utc
     )
 
-    if not SERVICE_SCHEDULE in config:
-        raise Exception('"run_as_service" configured but no "service_schedule" property found')
+    if SERVICE_SCHEDULE in config:
+        service_schedule = config[SERVICE_SCHEDULE]
+    else:
+        # use instance-specific SERVICE_SCHEDULE config
+        service_schedule = None
 
-    service_schedule = config[SERVICE_SCHEDULE]
-    scheduler.add_job(
-        factory.new_integration(
-            factory,
-            config,
-            receivers,
-            numeric_fields_list,
-        ).run,
-        trigger='cron',
-        hour=service_schedule['hour'],
-        minute=service_schedule['minute'],
-        second='0',
-    )
+    # build one scheduler job per instance
+    for index, i in enumerate(config['instances']):
+        if service_schedule is None:
+            if SERVICE_SCHEDULE not in i:
+                raise Exception('"run_as_service" configured but no "service_schedule" property found, either general or instance specific')
+            
+            sched_conf = i[SERVICE_SCHEDULE]
+            sched_hours = sched_conf['hour']
+            sched_minutes = sched_conf['minute']
+        else:
+            sched_hours = service_schedule['hour']
+            sched_minutes = service_schedule['minute']
+
+        scheduler.add_job(
+            factory.new_integration(
+                factory,
+                config,
+                receivers,
+                numeric_fields_list,
+                # pass index to know the exact instance we need to create the new integration
+                index
+            ).run,
+            trigger='cron',
+            hour=sched_hours,
+            minute=sched_minutes,
+            second='0',
+        )
 
     print_info('Press Ctrl+{0} to exit'.format('Break' if os.name == 'nt' else 'C'))
     scheduler.start()
