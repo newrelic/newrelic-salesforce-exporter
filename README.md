@@ -21,10 +21,27 @@ data to New Relic as either logs or events. The exporter currently supports
 sending the results of an SOQL query (with special handling for event log file
 queries) and sending information on Salesforce Org Limits.
 
+## Table of Contents
+  * [System Requirements](#system-requirements)
+  * [Usage](#usage)
+    * [On-host](#on-host)
+    * [Docker](#docker)
+    * [Features](#features)
+    * [Command Line Options](#command-line-options)
+    * [Configuration](#configuration)
+    * [Authentication](#authentication)
+    * [Event Log Files](#event-log-files)
+    * [Custom queries](#custom-queries)
+    * [Org Limits](#org-limits)
+    * [Data De-duplication](#data-de-duplication)
+    * [Telemetry](#telemetry)
+  * [Testing](#testing)
+  * [Support](#support)
+
 ## System Requirements
 
 The New Relic Salesforce Exporter can be run on any host environment with
-Python 3.9+ installed.
+Python 3.9, 3.10 or 3.11 installed.
 
 It can also be run inside a Docker container by leveraging
 [the published Docker image](https://hub.docker.com/r/newrelic/newrelic-salesforce-exporter)
@@ -46,10 +63,19 @@ to allow OAuth authentication and authorization for API integration. See the
 To use the Salesforce Exporter on a host, perform the following steps.
 
 1. Clone this repository
+1. (Optional) Create a virtual environment (how to install [venv](https://virtualenv.pypa.io/en/latest/installation.html)):
+
+   ```bash
+      python<version> -m venv sf_env
+      source sf_env/bin/activate
+   ```
+
 1. Run `pip install -r requirements.txt` to install dependencies
 
+> NOTE: `<version>` must be one of the supported versions: 3.9, 3.10 or 3.11.
+
 Once installed, the Salesforce Exporter can be run from the repository root
-using the command `python src/__main__.py`. See the section
+using the command `python src`. See the section
 [Command Line Options](#command-line-options) and [Configuration](#configuration)
 for more details on using the exporter.
 
@@ -91,7 +117,12 @@ To upgrade the Salesforce Exporter on a host, perform the following steps.
 ### Docker
 
 A Docker image for the Salesforce Exporter is available at
-[https://hub.docker.com/r/newrelic/newrelic-salesforce-exporter](https://hub.docker.com/r/newrelic/newrelic-salesforce-exporter). This image can be used in one of two ways.
+[https://hub.docker.com/r/newrelic/newrelic-salesforce-exporter](https://hub.docker.com/r/newrelic/newrelic-salesforce-exporter).
+This image can be used in one of two ways.
+
+> Before building and running any docker image, you must set up your New Relic
+> credentials in the Python agent configuration file, `newrelic.ini`.
+> Read [this section](#telemetry) for more information.
 
 #### Run directly from [DockerHub](https://hub.docker.com/)
 
@@ -2046,16 +2077,24 @@ As with any [New Relic APM agent](https://docs.newrelic.com/docs/apm/new-relic-a
 a license key is required to report agent telemetry. The license key used by the
 Python agent must be defined either
 [in the agent configuration file](https://docs.newrelic.com/install/python/?python-non-web=non-web-yes#config-file-option)
-located at [`newrelic.ini`](./newrelic.ini) or
+located at [`newrelic.ini`](./newrelic_sample.ini) or
 [using environment variables](https://docs.newrelic.com/install/python/#env-variables).
+
+> We provide a sample config file in this repository: `newrelic_sample.ini`.
+> You should rename it to `newrelic.ini` and fill in with your license key
+> before using this integration or building the docker image.
 
 ##### Application name
 
 By default, the name of the application which the Python agent reports telemetry
 to is `New Relic Salesforce Exporter`. This name can be changed either
 [in the agent configuration file](https://docs.newrelic.com/install/python/?python-non-web=non-web-yes#config-file-option)
-located at [`newrelic.ini`](./newrelic.ini) or
+located at [`newrelic.ini`](./newrelic_sample.ini) or
 [using environment variables](https://docs.newrelic.com/install/python/#env-variables).
+
+> We provide a sample config file in this repository: `newrelic_sample.ini`.
+> You should rename it to `newrelic.ini` and fill in with your app name before
+> using this integration or building the docker image.
 
 ##### Other agent configuration
 
@@ -2073,6 +2112,24 @@ keys:
 - `message`: String. The log message.
 - `timestamp`: Integer. Unix timestamp in milliseconds.
 - `level`: String. `info`, `error` or `warn`.
+
+## Testing
+
+### Run all tests
+
+```
+cd src
+python<version> -m unittest -v tests/*.py
+```
+
+### Run individual tests
+
+Test can be run individually. For example, to run the TestFactory test:
+
+```
+cd src
+python<version> -m unittest -v tests.test_factory.TestFactory
+```
 
 ## Support
 

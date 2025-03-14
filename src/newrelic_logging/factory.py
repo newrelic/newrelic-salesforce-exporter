@@ -138,6 +138,7 @@ class Factory:
         config: Config,
         receivers: list[callable],
         numeric_fields_list: set = set(),
+        instance_index: int = None
     ):
         if not 'instances' in config or len(config['instances']) == 0:
             raise ConfigException('no instances found to run')
@@ -154,9 +155,9 @@ class Factory:
         telemetry = factory.new_telemetry(config, new_relic)
         instances = []
 
-        for index, i in enumerate(config['instances']):
+        def append_instance(i, index):
             if not 'name' in i:
-                raise ConfigException(f'missing instance name for instance {i}')
+                raise ConfigException(f'missing instance name for instance at position {index + 1}')
 
             instance_config = config.sub(f'instances.{index}.arguments')
             instance_config.set_prefix(
@@ -177,6 +178,14 @@ class Factory:
                 labels,
                 numeric_fields_list,
             ))
+        
+        # Either create an integration with all instance or a single instance.
+        if instance_index is None:
+            for index, i in enumerate(config['instances']):
+                append_instance(i, index)
+        else:
+            i = config['instances'][instance_index]
+            append_instance(i, instance_index)
 
         return Integration(telemetry, instances)
 
