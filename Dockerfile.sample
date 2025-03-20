@@ -7,6 +7,12 @@ FROM newrelic/newrelic-salesforce-exporter
 COPY ./config.yml .
 
 #
+# Copy your New Relic Python agent config file into the base directory.
+# Adjust the local path as necessary.
+#
+#COPY ./newrelic.ini .
+
+#
 # If needed, copy your event type fields mapping file into the base directory.
 # Adjust the local path as necessary.
 #
