@@ -115,7 +115,7 @@ class Authenticator:
                 private_key = f.read()
                 key = serialization.load_ssh_private_key(private_key.encode(), password=b'')
             except ValueError as e:
-                raise LoginException(f'authentication failed for {self.instance_name}. error message: {str(e)}')
+                raise LoginException(f'authentication failed for {self.instance_url}. error message: {str(e)}')
 
         jwt_claim_set = {
             "iss": client_id,
@@ -150,9 +150,9 @@ class Authenticator:
 
             self.store_auth(resp.json())
         except ConnectionError as e:
-            raise LoginException(f'authentication failed for sfdc instance {self.instance_name}') from e
+            raise LoginException(f'authentication failed for sfdc instance {self.instance_url}') from e
         except RequestException as e:
-            raise LoginException(f'authentication failed for sfdc instance {self.instance_name}') from e
+            raise LoginException(f'authentication failed for sfdc instance {self.instance_url}') from e
 
     def authenticate_with_password(self, session: Session) -> None:
         client_id = self.auth_data['client_id']
@@ -182,9 +182,9 @@ class Authenticator:
 
             self.store_auth(resp.json())
         except ConnectionError as e:
-            raise LoginException(f'authentication failed for sfdc instance {self.instance_name}') from e
+            raise LoginException(f'authentication failed for sfdc instance {self.instance_url}') from e
         except RequestException as e:
-            raise LoginException(f'authentication failed for sfdc instance {self.instance_name}') from e
+            raise LoginException(f'authentication failed for sfdc instance {self.instance_url}') from e
 
     def authenticate(self, session: Session) -> None:
         if self.data_cache and self.load_auth_from_cache():
