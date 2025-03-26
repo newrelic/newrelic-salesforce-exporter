@@ -3,7 +3,7 @@ from enum import Enum
 
 # Integration definitions
 
-VERSION         = "2.6.0"
+VERSION         = "2.6.1"
 NAME            = "salesforce-exporter"
 PROVIDER        = "newrelic-labs"
 COLLECTOR_NAME  = "newrelic-salesforce-exporter"
