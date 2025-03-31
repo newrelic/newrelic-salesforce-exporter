@@ -1,1 +1,2 @@
-rich==13.9.4
+typing_extensions==4.13.0
+PyYAML==6.0.2

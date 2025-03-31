@@ -1,9 +1,29 @@
-from rich.console import Console
-
-console = Console()
+from module.model.config import ConfigModel
+from module import VERSION
 
 def main():
-    console.print("Config Tool", style="bold red")
+    import sys
+    if len(sys.argv) != 2:
+        print(f"Usage: {sys.argv[0]} CONFIG_FILE")
+        sys.exit(1)
+    
+    print(f"New Relic Salesforce Exporter Config Tool {VERSION}\n")
+    yaml_str = read_file(sys.argv[1])
+    config_model = ConfigModel.from_yaml(yaml_str)
+    pretty_print_config(config_model)
+
+def read_file(file_name: str) -> str:
+    with open(file_name) as file:
+        return file.read()
+
+def pretty_print_config(config_model: ConfigModel):
+    import yaml
+    def yaml_equivalent_of_default(dumper, data):
+        dict_representation = data.__dict__
+        node = dumper.represent_dict(dict_representation)
+        return node
+    yaml.add_representer(ConfigModel, yaml_equivalent_of_default)
+    print(yaml.dump(config_model))
 
 # TODO: - If config.yml exist ask to load it or create new.
 #         - If new, ask file name. If file exists, ask to overwrite.
@@ -51,4 +71,12 @@ def main():
 # TODO: catch CTRL+C and store a backup of the ongoing config.
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as err:
+        print("------------------------------------ ERROR -------------------------------------")
+        print(err)
+        print("---------------------------------- TRACEBACK -----------------------------------")
+        import traceback
+        traceback.print_exc()
+        print("--------------------------------------------------------------------------------")
