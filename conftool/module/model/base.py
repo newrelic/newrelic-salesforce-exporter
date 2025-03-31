@@ -53,11 +53,13 @@ class BaseModel():
             raise Exception(f"Object at YAML attribute `{attr_name}` must be a list")
         # Get first type of list content (assuming we have only one type)
         list_item_type: type[Self] = attr_class.__args__[0]
-        if not issubclass(list_item_type, BaseModel):
-            raise Exception(f"List `{attr_name}` must contain a BaseModel subclass")
         for item in subyaml_list:
             list_item = list_item_type()
             # map "item" into "list_item"
-            list_item_type.map_yaml(list_item, item)
-            instance.append(list_item)
+            if issubclass(list_item_type, BaseModel):
+                list_item_type.map_yaml(list_item, item)
+                instance.append(list_item)
+            else:
+                instance.append(item)
+            
         return instance
