@@ -1,8 +1,9 @@
 from module.model.config import ConfigModel
 from module import VERSION
 
+import sys
+
 def main():
-    import sys
     if len(sys.argv) != 2:
         print(f"Usage: {sys.argv[0]} CONFIG_FILE")
         sys.exit(1)

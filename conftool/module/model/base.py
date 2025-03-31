@@ -17,6 +17,7 @@ class BaseModel():
     def map_yaml(cls, this: Self, yaml_dic: dict) -> Self:
         for attr_name, attr_class in cls.__annotations__.items():
             cls.map_attribute(this, attr_name, attr_class, yaml_dic)
+        this.check()
         return this
 
     @classmethod
@@ -61,5 +62,9 @@ class BaseModel():
                 instance.append(list_item)
             else:
                 instance.append(item)
-            
         return instance
+    
+    # To be overwritten by subclasses. Check data integrity.
+    # Should raise an exception if check fails.
+    def check(self):
+        pass
