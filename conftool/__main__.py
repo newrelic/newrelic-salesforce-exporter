@@ -8,8 +8,8 @@ def main():
         sys.exit(1)
     
     print(f"New Relic Salesforce Exporter Config Tool {VERSION}\n")
-    yaml_str = read_file(sys.argv[1])
-    config_model = ConfigModel.from_yaml(yaml_str)
+    config_yaml_str = read_file(sys.argv[1])
+    config_model = ConfigModel.from_yaml(config_yaml_str)
     pretty_print_config(config_model)
 
 def read_file(file_name: str) -> str:

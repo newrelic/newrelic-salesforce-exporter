@@ -1,4 +1,5 @@
 from typing_extensions import Self
+from enum import Enum
 import yaml
 
 class BaseModel():
@@ -23,11 +24,15 @@ class BaseModel():
         if issubclass(attr_class, BaseModel):
             value = cls.map_base_class_attribute(attr_name, attr_class, yaml_dic)
         else:
-            instance = attr_class()
-            if isinstance(instance, list):
-                value = cls.map_list_attribute(instance, attr_name, attr_class, yaml_dic)
+            if issubclass(attr_class, Enum):
+                attr_value = yaml_dic[attr_name]
+                value = attr_class(attr_value)
             else:
-                value = yaml_dic.get(attr_name, instance)
+                instance = attr_class()
+                if isinstance(instance, list):
+                    value = cls.map_list_attribute(instance, attr_name, attr_class, yaml_dic)
+                else:
+                    value = yaml_dic.get(attr_name, instance)
         setattr(this, attr_name, value)
 
     @classmethod
@@ -42,9 +47,14 @@ class BaseModel():
     @classmethod
     def map_list_attribute(cls, instance: list, attr_name: str, attr_class: type[list[Self]], yaml_dic: dict) -> any:
         subyaml_list = yaml_dic.get(attr_name)
+        if subyaml_list is None:
+            return []
         if not isinstance(subyaml_list, list):
             raise Exception(f"Object at YAML attribute `{attr_name}` must be a list")
+        # Get first type of list content (assuming we have only one type)
         list_item_type: type[Self] = attr_class.__args__[0]
+        if not issubclass(list_item_type, BaseModel):
+            raise Exception(f"List `{attr_name}` must contain a BaseModel subclass")
         for item in subyaml_list:
             list_item = list_item_type()
             # map "item" into "list_item"
