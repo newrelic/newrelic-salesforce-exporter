@@ -11,19 +11,43 @@ class BaseModel():
         # Map YAML into class instance
         return cls.map_yaml(this, parsed_yaml)
     
+    # For each attribute of class get value from YAML
     @classmethod
     def map_yaml(cls, this: Self, yaml_dic: dict) -> Self:
-        # For each attribute of class get value from YAML,
-        # or default value if attr doesn't exist in the YAML.
-        for attr, attr_class in cls.__annotations__.items():
-            if issubclass(attr_class, BaseModel):
-                subyaml = yaml_dic.get(attr)
-                instance = attr_class()
-                if subyaml is None:
-                    value = instance
-                else:
-                    value = attr_class.map_yaml(instance, subyaml)
-            else:
-                value = yaml_dic.get(attr, attr_class())
-            setattr(this, attr, value)
+        for attr_name, attr_class in cls.__annotations__.items():
+            cls.map_attribute(this, attr_name, attr_class, yaml_dic)
         return this
+
+    @classmethod
+    def map_attribute(cls, this: any, attr_name: str, attr_class: type, yaml_dic: dict):
+        if issubclass(attr_class, BaseModel):
+            value = cls.map_base_class_attribute(attr_name, attr_class, yaml_dic)
+        else:
+            instance = attr_class()
+            if isinstance(instance, list):
+                value = cls.map_list_attribute(instance, attr_name, attr_class, yaml_dic)
+            else:
+                value = yaml_dic.get(attr_name, instance)
+        setattr(this, attr_name, value)
+
+    @classmethod
+    def map_base_class_attribute(cls, attr_name: str, attr_class: type[Self], yaml_dic: dict) -> any:
+        subyaml = yaml_dic.get(attr_name)
+        instance = attr_class()
+        if subyaml is None:
+            return instance
+        else:
+            return attr_class.map_yaml(instance, subyaml)
+        
+    @classmethod
+    def map_list_attribute(cls, instance: list, attr_name: str, attr_class: type[list[Self]], yaml_dic: dict) -> any:
+        subyaml_list = yaml_dic.get(attr_name)
+        if not isinstance(subyaml_list, list):
+            raise Exception(f"Object at YAML attribute `{attr_name}` must be a list")
+        list_item_type: type[Self] = attr_class.__args__[0]
+        for item in subyaml_list:
+            list_item = list_item_type()
+            # map "item" into "list_item"
+            list_item_type.map_yaml(list_item, item)
+            instance.append(list_item)
+        return instance
