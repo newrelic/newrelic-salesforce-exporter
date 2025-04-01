@@ -1,5 +1,5 @@
-from module.model.config import ConfigModel
-from module import VERSION
+from .model.config import ConfigModel
+from . import VERSION
 
 import sys
 
