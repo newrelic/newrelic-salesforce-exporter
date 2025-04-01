@@ -27,7 +27,10 @@ class BaseModel():
         else:
             if issubclass(attr_class, Enum):
                 attr_value = yaml_dic[attr_name]
-                value = attr_class(attr_value)
+                try:
+                    value = attr_class(attr_value)
+                except Exception:
+                    raise Exception(f"Invalid value `{attr_value}`, `{attr_name}` must be one of the following: {[e.value for e in attr_class]}")
             else:
                 instance = attr_class()
                 if isinstance(instance, list):
