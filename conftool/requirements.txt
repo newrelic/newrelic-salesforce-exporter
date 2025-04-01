@@ -1,2 +1,3 @@
 typing_extensions==4.13.0
 PyYAML==6.0.2
+validators==0.34.0
