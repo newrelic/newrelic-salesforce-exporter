@@ -14,9 +14,13 @@ class BaseModel:
     
     # For each attribute of class get value from YAML
     @classmethod
-    def map_yaml(cls, this: Self, yaml_dic: dict) -> Self:
-        for attr_name, attr_class in cls.__annotations__.items():
-            cls.map_attribute(this, attr_name, attr_class, yaml_dic)
+    def map_yaml(cls, this: Self, yaml_dic: any) -> Self:
+        if '__inner_val__' in cls.__annotations__:
+            # It's a newtype base model. Set the inner value.
+            setattr(this, '__inner_val__', yaml_dic)
+        else:
+            for attr_name, attr_class in cls.__annotations__.items():
+                cls.map_attribute(this, attr_name, attr_class, yaml_dic)
         this.check()
         return this
 
@@ -84,4 +88,4 @@ def is_base_model(cls: type) -> bool:
     return issubclass(cls, BaseModel)
 
 def is_list(cls: type) -> bool:
-    return cls == list
+    return type(cls()) is list

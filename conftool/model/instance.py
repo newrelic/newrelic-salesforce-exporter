@@ -2,9 +2,10 @@ from enum import Enum
 from .base import BaseModel
 from .service_schedule import ServiceScheduleModel
 from .query import QueryModel
+from .api_ver import ApiVer
 
 class LimitsModel(BaseModel):
-    api_ver: str
+    api_ver: ApiVer
     names: list[str]
 
 class GenerationIntervalModel(Enum):
@@ -29,7 +30,7 @@ class RedisModel(BaseModel):
 class ArgumentsModel(BaseModel):
     auth: AuthModel
     redis: RedisModel
-    api_ver: str
+    api_ver: ApiVer
     token_url: str
     auth_env_prefix: str
     cache_enabled: bool
@@ -39,6 +40,10 @@ class ArgumentsModel(BaseModel):
     queries: list[QueryModel]
     logs_enabled: bool
     limits: LimitsModel
+
+    def check(self):
+        #TODO: check
+        pass
 
 class InstanceModel(BaseModel):
     name: str
