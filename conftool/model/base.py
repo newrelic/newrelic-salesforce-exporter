@@ -37,20 +37,7 @@ class BaseModel:
         elif is_list(attr_class):
             value = cls.map_list_attribute(attr_name, attr_class, yaml_dic)
         else: # is_just_a_plain_type
-            default_instance = attr_class()
-            value = yaml_dic.get(attr_name, default_instance)
-            if type(value) != type(default_instance):
-                raise Exception(f"Attribute `{attr_name}` must be of type `{attr_class.__name__}` and is a `{type(value).__name__}`")
-            if type(default_instance) == dict:
-                if len(attr_class.__args__) != 2:
-                    raise Exception(f"Dict `{attr_name}` must be defined with two inner types (key and value)")
-                key_type: type = attr_class.__args__[0]
-                val_type: type = attr_class.__args__[1]
-                for k,v in value.items():
-                    if type(k) != key_type:
-                        raise Exception(f"Dict key type must be `{key_type.__name__}` and is `{type(k).__name__}`")
-                    if type(v) != val_type:
-                        raise Exception(f"Dict key type must be `{val_type.__name__}` and is `{type(v).__name__}`")
+            value =  cls.map_plain_attribute(attr_name, attr_class, yaml_dic)
         setattr(this, attr_name, value)
 
     @classmethod
@@ -93,6 +80,24 @@ class BaseModel:
             value = attr_class(attr_value)
         except Exception:
             raise Exception(f"Invalid value `{attr_value}`, `{attr_name}` must be one of the following: {[e.value for e in attr_class]}")
+        return value
+    
+    @classmethod
+    def map_plain_attribute(cls, attr_name: str, attr_class: type, yaml_dic: dict) -> any:
+        default_instance = attr_class()
+        value = yaml_dic.get(attr_name, default_instance)
+        if type(value) != type(default_instance):
+            raise Exception(f"Attribute `{attr_name}` must be of type `{attr_class.__name__}` and is a `{type(value).__name__}`")
+        if type(default_instance) == dict:
+            if len(attr_class.__args__) != 2:
+                raise Exception(f"Dict `{attr_name}` must be defined with two inner types (key and value)")
+            key_type: type = attr_class.__args__[0]
+            val_type: type = attr_class.__args__[1]
+            for k,v in value.items():
+                if type(k) != key_type:
+                    raise Exception(f"Dict key type must be `{key_type.__name__}` and is `{type(k).__name__}`")
+                if type(v) != val_type:
+                    raise Exception(f"Dict key type must be `{val_type.__name__}` and is `{type(v).__name__}`")
         return value
     
     # To be overwritten by subclasses. Check data integrity.
