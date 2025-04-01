@@ -14,13 +14,17 @@ class BaseModel:
     
     # For each attribute of class get value from YAML
     @classmethod
-    def map_yaml(cls, this: Self, yaml_dic: any) -> Self:
+    def map_yaml(cls, this: Self, yaml_val: any) -> Self:
         if '__inner_val__' in cls.__annotations__:
-            # It's a newtype base model. Set the inner value.
-            setattr(this, '__inner_val__', yaml_dic)
+            # It's a newtype base model, with a plain type inside.
+            # Set the inner value.
+            inner_val_type = cls.__annotations__['__inner_val__']
+            if inner_val_type != type(yaml_val):
+                raise Exception(f"Attribute must be of type `{inner_val_type.__name__}` and is a `{type(yaml_val).__name__}`")
+            setattr(this, '__inner_val__', yaml_val)
         else:
             for attr_name, attr_class in cls.__annotations__.items():
-                cls.map_attribute(this, attr_name, attr_class, yaml_dic)
+                cls.map_attribute(this, attr_name, attr_class, yaml_val)
         this.check()
         return this
 
@@ -33,7 +37,20 @@ class BaseModel:
         elif is_list(attr_class):
             value = cls.map_list_attribute(attr_name, attr_class, yaml_dic)
         else: # is_just_a_plain_type
-            value = yaml_dic.get(attr_name, attr_class())
+            default_instance = attr_class()
+            value = yaml_dic.get(attr_name, default_instance)
+            if type(value) != type(default_instance):
+                raise Exception(f"Attribute `{attr_name}` must be of type `{attr_class.__name__}` and is a `{type(value).__name__}`")
+            if type(default_instance) == dict:
+                if len(attr_class.__args__) != 2:
+                    raise Exception(f"Dict `{attr_name}` must be defined with two inner types (key and value)")
+                key_type: type = attr_class.__args__[0]
+                val_type: type = attr_class.__args__[1]
+                for k,v in value.items():
+                    if type(k) != key_type:
+                        raise Exception(f"Dict key type must be `{key_type.__name__}` and is `{type(k).__name__}`")
+                    if type(v) != val_type:
+                        raise Exception(f"Dict key type must be `{val_type.__name__}` and is `{type(v).__name__}`")
         setattr(this, attr_name, value)
 
     @classmethod
@@ -53,7 +70,9 @@ class BaseModel:
             return []
         if type(subyaml_list) is not list:
             raise Exception(f"Object at YAML attribute `{attr_name}` must be a list")
-        # Get first type of list content (assuming we have only one type)
+        if len(attr_class.__args__) != 1:
+            raise Exception(f"List `{attr_name}` must be defined with one inner type only")
+        # Get type of list contents
         item_type: type[Self] = attr_class.__args__[0]
         for item in subyaml_list:
             list_item = item_type()
@@ -62,6 +81,8 @@ class BaseModel:
                 item_type.map_yaml(list_item, item)
                 list_of_items.append(list_item)
             else: # is_just_a_plain_type
+                if item_type != type(item):
+                    raise Exception(f"List `{attr_name}` must be of type `{item_type.__name__}` and is a `{type(item).__name__}`")
                 list_of_items.append(item)
         return list_of_items
     
@@ -76,8 +97,7 @@ class BaseModel:
     
     # To be overwritten by subclasses. Check data integrity.
     # Should raise an exception if check fails.
-    def check(self):
-        pass
+    def check(self): pass
 
 # Helpers
 
