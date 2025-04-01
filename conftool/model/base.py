@@ -2,6 +2,9 @@ from typing_extensions import Self
 from enum import Enum
 import yaml
 
+#TODO: track the exact location of the error
+#TODO: generate a custom exception (ConfigException), which contains metadata: attribute path and yaml line.
+
 class BaseModel:
     @classmethod
     def from_yaml(cls, yaml_str: str) -> Self:
@@ -36,8 +39,12 @@ class BaseModel:
             value = cls.map_enum_attribute(attr_name, attr_class, yaml_dic)
         elif is_list(attr_class):
             value = cls.map_list_attribute(attr_name, attr_class, yaml_dic)
-        else: # is_just_a_plain_type
-            value =  cls.map_plain_attribute(attr_name, attr_class, yaml_dic)
+        elif is_dict(attr_class):
+            value = cls.map_dict_attribute(attr_name, attr_class, yaml_dic)
+        elif is_plain_type(attr_class):
+            value = cls.map_plain_attribute(attr_name, attr_class, yaml_dic)
+        else:
+            raise Exception(f"Attribute `{attr_name}` is of unrecognized plain type `{attr_class.__name__}`")
         setattr(this, attr_name, value)
 
     @classmethod
@@ -83,21 +90,26 @@ class BaseModel:
         return value
     
     @classmethod
+    def map_dict_attribute(cls, attr_name: str, attr_class: type, yaml_dic: dict) -> any:
+        default_instance: dict = attr_class()
+        value = yaml_dic.get(attr_name, default_instance)
+        if len(attr_class.__args__) != 2:
+            raise Exception(f"Dict `{attr_name}` must be defined with two inner types (key and value)")
+        key_type: type = attr_class.__args__[0]
+        val_type: type = attr_class.__args__[1]
+        for k,v in value.items():
+            if type(k) != key_type:
+                raise Exception(f"Dict key type must be `{key_type.__name__}` and is `{type(k).__name__}`")
+            if type(v) != val_type:
+                raise Exception(f"Dict key type must be `{val_type.__name__}` and is `{type(v).__name__}`")
+        return value
+    
+    @classmethod
     def map_plain_attribute(cls, attr_name: str, attr_class: type, yaml_dic: dict) -> any:
         default_instance = attr_class()
         value = yaml_dic.get(attr_name, default_instance)
         if type(value) != type(default_instance):
             raise Exception(f"Attribute `{attr_name}` must be of type `{attr_class.__name__}` and is a `{type(value).__name__}`")
-        if type(default_instance) == dict:
-            if len(attr_class.__args__) != 2:
-                raise Exception(f"Dict `{attr_name}` must be defined with two inner types (key and value)")
-            key_type: type = attr_class.__args__[0]
-            val_type: type = attr_class.__args__[1]
-            for k,v in value.items():
-                if type(k) != key_type:
-                    raise Exception(f"Dict key type must be `{key_type.__name__}` and is `{type(k).__name__}`")
-                if type(v) != val_type:
-                    raise Exception(f"Dict key type must be `{val_type.__name__}` and is `{type(v).__name__}`")
         return value
     
     # To be overwritten by subclasses. Check data integrity.
@@ -114,3 +126,13 @@ def is_base_model(cls: type) -> bool:
 
 def is_list(cls: type) -> bool:
     return type(cls()) is list
+
+def is_dict(cls: type) -> bool:
+    return type(cls()) is dict
+
+def is_plain_type(cls: type) -> bool:
+    return cls is int or \
+           cls is float or \
+           cls is bool or \
+           cls is float or \
+           cls is str
