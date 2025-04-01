@@ -43,7 +43,7 @@ class RedisModel(BaseModel):
             raise Exception(f"`port` is `{self.port}` and must be a valid TCP port value [0, 65535]")
         if self.db_number < 0 or self.db_number > 15:
             raise Exception(f"`db_number` must be a valid Redis DB number [0, 15]")
-        if self.expire_days < 0 != True:
+        if self.expire_days < 0:
             raise Exception(f"`expire_days` can't be negative")
 
 class ArgumentsModel(BaseModel):
