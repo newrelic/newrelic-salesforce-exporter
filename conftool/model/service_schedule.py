@@ -1,4 +1,5 @@
 from .base import BaseModel
+from .exception import ConfigException
 
 class ServiceScheduleModel(BaseModel):
     hour: str
@@ -13,7 +14,7 @@ class ServiceScheduleModel(BaseModel):
         if cron_conf == '*':
             return
         elif cron_conf == "":
-            raise Exception(f"service_schedule `{attr_name}` can't be empty")
+            raise ConfigException(f"service_schedule `{attr_name}` can't be empty")
         else:
             str_nums = cron_conf.split(",")
             last_num = -1
@@ -21,10 +22,10 @@ class ServiceScheduleModel(BaseModel):
                 try:
                     num = int(n)
                 except Exception:
-                    raise Exception(f"values in service_schedule `{attr_name}` must be valid numbers")
+                    raise ConfigException(f"values in service_schedule `{attr_name}` must be valid numbers")
                 if num > last_num:
                     last_num = num
                 else:
-                    raise Exception(f"numbers in service_schedule `{attr_name}` must be in ascending order")
+                    raise ConfigException(f"numbers in service_schedule `{attr_name}` must be in ascending order")
                 if num < min or num > max:
-                    raise Exception(f"numbers in service_schedule `{attr_name}` must be in range [{min},{max}]")
+                    raise ConfigException(f"numbers in service_schedule `{attr_name}` must be in range [{min},{max}]")

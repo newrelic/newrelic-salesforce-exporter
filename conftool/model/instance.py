@@ -3,6 +3,7 @@ from .base import BaseModel
 from .service_schedule import ServiceScheduleModel
 from .query import QueryModel
 from .api_ver import ApiVer
+from .exception import ConfigException
 
 import validators
 
@@ -38,13 +39,13 @@ class RedisModel(BaseModel):
         if validators.domain(self.host) != True and \
            validators.ipv4(self.host) != True and \
            validators.ipv6(self.host) != True:
-            raise Exception(f"`host` must be a valid domain name or IP address")
+            raise ConfigException(f"`host` must be a valid domain name or IP address")
         if self.port < 0 or self.port > 65535:
-            raise Exception(f"`port` is `{self.port}` and must be a valid TCP port value [0, 65535]")
+            raise ConfigException(f"`port` is `{self.port}` and must be a valid TCP port value [0, 65535]")
         if self.db_number < 0 or self.db_number > 15:
-            raise Exception(f"`db_number` must be a valid Redis DB number [0, 15]")
+            raise ConfigException(f"`db_number` must be a valid Redis DB number [0, 15]")
         if self.expire_days < 0:
-            raise Exception(f"`expire_days` can't be negative")
+            raise ConfigException(f"`expire_days` can't be negative")
         super().check()
 
 class ArgumentsModel(BaseModel):
@@ -62,10 +63,12 @@ class ArgumentsModel(BaseModel):
     limits: LimitsModel
 
     def check(self):
+        if self.token_url is None:
+            raise ConfigException(f"`token_url` is required")
         if validators.url(self.token_url) != True:
-            raise Exception(f"Wrong URL format in `token_url`")
+            raise ConfigException(f"Wrong URL format in `token_url`")
         if self.time_lag_minutes < 0:
-            raise Exception(f"`time_lag_minutes`, can't be negative")
+            raise ConfigException(f"`time_lag_minutes`, can't be negative")
         super().check()
 
 class InstanceModel(BaseModel):

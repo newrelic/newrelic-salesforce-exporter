@@ -1,5 +1,6 @@
 from typing_extensions import Self
 from enum import Enum
+from .exception import ConfigException
 
 import yaml
 
@@ -24,7 +25,7 @@ class BaseModel:
             # Set the inner value.
             inner_val_type = cls.__annotations__['__inner_val__']
             if inner_val_type != type(yaml_val):
-                raise Exception(f"Attribute must be of type `{inner_val_type.__name__}` and is a `{type(yaml_val).__name__}`")
+                raise ConfigException(f"Attribute must be of type `{inner_val_type.__name__}` and is a `{type(yaml_val).__name__}`")
             setattr(this, '__inner_val__', yaml_val)
         else:
             for attr_name, attr_class in cls.__annotations__.items():
@@ -45,7 +46,7 @@ class BaseModel:
         elif is_plain_type(attr_class):
             value = cls.map_plain_attribute(attr_name, attr_class, yaml_dic)
         else:
-            raise Exception(f"Attribute `{attr_name}` is of unrecognized type `{attr_class.__name__}`")
+            raise ConfigException(f"Attribute `{attr_name}` is of unrecognized type `{attr_class.__name__}`")
         setattr(this, attr_name, value)
 
     @classmethod
@@ -64,9 +65,9 @@ class BaseModel:
         if subyaml_list is None:
             return None
         if type(subyaml_list) is not list:
-            raise Exception(f"Object at YAML attribute `{attr_name}` must be a list")
+            raise ConfigException(f"Object at YAML attribute `{attr_name}` must be a list")
         if len(attr_class.__args__) != 1:
-            raise Exception(f"List `{attr_name}` must be defined with one inner type only")
+            raise ConfigException(f"List `{attr_name}` must be defined with one inner type only")
         # Get type of list contents
         item_type: type[Self] = attr_class.__args__[0]
         for item in subyaml_list:
@@ -77,7 +78,7 @@ class BaseModel:
                 list_of_items.append(list_item)
             else: # is_just_a_plain_type
                 if item_type != type(item):
-                    raise Exception(f"List `{attr_name}` must be of type `{item_type.__name__}` and is a `{type(item).__name__}`")
+                    raise ConfigException(f"List `{attr_name}` must be of type `{item_type.__name__}` and is a `{type(item).__name__}`")
                 list_of_items.append(item)
         return list_of_items
     
@@ -90,7 +91,7 @@ class BaseModel:
         try:
             value = attr_class(attr_value)
         except Exception:
-            raise Exception(f"Invalid value `{attr_value}`, `{attr_name}` must be one of the following: {[e.value for e in attr_class]}")
+            raise ConfigException(f"Invalid value `{attr_value}`, `{attr_name}` must be one of the following: {[e.value for e in attr_class]}")
         return value
     
     #TODO: support dict values with types other than plain
@@ -99,14 +100,14 @@ class BaseModel:
         default_instance: dict = attr_class()
         value = yaml_dic.get(attr_name, default_instance)
         if len(attr_class.__args__) != 2:
-            raise Exception(f"Dict `{attr_name}` must be defined with two inner types (key and value)")
+            raise ConfigException(f"Dict `{attr_name}` must be defined with two inner types (key and value)")
         key_type: type = attr_class.__args__[0]
         val_type: type = attr_class.__args__[1]
         for k,v in value.items():
             if type(k) != key_type:
-                raise Exception(f"Dict key type must be `{key_type.__name__}` and is `{type(k).__name__}`")
+                raise ConfigException(f"Dict key type must be `{key_type.__name__}` and is `{type(k).__name__}`")
             if type(v) != val_type:
-                raise Exception(f"Dict key type must be `{val_type.__name__}` and is `{type(v).__name__}`")
+                raise ConfigException(f"Dict key type must be `{val_type.__name__}` and is `{type(v).__name__}`")
         return value
     
     @classmethod
@@ -116,7 +117,7 @@ class BaseModel:
         if value is None:
             return None
         if type(value) != type(default_instance):
-            raise Exception(f"Attribute `{attr_name}` must be of type `{attr_class.__name__}` and is a `{type(value).__name__}`")
+            raise ConfigException(f"Attribute `{attr_name}` must be of type `{attr_class.__name__}` and is a `{type(value).__name__}`")
         return value
     
     # To be overwritten by subclasses. Check data integrity.

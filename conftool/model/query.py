@@ -1,5 +1,6 @@
 from .base import BaseModel
 from .api_ver import ApiVer
+from .exception import ConfigException
 
 class Env(BaseModel):
     end_date: str
@@ -12,3 +13,7 @@ class QueryModel(BaseModel):
     api_ver: ApiVer
     env: Env
     api_name: str
+
+    def check(self):
+        #TODO: check
+        return super().check()
