@@ -1,5 +1,5 @@
 from typing_extensions import Self
-from enum import Enum
+from .config_enum import ConfigEnum
 from .exception import ConfigException
 
 import yaml
@@ -83,7 +83,7 @@ class BaseModel:
         return list_of_items
     
     @classmethod
-    def map_enum_attribute(cls, attr_name: str, attr_class: type[Enum], yaml_dic: dict) -> any:
+    def map_enum_attribute(cls, attr_name: str, attr_class: type[ConfigEnum], yaml_dic: dict) -> any:
         if attr_name in yaml_dic:
             attr_value = yaml_dic[attr_name]
         else:
@@ -122,13 +122,18 @@ class BaseModel:
     
     # To be overwritten by subclasses. Check data integrity.
     # Should raise an exception if check fails.
-    def check(self):
-        print("---------> CHECK " + type(self).__name__)
+    def check(self): pass
+    
+    def __str__(self):
+        if hasattr(self, '__inner_val__'):
+            return self.__inner_val__
+        else:
+            return super().__str__
 
 # Helpers
 
 def is_enum(cls: type) -> bool:
-    return issubclass(cls, Enum)
+    return issubclass(cls, ConfigEnum)
 
 def is_base_model(cls: type) -> bool:
     return issubclass(cls, BaseModel)

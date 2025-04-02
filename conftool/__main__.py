@@ -11,6 +11,9 @@ def main():
     print(f"New Relic Salesforce Exporter Config Tool {VERSION}\n")
     config_yaml_str = read_file(sys.argv[1])
     config_model = ConfigModel.from_yaml(config_yaml_str)
+    # print("instances_0/arguments/generation_interval=",config_model.instances[0].arguments.generation_interval)
+    # print("instances_1/arguments/generation_interval=",config_model.instances[1].arguments.generation_interval)
+    # print("instances_0/arguments/api_ver=",config_model.instances[0].arguments.api_ver)
     pretty_print_config(config_model)
 
 def read_file(file_name: str) -> str:

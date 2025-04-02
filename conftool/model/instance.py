@@ -1,9 +1,9 @@
-from enum import Enum
 from .base import BaseModel
 from .service_schedule import ServiceScheduleModel
 from .query import QueryModel
 from .api_ver import ApiVer
 from .exception import ConfigException
+from .config_enum import ConfigEnum
 
 import validators
 
@@ -11,21 +11,56 @@ class LimitsModel(BaseModel):
     api_ver: ApiVer
     names: list[str]
 
-class GenerationIntervalModel(Enum):
+class GenerationIntervalModel(ConfigEnum):
     HOURLY = 'Hourly'
     DAILY = 'Daily'
 
-#TODO: add attributes for the JWT flow
+class GrantTypeModel(ConfigEnum):
+    PASSWORD = "password"
+    JWT = "urn:ietf:params:oauth:grant-type:jwt-bearer"
+
 class AuthModel(BaseModel):
-    grant_type: str
+    grant_type: GrantTypeModel
     client_id: str
+    # Password flow only attributes
     client_secret: str
     username: str
     password: str
+    # JWT flow only attributes
+    private_key: str
+    subject: str
+    audience: str
+    expiration_offset: int
 
     def check(self):
-        #TODO: check
+        if self.grant_type is None:
+            raise ConfigException(f"`grant_type` must be defined")
+        if self.client_id is None:
+            raise ConfigException(f"`client_id` must be defined")
+        if self.grant_type == GrantTypeModel.PASSWORD:
+            self._pass_flow_check()
+        else:
+            self._jwt_flow_check()
         super().check()
+
+    def _pass_flow_check(self):
+        if self.client_secret is None:
+            raise ConfigException(f"`client_secret` must be defined")
+        if self.username is None:
+            raise ConfigException(f"`username` must be defined")
+        if self.password is None:
+            raise ConfigException(f"`password` must be defined")
+
+    def _jwt_flow_check(self):
+        if self.private_key is None:
+            raise ConfigException(f"`private_key` must be defined")
+        if self.subject is None:
+            raise ConfigException(f"`subject` must be defined")
+        if self.audience is None:
+            raise ConfigException(f"`audience` must be defined")
+        if self.expiration_offset is not None:
+            if self.expiration_offset < 0:
+                raise ConfigException(f"`expiration_offset` can't be negative")
 
 class RedisModel(BaseModel):
     host: str
@@ -48,7 +83,7 @@ class RedisModel(BaseModel):
             raise ConfigException(f"`expire_days` can't be negative")
         super().check()
 
-class DateFieldModel(Enum):
+class DateFieldModel(ConfigEnum):
     LOGDATE = "LogDate"
     CREATEDDATE = "CreatedDate"
 

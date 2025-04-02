@@ -1,12 +1,12 @@
 from .base import BaseModel
-from enum import Enum
+from .config_enum import ConfigEnum
 from .exception import ConfigException
 
-class DataFormatModel(Enum):
+class DataFormatModel(ConfigEnum):
    EVENTS = "events"
    LOGS = "logs"
 
-class ApiEndpointModel(Enum):
+class ApiEndpointModel(ConfigEnum):
    US = "US"
    EU = "EU"
    FEDRAMP = "FEDRAMP"
