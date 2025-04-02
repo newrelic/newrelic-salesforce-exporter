@@ -595,6 +595,17 @@ The `labels` parameter is a set of key/value pairs. The value of this parameter
 is a YAML mapping. Each key/value pair is added to all logs and events generated
 by the exporter.
 
+###### `service_schedule`
+
+| Description | Valid Values | Required | Default |
+| --- | --- | --- | --- |
+| Schedule configuration used by the built-in scheduler | YAML Mapping | N | N/a |
+
+Instance-specific service schedule configuration. When present it has precedence
+over the general `service_schedule` config.
+
+Check [`service_schedule`](#service_schedule) for format description.
+
 ##### Instance arguments
 
 The main configuration of an instance is specified in the `arguments` attribute
