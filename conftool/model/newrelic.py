@@ -18,11 +18,10 @@ class NewRelicModel(BaseModel):
     license_key: str
 
     def check(self):
-        if self.data_format is None:
-           raise ConfigException("`data_format` must be defined")
         if self.api_endpoint is None:
            raise ConfigException("`api_endpoint` must be defined")
-        if self.data_format is DataFormatModel.EVENTS and self.account_id is None:
+        if self.data_format is DataFormatModel.EVENTS and \
+           self.account_id is None:
            raise ConfigException("`account_id` must be defined")
         if self.license_key is None:
             raise ConfigException("`license_ley` must be defined")
