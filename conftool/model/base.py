@@ -1,5 +1,6 @@
 from typing_extensions import Self
 from enum import Enum
+
 import yaml
 
 #TODO: track the exact location of the error
@@ -44,7 +45,7 @@ class BaseModel:
         elif is_plain_type(attr_class):
             value = cls.map_plain_attribute(attr_name, attr_class, yaml_dic)
         else:
-            raise Exception(f"Attribute `{attr_name}` is of unrecognized plain type `{attr_class.__name__}`")
+            raise Exception(f"Attribute `{attr_name}` is of unrecognized type `{attr_class.__name__}`")
         setattr(this, attr_name, value)
 
     @classmethod
@@ -52,7 +53,7 @@ class BaseModel:
         subyaml = yaml_dic.get(attr_name)
         base_model_instance = attr_class()
         if subyaml is None:
-            return base_model_instance
+            return None
         else:
             return attr_class.map_yaml(base_model_instance, subyaml)
         
@@ -61,7 +62,7 @@ class BaseModel:
         list_of_items: list = attr_class()
         subyaml_list = yaml_dic.get(attr_name)
         if subyaml_list is None:
-            return []
+            return None
         if type(subyaml_list) is not list:
             raise Exception(f"Object at YAML attribute `{attr_name}` must be a list")
         if len(attr_class.__args__) != 1:
@@ -82,13 +83,17 @@ class BaseModel:
     
     @classmethod
     def map_enum_attribute(cls, attr_name: str, attr_class: type[Enum], yaml_dic: dict) -> any:
-        attr_value = yaml_dic[attr_name]
+        if attr_name in yaml_dic:
+            attr_value = yaml_dic[attr_name]
+        else:
+            return None
         try:
             value = attr_class(attr_value)
         except Exception:
             raise Exception(f"Invalid value `{attr_value}`, `{attr_name}` must be one of the following: {[e.value for e in attr_class]}")
         return value
     
+    #TODO: support dict values with types other than plain
     @classmethod
     def map_dict_attribute(cls, attr_name: str, attr_class: type, yaml_dic: dict) -> any:
         default_instance: dict = attr_class()
@@ -107,14 +112,17 @@ class BaseModel:
     @classmethod
     def map_plain_attribute(cls, attr_name: str, attr_class: type, yaml_dic: dict) -> any:
         default_instance = attr_class()
-        value = yaml_dic.get(attr_name, default_instance)
+        value = yaml_dic.get(attr_name, None)
+        if value is None:
+            return None
         if type(value) != type(default_instance):
             raise Exception(f"Attribute `{attr_name}` must be of type `{attr_class.__name__}` and is a `{type(value).__name__}`")
         return value
     
     # To be overwritten by subclasses. Check data integrity.
     # Should raise an exception if check fails.
-    def check(self): pass
+    def check(self):
+        print("---------> CHECK " + type(self).__name__)
 
 # Helpers
 

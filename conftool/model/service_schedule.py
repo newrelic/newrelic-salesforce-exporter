@@ -7,6 +7,7 @@ class ServiceScheduleModel(BaseModel):
     def check(self):
         self.check_cron_format('hour', 0, 23, self.hour)
         self.check_cron_format('minute', 0, 59, self.minute)
+        super().check()
 
     def check_cron_format(self, attr_name: str, min: int, max: int, cron_conf: str):
         if cron_conf == '*':

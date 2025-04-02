@@ -10,3 +10,5 @@ class ApiVer(BaseModel):
         for n in components:
             if not n.isnumeric():
                 raise Exception(f"Wrong api_ver value `{self.__inner_val__}`, components must be numbers")
+        super().check()
+        

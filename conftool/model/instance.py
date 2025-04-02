@@ -24,7 +24,7 @@ class AuthModel(BaseModel):
 
     def check(self):
         #TODO: check
-        pass
+        super().check()
 
 class RedisModel(BaseModel):
     host: str
@@ -45,6 +45,7 @@ class RedisModel(BaseModel):
             raise Exception(f"`db_number` must be a valid Redis DB number [0, 15]")
         if self.expire_days < 0:
             raise Exception(f"`expire_days` can't be negative")
+        super().check()
 
 class ArgumentsModel(BaseModel):
     auth: AuthModel
@@ -65,6 +66,7 @@ class ArgumentsModel(BaseModel):
             raise Exception(f"Wrong URL format in `token_url`")
         if self.time_lag_minutes < 0:
             raise Exception(f"`time_lag_minutes`, can't be negative")
+        super().check()
 
 class InstanceModel(BaseModel):
     name: str
