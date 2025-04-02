@@ -6,6 +6,10 @@ class Env(BaseModel):
     end_date: str
     start_date: str
 
+    def check(self):
+        # No checks required
+        return super().check()
+
 class QueryModel(BaseModel):
     query: str
     timestamp_attr: str
@@ -13,7 +17,10 @@ class QueryModel(BaseModel):
     api_ver: ApiVer
     env: Env
     api_name: str
+    event_type: str
+    id: list[str]
 
     def check(self):
-        #TODO: check
+        if self.query is None:
+            raise ConfigException(f"`query` must be defined")
         return super().check()
