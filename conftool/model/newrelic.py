@@ -11,7 +11,7 @@ class ApiEndpointModel(Enum):
    EU = "EU"
    FEDRAMP = "FEDRAMP"
    
-class NewRelicModel(BaseModel):
+class NewrelicModel(BaseModel):
     data_format: DataFormatModel
     api_endpoint: ApiEndpointModel
     account_id: str

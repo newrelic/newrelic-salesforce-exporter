@@ -2,7 +2,7 @@ from .base import BaseModel
 from .service_schedule import ServiceScheduleModel
 from .instance import InstanceModel
 from .query import QueryModel
-from .newrelic import NewRelicModel
+from .newrelic import NewrelicModel
 from .exception import ConfigException
 
 class ConfigModel(BaseModel):
@@ -12,7 +12,7 @@ class ConfigModel(BaseModel):
     service_schedule: ServiceScheduleModel
     instances: list[InstanceModel]
     queries: list[QueryModel]
-    newrelic: NewRelicModel
+    newrelic: NewrelicModel
 
     def check(self):
         if self.run_as_service:
