@@ -68,7 +68,7 @@ class ArgumentsModel(BaseModel):
         if validators.url(self.token_url) != True:
             raise ConfigException(f"Wrong URL format in `token_url`")
         if self.time_lag_minutes < 0:
-            raise ConfigException(f"`time_lag_minutes`, can't be negative")
+            raise ConfigException(f"`time_lag_minutes` can't be negative")
         super().check()
 
 class InstanceModel(BaseModel):
@@ -76,3 +76,10 @@ class InstanceModel(BaseModel):
     service_schedule: ServiceScheduleModel
     arguments: ArgumentsModel
     labels: dict[str,str]
+
+    def check(self):
+        if self.name is None or self.name == "":
+            raise ConfigException(f"`name` must be defined")
+        if self.arguments is None:
+            raise ConfigException(f"`arguments` must be defined")
+        return super().check()
