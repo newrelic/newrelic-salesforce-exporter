@@ -48,6 +48,10 @@ class RedisModel(BaseModel):
             raise ConfigException(f"`expire_days` can't be negative")
         super().check()
 
+class DateFieldModel(Enum):
+    LOGDATE = "LogDate"
+    CREATEDDATE = "CreatedDate"
+
 class ArgumentsModel(BaseModel):
     auth: AuthModel
     redis: RedisModel
@@ -55,7 +59,7 @@ class ArgumentsModel(BaseModel):
     token_url: str
     auth_env_prefix: str
     cache_enabled: bool
-    date_field: str
+    date_field: DateFieldModel
     generation_interval: GenerationIntervalModel
     time_lag_minutes: int
     queries: list[QueryModel]
@@ -67,8 +71,12 @@ class ArgumentsModel(BaseModel):
             raise ConfigException(f"`token_url` is required")
         if validators.url(self.token_url) != True:
             raise ConfigException(f"Wrong URL format in `token_url`")
-        if self.time_lag_minutes < 0:
-            raise ConfigException(f"`time_lag_minutes` can't be negative")
+        if self.cache_enabled:
+            if self.redis is None:
+                raise ConfigException(f"`redis` must be defined when `cache_enabled` is True")
+        if self.time_lag_minutes is not None:
+            if self.time_lag_minutes < 0:
+                raise ConfigException(f"`time_lag_minutes` can't be negative")
         super().check()
 
 class InstanceModel(BaseModel):
