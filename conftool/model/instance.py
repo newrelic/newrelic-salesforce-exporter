@@ -10,9 +10,10 @@ import validators
 class LimitsModel(BaseModel):
     api_ver: ApiVer
     names: list[str]
+    event_type: str
 
     def check(self):
-        #TODO: check
+        # No checks required
         super().check()
 
 class GenerationIntervalModel(ConfigEnum):
