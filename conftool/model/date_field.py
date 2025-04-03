@@ -1,4 +1,4 @@
-from .config_enum import ConfigEnum
+from .enum import ConfigEnum
 
 class DateFieldModel(ConfigEnum):
     LOGDATE = "LogDate"

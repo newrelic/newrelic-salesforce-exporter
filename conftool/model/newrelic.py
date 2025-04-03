@@ -1,5 +1,5 @@
 from .base import BaseModel
-from .config_enum import ConfigEnum
+from .enum import ConfigEnum
 from .exception import ConfigException
 
 class DataFormatModel(ConfigEnum):

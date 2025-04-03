@@ -1,5 +1,5 @@
 from typing_extensions import Self
-from .config_enum import ConfigEnum
+from .enum import ConfigEnum
 from .exception import ConfigException
 
 import yaml
