@@ -1,5 +1,6 @@
-from .model.config import ConfigModel
 from . import VERSION
+from .model.config import ConfigModel
+from .model.exception import ConfigException
 
 import sys
 
@@ -9,11 +10,27 @@ def main():
         sys.exit(1)
     
     print(f"New Relic Salesforce Exporter Config Tool {VERSION}\n")
+
     config_yaml_str = read_file(sys.argv[1])
-    config_model = ConfigModel.from_yaml(config_yaml_str)
-    # print("instances_0/arguments/generation_interval=",config_model.instances[0].arguments.generation_interval)
-    # print("instances_1/arguments/generation_interval=",config_model.instances[1].arguments.generation_interval)
-    # print("instances_0/arguments/api_ver=",config_model.instances[0].arguments.api_ver)
+
+    try:
+        config_model = ConfigModel.from_yaml(config_yaml_str)
+    except ConfigException as err:
+        print("------------------------------------ ERROR -------------------------------------")
+        print(err)
+        print("---------------------------------- TRACEBACK -----------------------------------")
+        import traceback
+        traceback.print_exc()
+        print("--------------------------------------------------------------------------------")
+        return
+    
+    # print("instances_0/arguments/generation_interval =",config_model.instances[0].arguments.generation_interval)
+    # print("instances_0/arguments/api_ver =",config_model.instances[0].arguments.api_ver)
+    # print("instances_0/arguments/api_ver =",config_model.instances[0].arguments.api_ver.__dict__)
+    # print("instances_0/arguments/api_ver =",config_model.instances[0].arguments.cache_enabled)
+    # print("instances_1/arguments/generation_interval =",config_model.instances[1].arguments.generation_interval)
+    # print("instances_1/arguments/api_ver =",config_model.instances[1].arguments.api_ver)
+    
     pretty_print_config(config_model)
 
 def read_file(file_name: str) -> str:
@@ -74,13 +91,4 @@ def pretty_print_config(config_model: ConfigModel):
 
 # TODO: catch CTRL+C and store a backup of the ongoing config.
 
-if __name__ == "__main__":
-    try:
-        main()
-    except Exception as err:
-        print("------------------------------------ ERROR -------------------------------------")
-        print(err)
-        print("---------------------------------- TRACEBACK -----------------------------------")
-        import traceback
-        traceback.print_exc()
-        print("--------------------------------------------------------------------------------")
+if __name__ == "__main__": main()
