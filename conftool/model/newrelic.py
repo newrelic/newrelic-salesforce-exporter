@@ -1,15 +1,7 @@
 from .base import BaseModel
-from .enum import ConfigEnum
 from .exception import ConfigException
-
-class DataFormatModel(ConfigEnum):
-   EVENTS = "events"
-   LOGS = "logs"
-
-class ApiEndpointModel(ConfigEnum):
-   US = "US"
-   EU = "EU"
-   FEDRAMP = "FEDRAMP"
+from .data_format import DataFormatModel
+from .api_endpoint import ApiEndpointModel
    
 class NewrelicModel(BaseModel):
     data_format: DataFormatModel
