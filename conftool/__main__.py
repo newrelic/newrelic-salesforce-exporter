@@ -1,7 +1,7 @@
 from . import VERSION
 from .model.config import ConfigModel
 from .model.exception import ConfigException
-from .form import run_form
+from .form import questionnaire
 
 import argparse
 import os.path
@@ -19,10 +19,10 @@ def main():
     print(f"New Relic Salesforce Exporter Config Tool v{VERSION}\n")
 
     if args.new:
-            run_form()
+            questionnaire()
     else:
         #TODO: show file structure and allow editing
-        
+
         if not os.path.isfile(args.config_file):
             print("Error: Config file doesn't exist.")
             exit(1)

@@ -1,11 +1,11 @@
-from .question import Question
 from conftool.model.api_endpoint import ApiEndpointModel
+from .question import Question
+from .runner import ask
 
-def run_form():
-    r = Question(
-        prompt="API Endpoint?",
+def questionnaire():
+    r = ask(Question(
         description="New Relic API endpoint",
-        datatype=ApiEndpointModel,
-        required=True
-        ).run()
-    print("-> Response =", r.value)
+        required=True,
+        prompt="API Endpoint?",
+        datatype=ApiEndpointModel))
+    print("-> Response =", r)
