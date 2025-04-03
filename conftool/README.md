@@ -27,8 +27,16 @@ From `conftool` folder:
 
 ## Usage
 
-From repo's root folder:
+From repo's root folder.
 
-```
-python -m conftool path/to/config.yml
-```
+1. To create new config file:
+
+    ```
+    python -m conftool path/to/config.yml --new
+    ```
+
+1. To load, validate and edit existing config file:
+
+    ```
+    python -m conftool path/to/config.yml
+    ```
