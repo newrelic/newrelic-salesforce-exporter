@@ -1,7 +1,7 @@
 from .base import BaseModel
 from .exception import ConfigException
 
-class ApiVer(BaseModel):
+class ApiVerModel(BaseModel):
     __inner_val__: str
 
     def check(self):
