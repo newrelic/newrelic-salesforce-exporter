@@ -1,5 +1,5 @@
 from conftool.model.api_endpoint import ApiEndpointModel
-from .question import Question, ask_int, ask_enum, ask_bool
+from .question import Question, ask_int, ask_enum, ask_bool, ask_str
 
 def run():
     ask_enum(Question(
@@ -16,7 +16,13 @@ def run():
         description="Enable cache for event deduplication",
         required=False,
         prompt="Cache enabled (y/n)?"))
+    ask_str(Question(
+        description="A simple string with nothing else",
+        required=False,
+        prompt="String?"),
+        checker)
 
-
-#TODO: function to check constrains (URL format, cron format, etc)
 #TODO: custom error message when checker fails
+
+def checker(text: str) -> bool:
+    return True

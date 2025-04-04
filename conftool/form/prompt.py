@@ -6,7 +6,7 @@ def prompt_list(message: str, options: list[str], required: bool) -> int:
         print(str(i+1) + ") " + str(option))
     validator = ListNumberValidator(1, len(options), not required)
     response = prompt(message + " ", validator=validator)
-    if response is None:
+    if response is None or response == "":
         return None
     else:
         return int(response)
@@ -26,7 +26,14 @@ def prompt_bool(message: str, required: bool) -> int:
         return None
     else:
         return response == "y" or response == "Y"
-
+    
+def prompt_str(message: str, checker, required: bool) -> int:
+    validator = StringValidator(checker, not required)
+    response = prompt(message + " ", validator=validator)
+    if response == "":
+        return None
+    else:
+        return response
     
 class ListNumberValidator(Validator):
     min: int
@@ -98,5 +105,24 @@ class BooleanValidator(Validator):
                 return
             raise ValidationError(
                 message=f"Input must be a 'Y', 'y', 'N' or 'n'",
+                cursor_position=0
+            )
+        
+class StringValidator(Validator):
+    skippable: bool
+    checker: None
+
+    def __init__(self, checker, skippable: bool):
+        self.skippable = skippable
+        self.checker = checker
+        super().__init__()
+
+    def validate(self, document):
+        text = document.text
+        if not self.checker(text):
+            if self.skippable and text == "":
+                return
+            raise ValidationError(
+                message=f"Wrong format",
                 cursor_position=0
             )
