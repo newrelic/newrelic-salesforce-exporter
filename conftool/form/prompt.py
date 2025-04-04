@@ -35,6 +35,14 @@ def prompt_str(message: str, checker, required: bool) -> int:
     else:
         return response
 
+def prompt_any(message: str, required: bool) -> int:
+    validator = SkippableValidator(not required)
+    response = prompt(message + " ", validator=validator)
+    if response == "":
+        return None
+    else:
+        return response
+
 class SkippableValidator(Validator):
     skippable: bool
 
@@ -50,7 +58,7 @@ class SkippableValidator(Validator):
                 cursor_position=0
             )
         
-    def is_valid_anyway(self, text):
+    def can_skip(self, text):
         return self.skippable and (text is None or text == "")
 
 class ListNumberValidator(SkippableValidator):
@@ -65,7 +73,7 @@ class ListNumberValidator(SkippableValidator):
     def validate(self, document):
         super().validate(document)
         text = document.text
-        if self.is_valid_anyway(text):
+        if self.can_skip(text):
             return
         if not self.digit_in_range(text):
             raise ValidationError(
@@ -92,7 +100,7 @@ class NumberRangeValidator(SkippableValidator):
     def validate(self, document):
         super().validate(document)
         text = document.text
-        if self.is_valid_anyway(text):
+        if self.can_skip(text):
             return
         if not self.number_in_range(text):
             raise ValidationError(
@@ -111,7 +119,7 @@ class BooleanValidator(SkippableValidator):
     def validate(self, document):
         super().validate(document)
         text = document.text
-        if self.is_valid_anyway(text):
+        if self.can_skip(text):
             return
         if text not in {"y", "Y", "n", "N"}:
             raise ValidationError(
@@ -129,7 +137,7 @@ class StringValidator(SkippableValidator):
     def validate(self, document):
         super().validate(document)
         text = document.text
-        if self.is_valid_anyway(text):
+        if self.can_skip(text):
             return
         if not self.checker(text):
             raise ValidationError(

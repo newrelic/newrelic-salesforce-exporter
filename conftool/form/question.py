@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from enum import Enum
-from .prompt import prompt_list, prompt_int, prompt_bool, prompt_str
+from .prompt import prompt_list, prompt_int, prompt_bool, prompt_str, prompt_any
 
 @dataclass
 class Question:
@@ -34,6 +34,11 @@ def ask_bool(question: Question) -> bool:
 def ask_str(question: Question, checker) -> str:
     print_question(question)
     r = prompt_str(question.prompt, checker, question.required)
+    print_response(r)
+
+def ask_any(question: Question) -> str:
+    print_question(question)
+    r = prompt_any(question.prompt, question.required)
     print_response(r)
 
 # Print formating
