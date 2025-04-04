@@ -34,23 +34,40 @@ def prompt_str(message: str, checker, required: bool) -> int:
         return None
     else:
         return response
-    
-class ListNumberValidator(Validator):
-    min: int
-    max: int
+
+class SkippableValidator(Validator):
     skippable: bool
 
-    def __init__(self, min: int, max: int, skippable: bool):
-        self.min = min
-        self.max = max
+    def __init__(self, skippable: bool):
         self.skippable = skippable
         super().__init__()
 
     def validate(self, document):
         text = document.text
+        if not self.skippable and (text is None or text == ""):
+            raise ValidationError(
+                message=f"Input can't be empty",
+                cursor_position=0
+            )
+        
+    def is_valid_anyway(self, text):
+        return self.skippable and (text is None or text == "")
+
+class ListNumberValidator(SkippableValidator):
+    min: int
+    max: int
+
+    def __init__(self, min: int, max: int, skippable: bool):
+        super().__init__(skippable)
+        self.min = min
+        self.max = max
+
+    def validate(self, document):
+        super().validate(document)
+        text = document.text
+        if self.is_valid_anyway(text):
+            return
         if not self.digit_in_range(text):
-            if self.skippable and text == "":
-                return
             raise ValidationError(
                 message="Input must be a number in the list",
                 cursor_position=0
@@ -62,23 +79,22 @@ class ListNumberValidator(Validator):
             return n >= self.min and n <= self.max
         else:
             return False
-        
-class NumberRangeValidator(Validator):
+
+class NumberRangeValidator(SkippableValidator):
     min: int
     max: int
-    skippable: bool
 
     def __init__(self, min: int, max: int, skippable: bool):
+        super().__init__(skippable)
         self.min = min
         self.max = max
-        self.skippable = skippable
-        super().__init__()
 
     def validate(self, document):
+        super().validate(document)
         text = document.text
+        if self.is_valid_anyway(text):
+            return
         if not self.number_in_range(text):
-            if self.skippable and text == "":
-                return
             raise ValidationError(
                 message=f"Input must be a number in the range [{self.min},{self.max}]",
                 cursor_position=0
@@ -91,37 +107,31 @@ class NumberRangeValidator(Validator):
         else:
             return False
         
-class BooleanValidator(Validator):
-    skippable: bool
-
-    def __init__(self, skippable: bool):
-        self.skippable = skippable
-        super().__init__()
-
+class BooleanValidator(SkippableValidator):
     def validate(self, document):
+        super().validate(document)
         text = document.text
+        if self.is_valid_anyway(text):
+            return
         if text not in {"y", "Y", "n", "N"}:
-            if self.skippable and text == "":
-                return
             raise ValidationError(
                 message=f"Input must be a 'Y', 'y', 'N' or 'n'",
                 cursor_position=0
             )
         
-class StringValidator(Validator):
-    skippable: bool
+class StringValidator(SkippableValidator):
     checker: None
 
     def __init__(self, checker, skippable: bool):
-        self.skippable = skippable
+        super().__init__(skippable)
         self.checker = checker
-        super().__init__()
 
     def validate(self, document):
+        super().validate(document)
         text = document.text
+        if self.is_valid_anyway(text):
+            return
         if not self.checker(text):
-            if self.skippable and text == "":
-                return
             raise ValidationError(
                 message=f"Wrong format",
                 cursor_position=0
