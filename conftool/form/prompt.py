@@ -1,28 +1,12 @@
-from enum import Enum
 from prompt_toolkit.validation import Validator, ValidationError
 from prompt_toolkit import prompt
-from .question import Question
 
-def ask(question: Question) -> any:
-    print(question.description + " (" + ("required" if question.required else "optional") + ")")
-    if issubclass(question.datatype, Enum):
-        return ask_enum(question)
-    #TODO: support all possible data types
-
-def ask_enum(question: Question) -> any:
-    options = [e.value for e in question.datatype]
+def prompt_enum(message: str, options: list[str], required: bool) -> str:
     # Print list
-    for i,e in enumerate(question.datatype):
-        print(str(i+1) + ") " + str(e.value))
-    response = prompt(question.prompt + " ", validator=ListNumberValidator(1, len(options), not question.required))
-    if response == "":
-        return None
-    else:
-        number = int(response)
-    return question.datatype(options[number - 1])
-
-#TODO: function to check constrains (URL format, cron format, etc)
-#TODO: custom error message when checker fails
+    for i,option in enumerate(options):
+        print(str(i+1) + ") " + str(option))
+    validator = ListNumberValidator(1, len(options), not required)
+    return prompt(message + " ", validator=validator)
     
 class ListNumberValidator(Validator):
     min: int

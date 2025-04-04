@@ -19,7 +19,7 @@ def main():
     print(f"New Relic Salesforce Exporter Config Tool v{VERSION}\n")
 
     if args.new:
-            questionnaire()
+            questionnaire.run()
     else:
         #TODO: show file structure and allow editing
 
