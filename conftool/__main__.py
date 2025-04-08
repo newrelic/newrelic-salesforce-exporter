@@ -1,6 +1,7 @@
 from . import VERSION
 from .model.config import ConfigModel
 from .model.exception import ConfigException
+from .model.enum import ConfigEnum
 from .form import questionnaire
 
 import argparse
@@ -44,20 +45,57 @@ def main():
             print("--------------------------------------------------------------------------------")
             exit(1)
         
-        pretty_print_config(config_model)
+        # Serialize model into YAML
+        import yaml
+        serialized_yaml = yaml.dump(todict(config_model), sort_keys=False)
+        
+        print(serialized_yaml)
 
+        #TODO: write YAML to file
 
 def read_file(file_name: str) -> str:
     with open(file_name) as file:
         return file.read()
 
-def pretty_print_config(config_model: ConfigModel):
-    import yaml
-    def yaml_equivalent_of_default(dumper, data):
-        dict_representation = data.__dict__
-        node = dumper.represent_dict(dict_representation)
-        return node
-    yaml.add_representer(ConfigModel, yaml_equivalent_of_default)
-    print(yaml.dump(config_model))
+def todict(obj, classkey=None):
+    if isinstance(obj, dict):
+        data = {}
+        for (k, v) in obj.items():
+            if v is not None:
+                data[k] = todict(v, classkey)
+        if not data:
+            return None
+        else:
+            return data
+    elif hasattr(obj, "__iter__") and not isinstance(obj, str):
+        ret_list = []
+        for v in obj:
+            if v is not None:
+                sub_dat = todict(v, classkey)
+                if sub_dat is not None:
+                    ret_list.append(sub_dat)
+        if not ret_list:
+            return None
+        else:
+            return ret_list
+    elif hasattr(obj, "__dict__"):
+        if obj is None:
+            return None
+        data_dict = {}
+        for key, value in obj.__dict__.items():
+            if not callable(value) and not key.startswith('_'):
+                if value is not None:
+                    sub_dat = todict(value, classkey)
+                    if sub_dat is not None:
+                        data_dict[key] = sub_dat
+            elif key == "__objclass__" and issubclass(value, ConfigEnum):
+                # Enum
+                return str(obj)
+        if not data_dict:
+            return None
+        else:
+            return data_dict
+    else:
+        return obj
 
 if __name__ == "__main__": main()

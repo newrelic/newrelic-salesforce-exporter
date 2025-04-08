@@ -128,7 +128,7 @@ class BaseModel:
         if hasattr(self, '__inner_val__'):
             return self.__inner_val__
         else:
-            return super().__str__
+            return super().__str__()
 
 # Helpers
 
