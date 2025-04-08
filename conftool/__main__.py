@@ -1,7 +1,7 @@
 from . import VERSION
 from .model.config import ConfigModel
 from .model.exception import ConfigException
-from .model.enum import ConfigEnum
+from .model import to_dict
 from .form import questionnaire
 
 import argparse
@@ -47,8 +47,8 @@ def main():
         
         # Serialize model into YAML
         import yaml
-        serialized_yaml = yaml.dump(todict(config_model), sort_keys=False)
-        
+        serialized_yaml = yaml.dump(to_dict(config_model), sort_keys=False)
+
         print(serialized_yaml)
 
         #TODO: write YAML to file
@@ -56,46 +56,5 @@ def main():
 def read_file(file_name: str) -> str:
     with open(file_name) as file:
         return file.read()
-
-def todict(obj, classkey=None):
-    if isinstance(obj, dict):
-        data = {}
-        for (k, v) in obj.items():
-            if v is not None:
-                data[k] = todict(v, classkey)
-        if not data:
-            return None
-        else:
-            return data
-    elif hasattr(obj, "__iter__") and not isinstance(obj, str):
-        ret_list = []
-        for v in obj:
-            if v is not None:
-                sub_dat = todict(v, classkey)
-                if sub_dat is not None:
-                    ret_list.append(sub_dat)
-        if not ret_list:
-            return None
-        else:
-            return ret_list
-    elif hasattr(obj, "__dict__"):
-        if obj is None:
-            return None
-        data_dict = {}
-        for key, value in obj.__dict__.items():
-            if not callable(value) and not key.startswith('_'):
-                if value is not None:
-                    sub_dat = todict(value, classkey)
-                    if sub_dat is not None:
-                        data_dict[key] = sub_dat
-            elif key == "__objclass__" and issubclass(value, ConfigEnum):
-                # Enum
-                return str(obj)
-        if not data_dict:
-            return None
-        else:
-            return data_dict
-    else:
-        return obj
 
 if __name__ == "__main__": main()
