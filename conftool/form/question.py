@@ -30,16 +30,19 @@ def ask_bool(question: Question) -> bool:
     print_question(question)
     r = prompt_bool(question.prompt, question.required)
     print_response(r)
+    return r
 
 def ask_str(question: Question, checker) -> str:
     print_question(question)
     r = prompt_str(question.prompt, checker, question.required)
     print_response(r)
+    return r
 
 def ask_any(question: Question) -> str:
     print_question(question)
     r = prompt_any(question.prompt, question.required)
     print_response(r)
+    return r
 
 # Print formating
 

@@ -1,7 +1,6 @@
 from . import VERSION
 from .model.config import ConfigModel
 from .model.exception import ConfigException
-from .model import to_dict
 from .form import questionnaire
 
 import argparse
@@ -46,7 +45,6 @@ def main():
             exit(1)
         
         # Serialize model into YAML
-        import yaml
         serialized_yaml = config_model.to_yaml()
 
         print(serialized_yaml)
