@@ -47,7 +47,7 @@ def main():
         
         # Serialize model into YAML
         import yaml
-        serialized_yaml = yaml.dump(to_dict(config_model), sort_keys=False)
+        serialized_yaml = config_model.to_yaml()
 
         print(serialized_yaml)
 

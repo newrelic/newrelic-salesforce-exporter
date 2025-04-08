@@ -4,6 +4,9 @@ from .instance import InstanceModel
 from .query import QueryModel
 from .newrelic import NewrelicModel
 from .exception import ConfigException
+from . import to_dict
+
+import yaml
 
 class ConfigModel(BaseModel):
     integration_name: str
@@ -29,3 +32,6 @@ class ConfigModel(BaseModel):
         if self.newrelic is None:
             raise ConfigException("`newrelic` must be defined")
         super().check()
+    
+    def to_yaml(self) -> str:
+        return yaml.dump(to_dict(self), sort_keys=False)
