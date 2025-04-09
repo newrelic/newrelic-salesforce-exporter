@@ -1,9 +1,13 @@
+from conftool.model.api_ver import ApiVerModel
+from conftool.model.arguments import ArgumentsModel
 from conftool.model.config import ConfigModel
 from conftool.model.exception import ConfigException
 from conftool.model.instance import InstanceModel
 from conftool.model.service_schedule import ServiceScheduleModel
 from .question import Question, ask_int, ask_enum, ask_bool, ask_str, ask_any
 from .text import *
+
+import validators
 
 def run():
     conf = ConfigModel()
@@ -27,23 +31,18 @@ def run():
             required=False),
             1, 10000)
     else:
-        do_setup_service_schedule = \
-        ask_bool(Question(
-            text=t_conf_scheduler,
-            required=True))
-
-        if do_setup_service_schedule:
-            service_schedule = ServiceScheduleModel()
-            service_schedule.hour = \
-            ask_str(Question(
-                text=t_service_scheduler_hours,
-                required=True),
-                cron_config_check_hours)
+        service_schedule = ServiceScheduleModel()
+        service_schedule.hour = \
+        ask_str(Question(
+            text=t_service_scheduler_hours,
+            required=False),
+            cron_hours_check)
+        if service_schedule.hour is not None:
             service_schedule.minute = \
             ask_str(Question(
                 text=t_service_scheduler_mins,
                 required=True),
-                cron_config_check_minutes)
+                cron_minutes_check)
             conf.service_schedule = service_schedule
 
     # Instances
@@ -54,8 +53,8 @@ def run():
         required=True),
         1, 10)
 
-    for _ in range(num_instances):
-        i = instance_questions()
+    for index in range(num_instances):
+        i = instance_questions(index)
         conf.instances.append(i)
 
     print("Final config model:\n")
@@ -67,21 +66,60 @@ def run():
     #     prompt="API Endpoint (1-3)?",
     #     datatype=ApiEndpointModel))
 
-def instance_questions() -> InstanceModel:
-    pass
+def instance_questions(index: int) -> InstanceModel:
+    print(f"Configuration for Instance #{index+1}\n")
+    i = InstanceModel()
+    i.name = \
+    ask_any(Question(
+        text=t_instance_name,
+        required=True))
+    i.arguments = ArgumentsModel()
+    i.arguments.token_url = \
+    ask_str(Question(
+        text=t_token_url,
+        required=True),
+        token_url_check)
+    i.arguments.api_ver = \
+    ask_str(Question(
+        text=t_api_ver,
+        required=False),
+        api_ver_check)
+    do_config_auth = \
+    ask_bool(Question(
+        text=t_conf_auth,
+        required=True))
+    if do_config_auth:
+        #TODO: get auth config, all values are required
+        pass
+    #TODO: instance-specific service_schedule (only if run_as_service is True). Optional.
+    #TODO: labels. Optional.
+    return i
 
 # Format checkers
 
-def cron_config_check_hours(text: str) -> bool:
+def cron_hours_check(text: str) -> bool:
     try:
         ServiceScheduleModel().check_cron_format('hour', 0, 23, text)
     except ConfigException:
         return False
     return True
 
-def cron_config_check_minutes(text: str) -> bool:
+def cron_minutes_check(text: str) -> bool:
     try:
         ServiceScheduleModel().check_cron_format('minute', 0, 59, text)
     except ConfigException:
         return False
     return True
+
+def token_url_check(text: str) -> bool:
+    if validators.url(text) == True:
+        return True
+    else:
+        return False
+    
+def api_ver_check(text: str) -> bool:
+    try:
+        ApiVerModel(text).check()
+        return True
+    except ConfigException:
+        return False

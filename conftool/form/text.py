@@ -25,22 +25,37 @@ t_cron_interval = Text(
     prom = "Cron interval (1-10000)?"
 )
 
-t_conf_scheduler = Text(
-    desc = "Service schedule configuration.",
-    prom = "Do you want to set up a service schedule (y/n)?"
-)
-
 t_service_scheduler_hours = Text(
-    desc = "Service schedule hours. Either '*' or comma separated hours (0-23) when the integration must fire.",
+    desc = "Service schedule configuration: hours. Either '*' or comma separated hours (0-23) when the integration must fire.",
     prom = "Hours?"
 )
 
 t_service_scheduler_mins = Text(
-    desc="Service schedule minutes. Either '*' or comma separated minutes (0-59) when the integration must fire.",
+    desc="Service schedule configuration: minutes. Either '*' or comma separated minutes (0-59) when the integration must fire.",
     prom="Minutes?"
 )
 
 t_num_instances = Text(
-    desc = "Salesforce instances",
+    desc = "The exporter can run one or more exports each time it is invoked. Each export is an `instance`.",
     prom = "How many instances do you want to set up (1-10)?"
+)
+
+t_instance_name = Text(
+    desc = "A symbolic name for the instance.",
+    prom = "Instance name?"
+)
+
+t_token_url = Text(
+    desc = "The Salesforce URL to use for token-based authentication.",
+    prom = "Token URL?"
+)
+
+t_api_ver = Text(
+    desc = "The version of the Salesforce API to use.",
+    prom = "API version?"
+)
+
+t_conf_auth = Text(
+    desc = "The authentication configuration. If not configured, it will be read from environment variables.",
+    prom = "Do you want to set up authentication (y/n)?"
 )

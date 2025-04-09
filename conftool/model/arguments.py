@@ -14,6 +14,7 @@ class ArgumentsModel(BaseModel):
     auth: AuthModel
     redis: RedisModel
     api_ver: ApiVerModel
+    #TODO create TokenUrlModel with __inner_val__ to self-check URL format
     token_url: str
     auth_env_prefix: str
     cache_enabled: bool
