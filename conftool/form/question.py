@@ -11,12 +11,13 @@ class Question:
 
 def ask_enum(question: Question) -> Enum:
     print_question(question)
-    options = [e.value for e in question.datatype]
+    options = [e._name_ for e in question.datatype]
+    values = [e.value for e in question.datatype]
     num = prompt_list(question.text.prom, options, question.required)
     if num is None:
         r = None
     else:
-        r = question.datatype(options[num - 1])
+        r = question.datatype(values[num - 1])
     print_response(r)
     return r
 
