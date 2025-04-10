@@ -1,7 +1,9 @@
 from conftool.model.api_ver import ApiVerModel
 from conftool.model.arguments import ArgumentsModel
+from conftool.model.auth import AuthModel
 from conftool.model.config import ConfigModel
 from conftool.model.exception import ConfigException
+from conftool.model.grant_type import GrantTypeModel
 from conftool.model.instance import InstanceModel
 from conftool.model.service_schedule import ServiceScheduleModel
 from .question import Question, ask_int, ask_enum, ask_bool, ask_str, ask_any
@@ -60,12 +62,6 @@ def run():
     print("Final config model:\n")
     print(conf.to_yaml())
 
-    # ask_enum(Question(
-    #     text="New Relic API endpoint",
-    #     required=False,
-    #     prompt="API Endpoint (1-3)?",
-    #     datatype=ApiEndpointModel))
-
 def instance_questions(index: int) -> InstanceModel:
     print(f"Configuration for Instance #{index+1}\n")
     i = InstanceModel()
@@ -89,8 +85,48 @@ def instance_questions(index: int) -> InstanceModel:
         text=t_conf_auth,
         required=True))
     if do_config_auth:
-        #TODO: get auth config, all values are required
-        pass
+        i.arguments.auth = AuthModel()
+        i.arguments.auth.grant_type = \
+        ask_enum(Question(
+            text=t_grant_type,
+            required=True,
+            datatype=GrantTypeModel))
+        i.arguments.auth.client_id = \
+        ask_any(Question(
+            text=t_client_id,
+            required=True))
+        if i.arguments.auth.grant_type == GrantTypeModel.PASSWORD:
+            i.arguments.auth.client_secret = \
+            ask_any(Question(
+                text=t_client_secret,
+                required=True))
+            i.arguments.auth.username = \
+            ask_any(Question(
+                text=t_username,
+                required=True))
+            i.arguments.auth.password = \
+            ask_any(Question(
+                text=t_password,
+                required=True))
+        else:
+            i.arguments.auth.private_key = \
+            ask_any(Question(
+                text=t_private_key,
+                required=True))
+            i.arguments.auth.subject = \
+            ask_any(Question(
+                text=t_subject,
+                required=True))
+            i.arguments.auth.audience = \
+            ask_any(Question(
+                text=t_audience,
+                required=True))
+            i.arguments.auth.expiration_offset = \
+            ask_int(Question(
+                text=t_expiration_offset,
+                required=True),
+                0, 100)
+        
     #TODO: instance-specific service_schedule (only if run_as_service is True). Optional.
     #TODO: labels. Optional.
     return i

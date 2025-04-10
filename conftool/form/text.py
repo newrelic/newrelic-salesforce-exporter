@@ -59,3 +59,48 @@ t_conf_auth = Text(
     desc = "The authentication configuration. If not configured, it will be read from environment variables.",
     prom = "Do you want to set up authentication (y/n)?"
 )
+
+t_grant_type = Text(
+    desc = "Grant type, mechanism used for OAuth 2.0 authentication.",
+    prom = "Grant type (1-2)?"
+)
+
+t_client_id = Text(
+    desc = "Consumer key of the connected app.",
+    prom = "Client ID?"
+)
+
+t_client_secret = Text(
+    desc = "Consumer secret of the connected app.",
+    prom = "Client secret?"
+)
+
+t_username = Text(
+    desc = "Username the connected app is impersonating.",
+    prom = "Username?"
+)
+
+t_password = Text(
+    desc = "Password of the user the connected app is impersonating.",
+    prom = "Password?"
+)
+
+t_private_key = Text(
+    desc = "Path to the file containing the private key of the connected app.",
+    prom = "Private key file path?"
+)
+
+t_subject = Text(
+    desc = "Value used for the `sub` claim in the JSON Claims Set for the JWT.",
+    prom = "Subject?"
+)
+
+t_audience = Text(
+    desc = "Value used for the `aud` claim in the JSON Claims Set for the JWT.",
+    prom = "Audience?"
+)
+
+t_expiration_offset = Text(
+    desc = "An offset duration (in minutes) to use when calculating the JWT `exp` claim.",
+    prom = "Expiration offset (0-10)?"
+)
