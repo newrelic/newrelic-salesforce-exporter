@@ -58,6 +58,9 @@ def run():
     for index in range(num_instances):
         i = instance_questions(index)
         conf.instances.append(i)
+    
+    #TODO: queries
+    #TODO: newrelic
 
     print("Final config model:\n")
     print(conf.to_yaml())
@@ -69,13 +72,20 @@ def instance_questions(index: int) -> InstanceModel:
     ask_any(Question(
         text=t_instance_name,
         required=True))
-    i.arguments = ArgumentsModel()
-    i.arguments.token_url = \
+    i.arguments = arguments_questions()
+    #TODO: instance-specific service_schedule (only if run_as_service is True). Optional.
+    #TODO: labels. Optional.
+
+    return i
+
+def arguments_questions() -> ArgumentsModel:
+    args = ArgumentsModel()
+    args.token_url = \
     ask_str(Question(
         text=t_token_url,
         required=True),
         token_url_check)
-    i.arguments.api_ver = \
+    args.api_ver = \
     ask_str(Question(
         text=t_api_ver,
         required=False),
@@ -85,51 +95,60 @@ def instance_questions(index: int) -> InstanceModel:
         text=t_conf_auth,
         required=True))
     if do_config_auth:
-        i.arguments.auth = AuthModel()
-        i.arguments.auth.grant_type = \
-        ask_enum(Question(
-            text=t_grant_type,
-            required=True,
-            datatype=GrantTypeModel))
-        i.arguments.auth.client_id = \
+        args.auth = auth_questions()
+    #TODO: cache/redis config
+    #TODO: auth_env_prefix
+    #TODO: date_field
+    #TODO: generation_interval
+    #TODO: time_lag_minutes
+    #TODO: queries
+    #TODO: limits
+    #TODO: logs_enabled
+    return args
+
+def auth_questions() -> AuthModel:
+    auth = AuthModel()
+    auth.grant_type = \
+    ask_enum(Question(
+        text=t_grant_type,
+        required=True,
+        datatype=GrantTypeModel))
+    auth.client_id = \
+    ask_any(Question(
+        text=t_client_id,
+        required=True))
+    if auth.grant_type == GrantTypeModel.PASSWORD:
+        auth.client_secret = \
         ask_any(Question(
-            text=t_client_id,
+            text=t_client_secret,
             required=True))
-        if i.arguments.auth.grant_type == GrantTypeModel.PASSWORD:
-            i.arguments.auth.client_secret = \
-            ask_any(Question(
-                text=t_client_secret,
-                required=True))
-            i.arguments.auth.username = \
-            ask_any(Question(
-                text=t_username,
-                required=True))
-            i.arguments.auth.password = \
-            ask_any(Question(
-                text=t_password,
-                required=True))
-        else:
-            i.arguments.auth.private_key = \
-            ask_any(Question(
-                text=t_private_key,
-                required=True))
-            i.arguments.auth.subject = \
-            ask_any(Question(
-                text=t_subject,
-                required=True))
-            i.arguments.auth.audience = \
-            ask_any(Question(
-                text=t_audience,
-                required=True))
-            i.arguments.auth.expiration_offset = \
-            ask_int(Question(
-                text=t_expiration_offset,
-                required=True),
-                0, 100)
-        
-    #TODO: instance-specific service_schedule (only if run_as_service is True). Optional.
-    #TODO: labels. Optional.
-    return i
+        auth.username = \
+        ask_any(Question(
+            text=t_username,
+            required=True))
+        auth.password = \
+        ask_any(Question(
+            text=t_password,
+            required=True))
+    else:
+        auth.private_key = \
+        ask_any(Question(
+            text=t_private_key,
+            required=True))
+        auth.subject = \
+        ask_any(Question(
+            text=t_subject,
+            required=True))
+        auth.audience = \
+        ask_any(Question(
+            text=t_audience,
+            required=True))
+        auth.expiration_offset = \
+        ask_int(Question(
+            text=t_expiration_offset,
+            required=True),
+            0, 100)
+    return auth
 
 # Format checkers
 
