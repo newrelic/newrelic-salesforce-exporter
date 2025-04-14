@@ -52,7 +52,7 @@ t_token_url = Text(
 
 t_api_ver = Text(
     desc = "The version of the Salesforce API to use.",
-    prom = "API version?"
+    prom = "API version (x.y)?"
 )
 
 t_conf_auth = Text(
@@ -103,4 +103,39 @@ t_audience = Text(
 t_expiration_offset = Text(
     desc = "An offset duration (in minutes) to use when calculating the JWT `exp` claim.",
     prom = "Expiration offset (0-10)?"
+)
+
+t_cache_enabled = Text(
+    desc = "Set a Redis cache for storing query record IDs and log entry IDs.",
+    prom = "Cache enabled (y/n)?"
+)
+
+t_redis_host = Text(
+    desc = "Redis server hostname or IP address.",
+    prom = "Host?"
+)
+
+t_redis_post = Text(
+    desc = "Redis server port number.",
+    prom = "Port?"
+)
+
+t_redis_dbnum = Text(
+    desc = "Redis database number.",
+    prom = "DB number (0-16)?"
+)
+
+t_redis_ssl = Text(
+    desc = "Enable SSL to connect to the Redis server.",
+    prom = "SSL enabled (y/n)?"
+)
+
+t_redis_password = Text(
+    desc = "Redis password.",
+    prom = "Password?"
+)
+
+t_redis_expire = Text(
+    desc = "The expiration time to use when putting any entry into the cache. The time is specified in days.",
+    prom = "Expiration days (0-100)?"
 )

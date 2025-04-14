@@ -5,6 +5,7 @@ from conftool.model.config import ConfigModel
 from conftool.model.exception import ConfigException
 from conftool.model.grant_type import GrantTypeModel
 from conftool.model.instance import InstanceModel
+from conftool.model.redis import RedisModel
 from conftool.model.service_schedule import ServiceScheduleModel
 from .question import Question, ask_int, ask_enum, ask_bool, ask_str, ask_any
 from .text import *
@@ -96,7 +97,12 @@ def arguments_questions() -> ArgumentsModel:
         required=True))
     if do_config_auth:
         args.auth = auth_questions()
-    #TODO: cache/redis config
+    args.cache_enabled = \
+    ask_bool(Question(
+        text=t_cache_enabled,
+        required=False))
+    if args.cache_enabled == True:
+        args.redis = redis_questions()
     #TODO: auth_env_prefix
     #TODO: date_field
     #TODO: generation_interval
@@ -150,6 +156,40 @@ def auth_questions() -> AuthModel:
             0, 100)
     return auth
 
+def redis_questions() -> RedisModel:
+    redis = RedisModel()
+    redis.host = \
+    ask_str(Question(
+        text=t_redis_host,
+        required=False),
+        host_check)
+    redis.port = \
+    ask_int(Question(
+        text=t_redis_post,
+        required=False),
+        0, 65535)
+    redis.db_number = \
+    ask_int(Question(
+        text=t_redis_dbnum,
+        required=False),
+        0, 16)
+    redis.ssl = \
+    ask_bool(Question(
+        text=t_redis_ssl,
+        required=False))
+    redis.password = \
+    ask_any(Question(
+        text=t_redis_password,
+        required=False))
+    if redis.password is None:
+        redis.password = ""
+    redis.expire_days = \
+    ask_int(Question(
+        text=t_redis_expire,
+        required=False),
+        0, 100)
+    return redis
+
 # Format checkers
 
 def cron_hours_check(text: str) -> bool:
@@ -178,3 +218,11 @@ def api_ver_check(text: str) -> bool:
         return True
     except ConfigException:
         return False
+    
+def host_check(text: str) -> bool:
+    if validators.domain(text) != True and \
+       validators.ipv4(text) != True and \
+       validators.ipv6(text) != True:
+        return False
+    else:
+        return True
