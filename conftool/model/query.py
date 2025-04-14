@@ -1,3 +1,4 @@
+from conftool.model.api_name import ApiNameModel
 from .base import BaseModel
 from .api_ver import ApiVerModel
 from .exception import ConfigException
@@ -9,7 +10,7 @@ class QueryModel(BaseModel):
     rename_timestamp: str
     api_ver: ApiVerModel
     env: EnvModel
-    api_name: str
+    api_name: ApiNameModel
     event_type: str
     id: list[str]
 

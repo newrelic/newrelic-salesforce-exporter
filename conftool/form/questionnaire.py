@@ -1,3 +1,4 @@
+from conftool.model.api_name import ApiNameModel
 from conftool.model.api_ver import ApiVerModel
 from conftool.model.arguments import ArgumentsModel
 from conftool.model.auth import AuthModel
@@ -6,6 +7,7 @@ from conftool.model.exception import ConfigException
 from conftool.model.generation_interval import GenerationIntervalModel
 from conftool.model.grant_type import GrantTypeModel
 from conftool.model.instance import InstanceModel
+from conftool.model.query import QueryModel
 from conftool.model.redis import RedisModel
 from conftool.model.service_schedule import ServiceScheduleModel
 from .question import Question, ask_int, ask_enum, ask_bool, ask_str, ask_any
@@ -207,6 +209,40 @@ def redis_questions() -> RedisModel:
         required=False),
         0, 100)
     return redis
+
+#TOOD: create ask_list to get a list of elements of the same type
+
+def query_questions() -> QueryModel:
+    query = QueryModel()
+    query.query = \
+    ask_any(Question(
+        text=t_query_query,
+        required=True))
+    query.api_ver = \
+    ask_str(Question(
+        text=t_api_ver,
+        required=False),
+        api_ver_check)
+    query.api_name = \
+    ask_enum(Question(
+        text=t_query_api_name,
+        required=False,
+        datatype=ApiNameModel))
+    query.event_type = \
+    ask_any(Question(
+        text=t_query_event_type,
+        required=False))
+    query.timestamp_attr = \
+    ask_any(Question(
+        text=t_query_timestamp_attr,
+        required=False))
+    query.rename_timestamp = \
+    ask_any(Question(
+        text=t_query_rename_timestamp,
+        required=False))
+    #TODO: id
+    #TODO: env
+    return query
 
 # Format checkers
 

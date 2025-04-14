@@ -164,3 +164,28 @@ t_logs_enabled = Text(
     desc = "Flag to explicitly enable or disable the default generated log file query.",
     prom = "Logs enabled (y/n)?"
 )
+
+t_query_query = Text(
+    desc = "The SOQL query to execute.",
+    prom = "Query?"
+)
+
+t_query_api_name = Text(
+    desc = "The name of the Salesforce Platform API to use.",
+    prom = "API name (1-2)?"
+)
+
+t_query_event_type = Text(
+    desc = "The name of an event type to use when transforming log messages and query results to New Relic logs or events.",
+    prom = "Event type?"
+)
+
+t_query_timestamp_attr = Text(
+    desc = "The name of the query record field containing the value to use for the timestamp.",
+    prom = "Timestamp attributee?"
+)
+
+t_query_rename_timestamp = Text(
+    desc = "The name to use for the attribute on the log or event under which the timestamp will be stored.",
+    prom = "Rename timestamp?"
+)
