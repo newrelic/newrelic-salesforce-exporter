@@ -3,6 +3,7 @@ from conftool.model.arguments import ArgumentsModel
 from conftool.model.auth import AuthModel
 from conftool.model.config import ConfigModel
 from conftool.model.exception import ConfigException
+from conftool.model.generation_interval import GenerationIntervalModel
 from conftool.model.grant_type import GrantTypeModel
 from conftool.model.instance import InstanceModel
 from conftool.model.redis import RedisModel
@@ -103,13 +104,30 @@ def arguments_questions() -> ArgumentsModel:
         required=False))
     if args.cache_enabled == True:
         args.redis = redis_questions()
-    #TODO: auth_env_prefix
-    #TODO: date_field
-    #TODO: generation_interval
-    #TODO: time_lag_minutes
+    args.auth_env_prefix = \
+    ask_any(Question(
+        text=t_auth_env_prefix,
+        required=False))
+    args.date_field = \
+    ask_any(Question(
+        text=t_date_field,
+        required=False))
+    args.generation_interval = \
+    ask_enum(Question(
+        text=t_generation_interval,
+        required=False,
+        datatype=GenerationIntervalModel))
+    args.time_lag_minutes = \
+    ask_int(Question(
+        text=t_time_lag_minutes,
+        required=False),
+        0, 1000)
+    args.logs_enabled = \
+    ask_bool(Question(
+        text=t_logs_enabled,
+        required=False))
     #TODO: queries
     #TODO: limits
-    #TODO: logs_enabled
     return args
 
 def auth_questions() -> AuthModel:

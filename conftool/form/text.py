@@ -139,3 +139,28 @@ t_redis_expire = Text(
     desc = "The expiration time to use when putting any entry into the cache. The time is specified in days.",
     prom = "Expiration days (0-100)?"
 )
+
+t_auth_env_prefix = Text(
+    desc = "A prefix to use when looking up environment variables.",
+    prom = "Auth env prefix?"
+)
+
+t_date_field = Text(
+    desc = "The name of the date field on the EventLogFile object to use when building log file queries.",
+    prom = "Date field?"
+)
+
+t_generation_interval = Text(
+    desc = "The value of the Interval field on the EventLogFile object to use when building log file queries.",
+    prom = "Generation interval (1-2)?"
+)
+
+t_time_lag_minutes = Text(
+    desc = "An offset duration (in minutes) to use when building log file queries.",
+    prom = "Time lag minutes (0-1000)?"
+)
+
+t_logs_enabled = Text(
+    desc = "Flag to explicitly enable or disable the default generated log file query.",
+    prom = "Logs enabled (y/n)?"
+)

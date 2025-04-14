@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from enum import Enum
+from conftool.model.enum import ConfigEnum
 from .prompt import prompt_list, prompt_int, prompt_bool, prompt_str, prompt_any
 from .text import Text
 
@@ -9,7 +9,7 @@ class Question:
     required: bool
     datatype: type = None
 
-def ask_enum(question: Question) -> Enum:
+def ask_enum(question: Question) -> ConfigEnum:
     print_question(question)
     options = [e._name_ for e in question.datatype]
     values = [e.value for e in question.datatype]
