@@ -45,6 +45,11 @@ t_instance_name = Text(
     prom = "Instance name?"
 )
 
+t_instance_labels = Text(
+    desc = "A set of labels to include on all logs and events.",
+    prom = None
+)
+
 t_token_url = Text(
     desc = "The Salesforce URL to use for token-based authentication.",
     prom = "Token URL?"
@@ -220,7 +225,12 @@ t_nr_license_key = Text(
     prom = "License key?"
 )
 
-t_id_list = Text(
+t_query_id_list = Text(
     desc = "A list of field names to use when generating record IDs.",
     prom = "IDs (comma separated)?"
+)
+
+t_query_env = Text(
+    desc = "A set of query substitution variables.",
+    prom = None
 )

@@ -45,6 +45,21 @@ def ask_any(question: Question) -> str:
     print_response(r)
     return r
 
+def ask_dict(question: Question, key_checker, val_checker) -> dict[str,str]:
+    print_question(question)
+    k = prompt_str("Key?", key_checker, question.required)
+    if k == None:
+        return None
+    v = prompt_str("Value?", val_checker, True)
+    res = {k:v}
+    while True:
+        k = prompt_str("Key (empty to finish)?", key_checker, False)
+        if k == None:
+            break
+        v = prompt_str("Value?", val_checker, True)
+        res[k] = v
+    return res
+
 # Print formating
 
 def print_response(r):

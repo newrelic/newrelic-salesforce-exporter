@@ -14,11 +14,10 @@ from conftool.model.query import QueryModel
 from conftool.model.redis import RedisModel
 from conftool.model.service_schedule import ServiceScheduleModel
 from .question import Question, ask_int, ask_enum, ask_bool, ask_str, ask_any, \
-                                print_title
+                                ask_dict, print_title
 from .text import *
 
 import validators
-import re
 
 def run() -> ConfigModel:
     conf = ConfigModel()
@@ -73,7 +72,7 @@ def run() -> ConfigModel:
     conf.queries = queries_questions(requird=True, text=t_num_queries)
 
     # Newrelic
-    conf.newrelic = queries_newrelic()
+    conf.newrelic = newrelic_questions()
 
     return conf
 
@@ -84,8 +83,13 @@ def instance_questions() -> InstanceModel:
         text=t_instance_name,
         required=True))
     i.arguments = arguments_questions()
+    i.labels = \
+    ask_dict(Question(
+        text=t_instance_labels,
+        required=False),
+        id_check, id_check)
+    
     #TODO: instance-specific service_schedule (only if run_as_service is True). Optional.
-    #TODO: labels. Optional.
 
     return i
 
@@ -217,8 +221,6 @@ def redis_questions() -> RedisModel:
         0, 100)
     return redis
 
-#TOOD: create ask_list to get a list of elements of the same type
-
 def query_questions() -> QueryModel:
     query = QueryModel()
     query.query = \
@@ -249,13 +251,19 @@ def query_questions() -> QueryModel:
         required=False))
     id_list = \
     ask_str(Question(
-        text=t_id_list,
+        text=t_query_id_list,
         required=False),
         id_list_check)
-    # split and clean comma separated values
-    query.id = [x.strip() for x in id_list.split(",")]
-
-    #TODO: env
+    if id_list is None:
+        query.id = None
+    else:
+        # split and clean comma separated values
+        query.id = [x.strip() for x in id_list.split(",")]
+    query.env = \
+    ask_dict(Question(
+        text=t_query_env,
+        required=False),
+        id_check, lambda _: True)
     return query
 
 def queries_questions(requird: bool, text: Text) -> list[QueryModel]:
@@ -278,7 +286,7 @@ def queries_questions(requird: bool, text: Text) -> list[QueryModel]:
     else:
         return queries
 
-def queries_newrelic() -> NewrelicModel:
+def newrelic_questions() -> NewrelicModel:
     newrelic = NewrelicModel()
     newrelic.data_format = \
     ask_enum(Question(
@@ -346,3 +354,6 @@ def id_list_check(text: str) -> bool:
     elements = text.split(",")
     valids_elements = [x.strip() for x in elements if x.strip().isidentifier()]
     return len(valids_elements) == len(elements)
+
+def id_check(text: str) -> bool:
+    return text.isidentifier()
