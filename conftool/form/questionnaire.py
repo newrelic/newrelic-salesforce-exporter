@@ -35,26 +35,14 @@ def run() -> ConfigModel:
         text=t_run_as_service,
         required=False))
 
-    if conf.run_as_service is None or conf.run_as_service == False:
+    if conf.run_as_service == True:
+        conf.service_schedule = service_schedule_questions()
+    else:
         conf.cron_interval_minutes = \
         ask_int(Question(
             text=t_cron_interval,
             required=False),
             1, 10000)
-    else:
-        service_schedule = ServiceScheduleModel()
-        service_schedule.hour = \
-        ask_str(Question(
-            text=t_service_scheduler_hours,
-            required=False),
-            cron_hours_check)
-        if service_schedule.hour is not None:
-            service_schedule.minute = \
-            ask_str(Question(
-                text=t_service_scheduler_mins,
-                required=True),
-                cron_minutes_check)
-            conf.service_schedule = service_schedule
 
     # Instances
     conf.instances = list()
@@ -66,7 +54,7 @@ def run() -> ConfigModel:
 
     for index in range(num_instances):
         print_title(f"Configuration for Instance #{index+1}")
-        i = instance_questions()
+        i = instance_questions(conf.run_as_service)
         conf.instances.append(i)
     
     # Queries
@@ -77,7 +65,7 @@ def run() -> ConfigModel:
 
     return conf
 
-def instance_questions() -> InstanceModel:
+def instance_questions(run_as_service: bool) -> InstanceModel:
     i = InstanceModel()
     i.name = \
     ask_any(Question(
@@ -89,10 +77,27 @@ def instance_questions() -> InstanceModel:
         text=t_instance_labels,
         required=False),
         id_check, id_check)
-    
-    #TODO: instance-specific service_schedule (only if run_as_service is True). Optional.
+    if run_as_service == True:
+        i.service_schedule = service_schedule_questions()
 
     return i
+
+def service_schedule_questions() -> ServiceScheduleModel:
+    service_schedule = ServiceScheduleModel()
+    service_schedule.hour = \
+    ask_str(Question(
+        text=t_service_scheduler_hours,
+        required=False),
+        cron_hours_check)
+    if service_schedule.hour is not None:
+        service_schedule.minute = \
+        ask_str(Question(
+            text=t_service_scheduler_mins,
+            required=True),
+            cron_minutes_check)
+        return service_schedule
+    else:
+        return None
 
 def arguments_questions() -> ArgumentsModel:
     args = ArgumentsModel()
