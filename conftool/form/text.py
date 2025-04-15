@@ -234,3 +234,18 @@ t_query_env = Text(
     desc = "A set of query substitution variables.",
     prom = None
 )
+
+t_conf_limits = Text(
+    desc = "Limits collection configuration.",
+    prom = "Do you want to set up limits (y/n)?"
+)
+
+t_limits_event_type = Text(
+    desc = "The name of an event type to use when transforming limits to New Relic logs or events.",
+    prom = "Event type?"
+)
+
+t_limits_name_list = Text(
+    desc = "An array of limit names to collect.",
+    prom = "Names (comma separated)?"
+)

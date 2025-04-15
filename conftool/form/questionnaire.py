@@ -9,6 +9,7 @@ from conftool.model.exception import ConfigException
 from conftool.model.generation_interval import GenerationIntervalModel
 from conftool.model.grant_type import GrantTypeModel
 from conftool.model.instance import InstanceModel
+from conftool.model.limits import LimitsModel
 from conftool.model.newrelic import NewrelicModel
 from conftool.model.query import QueryModel
 from conftool.model.redis import RedisModel
@@ -140,8 +141,40 @@ def arguments_questions() -> ArgumentsModel:
         text=t_logs_enabled,
         required=False))
     args.queries = queries_questions(requird=False, text=t_num_queries_instance)
-    #TODO: limits
+    args.limits = limits_questions()
     return args
+
+def limits_questions() -> LimitsModel:
+    do_limits = \
+    ask_bool(Question(
+        text=t_conf_limits,
+        required=True))
+    if do_limits:
+        limits = LimitsModel()
+        api_ver = \
+        ask_str(Question(
+            text=t_api_ver,
+            required=False),
+            api_ver_check)
+        limits.api_ver = ApiVerModel(api_ver)
+        limits.event_type = \
+        ask_str(Question(
+            text=t_limits_event_type,
+            required=False),
+            id_check)
+        name_list = \
+        ask_str(Question(
+            text=t_limits_name_list,
+            required=False),
+            id_list_check)
+        if name_list is None:
+            limits.names = None
+        else:
+            # split and clean comma separated values
+            limits.names = [x.strip() for x in name_list.split(",")]
+        return limits
+    else:
+        return None
 
 def auth_questions() -> AuthModel:
     auth = AuthModel()
@@ -227,11 +260,12 @@ def query_questions() -> QueryModel:
     ask_any(Question(
         text=t_query_query,
         required=True))
-    query.api_ver = \
+    api_ver = \
     ask_str(Question(
         text=t_api_ver,
         required=False),
         api_ver_check)
+    query.api_ver = ApiVerModel(api_ver)
     query.api_name = \
     ask_enum(Question(
         text=t_query_api_name,
