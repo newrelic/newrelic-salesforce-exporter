@@ -18,6 +18,7 @@ from .question import Question, ask_int, ask_enum, ask_bool, ask_str, ask_any, \
 from .text import *
 
 import validators
+import re
 
 def run() -> ConfigModel:
     conf = ConfigModel()
@@ -246,7 +247,14 @@ def query_questions() -> QueryModel:
     ask_any(Question(
         text=t_query_rename_timestamp,
         required=False))
-    #TODO: id
+    id_list = \
+    ask_str(Question(
+        text=t_id_list,
+        required=False),
+        id_list_check)
+    # split and clean comma separated values
+    query.id = [x.strip() for x in id_list.split(",")]
+
     #TODO: env
     return query
 
@@ -333,3 +341,8 @@ def host_check(text: str) -> bool:
     
 def numeric_check(text: str) -> bool:
     return text.isnumeric()
+
+def id_list_check(text: str) -> bool:
+    elements = text.split(",")
+    valids_elements = [x.strip() for x in elements if x.strip().isidentifier()]
+    return len(valids_elements) == len(elements)

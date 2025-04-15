@@ -219,3 +219,8 @@ t_nr_license_key = Text(
     desc = "New Relic license key.",
     prom = "License key?"
 )
+
+t_id_list = Text(
+    desc = "A list of field names to use when generating record IDs.",
+    prom = "IDs (comma separated)?"
+)
