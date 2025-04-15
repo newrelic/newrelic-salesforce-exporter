@@ -4,7 +4,7 @@ from .exception import ConfigException
 class ApiVerModel(BaseModel):
     __inner_val__: str
 
-    def __init__(self, val: str):
+    def __init__(self, val: str = ""):
         super().__init__()
         self.__inner_val__ = val
 

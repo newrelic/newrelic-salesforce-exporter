@@ -2,7 +2,9 @@ from .enum import ConfigEnum
 
 # Convert config object into dctionary
 def to_dict(obj, classkey=None) -> dict:
-    if isinstance(obj, dict):
+    if hasattr(obj, "__inner_val__"):
+        return obj.__inner_val__
+    elif isinstance(obj, dict):
         data = {}
         for (k, v) in obj.items():
             if v is not None:
