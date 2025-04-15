@@ -1,12 +1,15 @@
+from conftool.model.api_endpoint import ApiEndpointModel
 from conftool.model.api_name import ApiNameModel
 from conftool.model.api_ver import ApiVerModel
 from conftool.model.arguments import ArgumentsModel
 from conftool.model.auth import AuthModel
 from conftool.model.config import ConfigModel
+from conftool.model.data_format import DataFormatModel
 from conftool.model.exception import ConfigException
 from conftool.model.generation_interval import GenerationIntervalModel
 from conftool.model.grant_type import GrantTypeModel
 from conftool.model.instance import InstanceModel
+from conftool.model.newrelic import NewrelicModel
 from conftool.model.query import QueryModel
 from conftool.model.redis import RedisModel
 from conftool.model.service_schedule import ServiceScheduleModel
@@ -68,7 +71,8 @@ def run() -> ConfigModel:
     # Queries
     conf.queries = queries_questions(requird=True, text=t_num_queries)
 
-    #TODO: newrelic
+    # Newrelic
+    conf.newrelic = queries_newrelic()
 
     return conf
 
@@ -266,6 +270,30 @@ def queries_questions(requird: bool, text: Text) -> list[QueryModel]:
     else:
         return queries
 
+def queries_newrelic() -> NewrelicModel:
+    newrelic = NewrelicModel()
+    newrelic.data_format = \
+    ask_enum(Question(
+        text=t_nr_data_format,
+        required=False,
+        datatype=DataFormatModel))
+    newrelic.api_endpoint = \
+    ask_enum(Question(
+        text=t_nr_api_endpoint,
+        required=False,
+        datatype=ApiEndpointModel))
+    if newrelic.data_format == DataFormatModel.EVENTS:
+        newrelic.account_id = \
+        ask_str(Question(
+            text=t_nr_account_id,
+            required=True),
+            numeric_check)
+    newrelic.license_key = \
+    ask_any(Question(
+        text=t_nr_license_key,
+        required=True))
+    return newrelic
+
 # Format checkers
 
 def cron_hours_check(text: str) -> bool:
@@ -302,3 +330,6 @@ def host_check(text: str) -> bool:
         return False
     else:
         return True
+    
+def numeric_check(text: str) -> bool:
+    return text.isnumeric()

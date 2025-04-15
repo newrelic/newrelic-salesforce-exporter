@@ -199,3 +199,23 @@ t_num_queries_instance = Text(
     desc = "Salesforce queries to run in current instance only.",
     prom = "How many queries do you want to set up (0-10)?"
 )
+
+t_nr_data_format = Text(
+    desc = "New Relic telemetry type.",
+    prom = "Data format (1-2)?"
+)
+
+t_nr_api_endpoint = Text(
+    desc = "New Relic region identifier.",
+    prom = "API endpoint (1-3)?"
+)
+
+t_nr_account_id = Text(
+    desc = "New Relic account ID.",
+    prom = "Account ID (numeric)?"
+)
+
+t_nr_license_key = Text(
+    desc = "New Relic license key.",
+    prom = "License key?"
+)
