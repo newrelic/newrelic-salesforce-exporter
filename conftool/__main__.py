@@ -19,7 +19,9 @@ def main():
     print(f"New Relic Salesforce Exporter Config Tool v{VERSION}\n")
 
     if args.new:
-            questionnaire.run()
+            conf = questionnaire.run()
+            print("Final config model:\n")
+            print(conf.to_yaml())
     else:
         #TODO: show file structure and allow editing
 

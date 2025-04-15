@@ -189,3 +189,13 @@ t_query_rename_timestamp = Text(
     desc = "The name to use for the attribute on the log or event under which the timestamp will be stored.",
     prom = "Rename timestamp?"
 )
+
+t_num_queries = Text(
+    desc = "Salesforce queries to run for all instances.",
+    prom = "How many queries do you want to set up (1-10)?"
+)
+
+t_num_queries_instance = Text(
+    desc = "Salesforce queries to run in current instance only.",
+    prom = "How many queries do you want to set up (0-10)?"
+)

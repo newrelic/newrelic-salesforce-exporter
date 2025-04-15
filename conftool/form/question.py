@@ -55,3 +55,6 @@ def print_question(question: Question):
     print(question.text.desc)
     print("Required." if question.required else "Optional.")
     print()
+
+def print_title(title):
+    print(title + '\n')

@@ -10,12 +10,13 @@ from conftool.model.instance import InstanceModel
 from conftool.model.query import QueryModel
 from conftool.model.redis import RedisModel
 from conftool.model.service_schedule import ServiceScheduleModel
-from .question import Question, ask_int, ask_enum, ask_bool, ask_str, ask_any
+from .question import Question, ask_int, ask_enum, ask_bool, ask_str, ask_any, \
+                                print_title
 from .text import *
 
 import validators
 
-def run():
+def run() -> ConfigModel:
     conf = ConfigModel()
 
     # Integration name
@@ -60,17 +61,18 @@ def run():
         1, 10)
 
     for index in range(num_instances):
-        i = instance_questions(index)
+        print_title(f"Configuration for Instance #{index+1}")
+        i = instance_questions()
         conf.instances.append(i)
     
-    #TODO: queries
+    # Queries
+    conf.queries = queries_questions(requird=True, text=t_num_queries)
+
     #TODO: newrelic
 
-    print("Final config model:\n")
-    print(conf.to_yaml())
+    return conf
 
-def instance_questions(index: int) -> InstanceModel:
-    print(f"Configuration for Instance #{index+1}\n")
+def instance_questions() -> InstanceModel:
     i = InstanceModel()
     i.name = \
     ask_any(Question(
@@ -128,7 +130,7 @@ def arguments_questions() -> ArgumentsModel:
     ask_bool(Question(
         text=t_logs_enabled,
         required=False))
-    #TODO: queries
+    args.queries = queries_questions(requird=False, text=t_num_queries_instance)
     #TODO: limits
     return args
 
@@ -243,6 +245,26 @@ def query_questions() -> QueryModel:
     #TODO: id
     #TODO: env
     return query
+
+def queries_questions(requird: bool, text: Text) -> list[QueryModel]:
+    queries = list()
+    if requird:
+        min_queries = 1
+    else:
+        min_queries = 0
+    num_queries = \
+    ask_int(Question(
+        text=text,
+        required=True),
+        min_queries, 10)
+    for index in range(num_queries):
+        print_title(f"Configuration for query #{index+1}")
+        q = query_questions()
+        queries.append(q)
+    if len(queries) == 0:
+        return None
+    else:
+        return queries
 
 # Format checkers
 
