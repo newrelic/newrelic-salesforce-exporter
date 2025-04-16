@@ -4,9 +4,6 @@ from .exception import ConfigException
 
 import yaml
 
-#TODO: track the exact location of the error
-#TODO: generate a custom exception (ConfigException), which contains metadata: attribute path and yaml line.
-
 class BaseModel:
     @classmethod
     def from_yaml(cls, yaml_str: str) -> Self:

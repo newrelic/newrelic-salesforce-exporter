@@ -7,9 +7,9 @@ import argparse
 import os.path
 
 def main():
-    parser = argparse.ArgumentParser(description=f'New Relic Salesforce Exporter Config Tool {VERSION}')
-    parser.add_argument('config_file', type=str, help='Config YAML file path to load or create')
-    parser.add_argument('-n', '--new', action='store_true', help='Create new configuration')
+    parser = argparse.ArgumentParser(description=f'New Relic Salesforce Exporter Config Tool {VERSION}.')
+    parser.add_argument('config_file', type=str, help='File path. Config YAML file to check or create.')
+    parser.add_argument('-n', '--new', action='store_true', help='Create new configuration.')
     args = parser.parse_args()
 
     print(f"New Relic Salesforce Exporter Config Tool v{VERSION}\n")
@@ -19,6 +19,8 @@ def main():
             print("Error: Config file already exists.")
             exit(1)
 
+        print("Creating new config file...\n")
+
         try:
             conf = questionnaire.run()
         except KeyboardInterrupt:
@@ -27,12 +29,15 @@ def main():
         
         print("Final config model:\n")
         print(conf.to_yaml())
-    else:
-        #TODO: show file structure and allow editing
 
+        #TODO: write YAML to file
+
+    else:
         if not os.path.isfile(args.config_file):
             print("Error: Config file doesn't exist.")
             exit(1)
+
+        print("Validating config file...\n")
         
         try:
             config_yaml_str = read_file(args.config_file)
@@ -43,20 +48,15 @@ def main():
         try:
             config_model = ConfigModel.from_yaml(config_yaml_str)
         except ConfigException as err:
-            print("------------------------------------ ERROR -------------------------------------")
+            print("---- ERROR:")
             print(err)
-            print("---------------------------------- TRACEBACK -----------------------------------")
-            import traceback
-            traceback.print_exc()
-            print("--------------------------------------------------------------------------------")
+            print("----")
             exit(1)
         
         # Serialize model into YAML
         serialized_yaml = config_model.to_yaml()
-
         print(serialized_yaml)
-
-        #TODO: write YAML to file
+        print("\nValidation OK!")
 
 def read_file(file_name: str) -> str:
     with open(file_name) as file:
