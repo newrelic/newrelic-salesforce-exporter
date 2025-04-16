@@ -73,3 +73,6 @@ def print_question(question: Question):
 
 def print_title(title):
     print(title + '\n')
+
+def print_warning(warning):
+    print(warning + '\n')

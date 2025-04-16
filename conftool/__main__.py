@@ -12,16 +12,21 @@ def main():
     parser.add_argument('-n', '--new', action='store_true', help='Create new configuration')
     args = parser.parse_args()
 
-    if args.new and os.path.isfile(args.config_file):
-        print("Error: Config file already exists.")
-        exit(1)
-
     print(f"New Relic Salesforce Exporter Config Tool v{VERSION}\n")
 
     if args.new:
+        if os.path.isfile(args.config_file):
+            print("Error: Config file already exists.")
+            exit(1)
+
+        try:
             conf = questionnaire.run()
-            print("Final config model:\n")
-            print(conf.to_yaml())
+        except KeyboardInterrupt:
+            print("\nAborted.")
+            exit(1)
+        
+        print("Final config model:\n")
+        print(conf.to_yaml())
     else:
         #TODO: show file structure and allow editing
 

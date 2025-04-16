@@ -15,7 +15,7 @@ from conftool.model.query import QueryModel
 from conftool.model.redis import RedisModel
 from conftool.model.service_schedule import ServiceScheduleModel
 from .question import Question, ask_int, ask_enum, ask_bool, ask_str, ask_any, \
-                                ask_dict, print_title
+                                ask_dict, print_title, print_warning
 from .text import *
 
 import validators
@@ -117,6 +117,8 @@ def arguments_questions() -> ArgumentsModel:
         required=True))
     if do_config_auth:
         args.auth = auth_questions()
+    else:
+        print_warning("Auth data is REQUIRED.\nIf you don't set it in the config file, you MUST provide it as env variables. Check the documentation for details.")
     args.cache_enabled = \
     ask_bool(Question(
         text=t_cache_enabled,
@@ -335,7 +337,7 @@ def newrelic_questions() -> NewrelicModel:
     newrelic.api_endpoint = \
     ask_enum(Question(
         text=t_nr_api_endpoint,
-        required=False,
+        required=True,
         datatype=ApiEndpointModel))
     if newrelic.data_format == DataFormatModel.EVENTS:
         newrelic.account_id = \
