@@ -67,12 +67,26 @@ def print_response(r):
     print()
 
 def print_question(question: Question):
+    print_path()
     print(question.text.desc)
     print("Required." if question.required else "Optional.")
     print()
 
-def print_title(title):
+def print_title(title: str):
     print(title + '\n')
 
-def print_warning(warning):
+def print_warning(warning: str):
     print(warning + '\n')
+
+# Question hierarchy
+
+_question_path: list[str] = []
+
+def push_level(level: str):
+    _question_path.append(level)
+
+def pop_level():
+    _question_path.pop()
+
+def print_path():
+    print(">>> " + " > ".join(_question_path) + '\n')

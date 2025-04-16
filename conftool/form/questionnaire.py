@@ -15,12 +15,14 @@ from conftool.model.query import QueryModel
 from conftool.model.redis import RedisModel
 from conftool.model.service_schedule import ServiceScheduleModel
 from .question import Question, ask_int, ask_enum, ask_bool, ask_str, ask_any, \
-                                ask_dict, print_title, print_warning
+                                ask_dict, print_title, print_warning, \
+                                push_level, pop_level
 from .text import *
 
 import validators
 
 def run() -> ConfigModel:
+    push_level("Config")
     conf = ConfigModel()
 
     # Integration name
@@ -54,7 +56,7 @@ def run() -> ConfigModel:
 
     for index in range(num_instances):
         print_title(f"Configuration for Instance #{index+1}")
-        i = instance_questions(conf.run_as_service)
+        i = instance_questions(conf.run_as_service, index + 1)
         conf.instances.append(i)
     
     # Queries
@@ -63,9 +65,12 @@ def run() -> ConfigModel:
     # Newrelic
     conf.newrelic = newrelic_questions()
 
+    pop_level()
+
     return conf
 
-def instance_questions(run_as_service: bool) -> InstanceModel:
+def instance_questions(run_as_service: bool, num: int) -> InstanceModel:
+    push_level(f"Instance #{num}")
     i = InstanceModel()
     i.name = \
     ask_any(Question(
@@ -80,9 +85,11 @@ def instance_questions(run_as_service: bool) -> InstanceModel:
     if run_as_service == True:
         i.service_schedule = service_schedule_questions()
 
+    pop_level()
     return i
 
 def service_schedule_questions() -> ServiceScheduleModel:
+    push_level("Service schedule")
     service_schedule = ServiceScheduleModel()
     service_schedule.hour = \
     ask_str(Question(
@@ -95,11 +102,14 @@ def service_schedule_questions() -> ServiceScheduleModel:
             text=t_service_scheduler_mins,
             required=True),
             cron_minutes_check)
+        pop_level()
         return service_schedule
     else:
+        pop_level()
         return None
 
 def arguments_questions() -> ArgumentsModel:
+    push_level("Arguments")
     args = ArgumentsModel()
     args.token_url = \
     ask_str(Question(
@@ -149,9 +159,11 @@ def arguments_questions() -> ArgumentsModel:
         required=False))
     args.queries = queries_questions(requird=False, text=t_num_queries_instance)
     args.limits = limits_questions()
+    pop_level()
     return args
 
 def limits_questions() -> LimitsModel:
+    push_level("Limits")
     do_limits = \
     ask_bool(Question(
         text=t_conf_limits,
@@ -179,11 +191,14 @@ def limits_questions() -> LimitsModel:
         else:
             # split and clean comma separated values
             limits.names = [x.strip() for x in name_list.split(",")]
+        pop_level()
         return limits
     else:
+        pop_level()
         return None
 
 def auth_questions() -> AuthModel:
+    push_level("Auth")
     auth = AuthModel()
     auth.grant_type = \
     ask_enum(Question(
@@ -225,9 +240,11 @@ def auth_questions() -> AuthModel:
             text=t_expiration_offset,
             required=True),
             0, 100)
+    pop_level()
     return auth
 
 def redis_questions() -> RedisModel:
+    push_level("Redis")
     redis = RedisModel()
     redis.host = \
     ask_str(Question(
@@ -259,9 +276,11 @@ def redis_questions() -> RedisModel:
         text=t_redis_expire,
         required=False),
         0, 100)
+    pop_level()
     return redis
 
-def query_questions() -> QueryModel:
+def query_questions(num: int) -> QueryModel:
+    push_level(f"Query #{num}")
     query = QueryModel()
     query.query = \
     ask_any(Question(
@@ -305,9 +324,11 @@ def query_questions() -> QueryModel:
         text=t_query_env,
         required=False),
         id_check, lambda _: True)
+    pop_level()
     return query
 
 def queries_questions(requird: bool, text: Text) -> list[QueryModel]:
+    push_level("Queries")
     queries = list()
     if requird:
         min_queries = 1
@@ -320,14 +341,17 @@ def queries_questions(requird: bool, text: Text) -> list[QueryModel]:
         min_queries, 10)
     for index in range(num_queries):
         print_title(f"Configuration for query #{index+1}")
-        q = query_questions()
+        q = query_questions(index+1)
         queries.append(q)
     if len(queries) == 0:
+        pop_level()
         return None
     else:
+        pop_level()
         return queries
 
 def newrelic_questions() -> NewrelicModel:
+    push_level("Newrelic")
     newrelic = NewrelicModel()
     newrelic.data_format = \
     ask_enum(Question(
@@ -349,6 +373,7 @@ def newrelic_questions() -> NewrelicModel:
     ask_any(Question(
         text=t_nr_license_key,
         required=True))
+    pop_level()
     return newrelic
 
 # Format checkers
