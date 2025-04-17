@@ -32,9 +32,21 @@ def main():
             print("\nAborted.")
             exit(1)
         
-        print_config(conf.to_yaml())
+        conf_yml = conf.to_yaml()
 
-        #TODO: write YAML to file
+        print_config(conf_yml)
+
+        try:
+            with open(args.config_file, "w+") as file:
+                try:
+                    file.write(conf_yml)
+                    file.close()
+                except (IOError, OSError):
+                    print("Error: Could not write to file.")
+                    exit(1)
+        except (FileNotFoundError, PermissionError, OSError):
+            print("Error: Could not open file.")
+            exit(1)
 
         print_ok("Done.")
         print()
