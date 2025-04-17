@@ -22,9 +22,6 @@ class ConfigModel(BaseModel):
             if self.cron_interval_minutes is not None:
                 if self.cron_interval_minutes <= 0:
                     raise ConfigException("`cron_interval_minutes` must be greater than 0")
-        else:
-            if self.service_schedule is None:
-                raise ConfigException("`service_schedule` must be defined")
         if self.instances is None:
             raise ConfigException("`instances` must be defined")
         if len(self.instances) == 0:

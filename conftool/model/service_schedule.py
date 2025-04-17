@@ -6,6 +6,10 @@ class ServiceScheduleModel(BaseModel):
     minute: str
 
     def check(self):
+        if self.hour is None:
+            raise ConfigException(f"service_schedule `hour` can't be none")
+        if self.minute is None:
+            raise ConfigException(f"service_schedule `minute` can't be none")
         self.check_cron_format('hour', 0, 23, self.hour)
         self.check_cron_format('minute', 0, 59, self.minute)
         super().check()
