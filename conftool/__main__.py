@@ -8,20 +8,23 @@ from .form.text import t_warning_missing_auth
 import argparse
 import os.path
 
+TITLE = f"New Relic Salesforce Exporter Config Tool {VERSION}"
+DESCRIPTION = f"{TITLE}. Create or check configuration files."
+
 def main():
-    parser = argparse.ArgumentParser(description=f'New Relic Salesforce Exporter Config Tool {VERSION}.')
-    parser.add_argument('config_file', type=str, help='File path. Config YAML file to check or create.')
-    parser.add_argument('-n', '--new', action='store_true', help='Create new configuration.')
+    parser = argparse.ArgumentParser(description=DESCRIPTION)
+    parser.add_argument('config_file', type=str, help='File path. Config YAML file to create or check.')
+    parser.add_argument('-c', '--check', action='store_true', help='Check configuration.')
     args = parser.parse_args()
 
-    print(f"New Relic Salesforce Exporter Config Tool v{VERSION}\n")
+    print(f"{TITLE}\n")
 
-    if args.new:
+    if not args.check:
+        print("Creating new config file...\n")
+
         if os.path.isfile(args.config_file):
             print("Error: Config file already exists.")
             exit(1)
-
-        print("Creating new config file...\n")
 
         try:
             conf = questionnaire.run()
@@ -29,8 +32,10 @@ def main():
             print("\nAborted.")
             exit(1)
         
-        print("Final config model:\n")
-        print(conf.to_yaml())
+        print_config(conf.to_yaml())
+
+        print_ok("Done.")
+        print()
 
         #TODO: write YAML to file
 
@@ -61,11 +66,8 @@ def main():
                 print()
         
         # Serialize model into YAML
-        print('---- CONFIG FILE:\n')
         serialized_yaml = config_model.to_yaml()
-        print(serialized_yaml)
-        print('----')
-        print()
+        print_config(serialized_yaml)
 
         print_ok("Validation OK!")
         print()
@@ -73,5 +75,11 @@ def main():
 def read_file(file_name: str) -> str:
     with open(file_name) as file:
         return file.read()
+    
+def print_config(conf):
+    print('---- CONFIG FILE:\n')
+    print(conf)
+    print('----')
+    print()
 
 if __name__ == "__main__": main()

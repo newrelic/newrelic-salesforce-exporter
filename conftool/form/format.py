@@ -21,10 +21,10 @@ def print_statement(msg: str):
     print(Color.BG_BLUE + Color.FG_BOLD_WHITE + msg + Color.RESET + "\n")
 
 def print_warning(msg: str):
-    print(Color.BG_YELLOW + Color.FG_BOLD_BLACK + "!! " + msg + " !!" + Color.RESET + "\n")
+    print(Color.BG_YELLOW + Color.FG_BOLD_BLACK + "WARNING: " + msg + Color.RESET + "\n")
 
 def print_fail(msg: str):
-    print(Color.FG_BOLD_RED + ' FAILED: ' + msg + Color.RESET)
+    print(Color.FG_BOLD_RED + "FAILED: " + msg + Color.RESET)
 
 def print_ok(msg: str):
     print(Color.FG_BOLD_GREEN + msg + Color.RESET)
