@@ -34,17 +34,16 @@ def main():
         
         print_config(conf.to_yaml())
 
-        print_ok("Done.")
-        print()
-
         #TODO: write YAML to file
 
+        print_ok("Done.")
+        print()
     else:
+        print("Validating config file...\n")
+
         if not os.path.isfile(args.config_file):
             print("Error: Config file doesn't exist.")
             exit(1)
-
-        print("Validating config file...\n")
         
         try:
             config_yaml_str = read_file(args.config_file)

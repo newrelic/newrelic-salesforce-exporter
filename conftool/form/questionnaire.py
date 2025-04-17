@@ -45,6 +45,12 @@ def run() -> ConfigModel:
             text=t_cron_interval,
             required=False),
             1, 10000)
+        
+    # Queries
+    conf.queries = queries_questions(requird=True, text=t_num_queries)
+
+    # Newrelic
+    conf.newrelic = newrelic_questions()
 
     # Instances
     conf.instances = list()
@@ -57,12 +63,6 @@ def run() -> ConfigModel:
     for index in range(num_instances):
         i = instance_questions(conf.run_as_service, index + 1)
         conf.instances.append(i)
-    
-    # Queries
-    conf.queries = queries_questions(requird=True, text=t_num_queries)
-
-    # Newrelic
-    conf.newrelic = newrelic_questions()
 
     pop_level()
 
@@ -75,7 +75,6 @@ def instance_questions(run_as_service: bool, num: int) -> InstanceModel:
     ask_any(Question(
         text=t_instance_name,
         required=True))
-    i.arguments = arguments_questions()
     i.labels = \
     ask_dict(Question(
         text=t_instance_labels,
@@ -83,6 +82,8 @@ def instance_questions(run_as_service: bool, num: int) -> InstanceModel:
         id_check, id_check)
     if run_as_service == True:
         i.service_schedule = service_schedule_questions()
+    
+    i.arguments = arguments_questions()
 
     pop_level()
     return i
@@ -120,20 +121,6 @@ def arguments_questions() -> ArgumentsModel:
         text=t_api_ver,
         required=False),
         api_ver_check)
-    do_config_auth = \
-    ask_bool(Question(
-        text=t_conf_auth,
-        required=True))
-    if do_config_auth:
-        args.auth = auth_questions()
-    else:
-        print_warning(t_warning_missing_auth)
-    args.cache_enabled = \
-    ask_bool(Question(
-        text=t_cache_enabled,
-        required=False))
-    if args.cache_enabled == True:
-        args.redis = redis_questions()
     args.auth_env_prefix = \
     ask_any(Question(
         text=t_auth_env_prefix,
@@ -156,6 +143,20 @@ def arguments_questions() -> ArgumentsModel:
     ask_bool(Question(
         text=t_logs_enabled,
         required=False))
+    do_config_auth = \
+    ask_bool(Question(
+        text=t_conf_auth,
+        required=True))
+    if do_config_auth:
+        args.auth = auth_questions()
+    else:
+        print_warning(t_warning_missing_auth)
+    args.cache_enabled = \
+    ask_bool(Question(
+        text=t_cache_enabled,
+        required=False))
+    if args.cache_enabled == True:
+        args.redis = redis_questions()
     args.queries = queries_questions(requird=False, text=t_num_queries_instance)
     args.limits = limits_questions()
     pop_level()

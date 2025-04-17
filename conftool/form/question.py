@@ -50,6 +50,7 @@ def ask_dict(question: Question, key_checker, val_checker) -> dict[str,str]:
     print_question(question)
     k = prompt_str("Key?", key_checker, question.required)
     if k == None:
+        print_response(None)
         return None
     v = prompt_str("Value?", val_checker, True)
     res = {k:v}
@@ -59,6 +60,7 @@ def ask_dict(question: Question, key_checker, val_checker) -> dict[str,str]:
             break
         v = prompt_str("Value?", val_checker, True)
         res[k] = v
+    print_response(res)
     return res
 
 # Print formating
