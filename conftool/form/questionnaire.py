@@ -15,8 +15,7 @@ from conftool.model.query import QueryModel
 from conftool.model.redis import RedisModel
 from conftool.model.service_schedule import ServiceScheduleModel
 from .question import Question, ask_int, ask_enum, ask_bool, ask_str, ask_any, \
-                                ask_dict, print_title, print_warning, \
-                                push_level, pop_level
+                                ask_dict, print_warning, push_level, pop_level
 from .text import *
 
 import validators
@@ -55,7 +54,6 @@ def run() -> ConfigModel:
         1, 10)
 
     for index in range(num_instances):
-        print_title(f"Configuration for Instance #{index+1}")
         i = instance_questions(conf.run_as_service, index + 1)
         conf.instances.append(i)
     
@@ -128,7 +126,7 @@ def arguments_questions() -> ArgumentsModel:
     if do_config_auth:
         args.auth = auth_questions()
     else:
-        print_warning("Auth data is REQUIRED.\nIf you don't set it in the config file, you MUST provide it as env variables. Check the documentation for details.")
+        print_warning(t_warning_missing_auth)
     args.cache_enabled = \
     ask_bool(Question(
         text=t_cache_enabled,
@@ -340,7 +338,6 @@ def queries_questions(requird: bool, text: Text) -> list[QueryModel]:
         required=True),
         min_queries, 10)
     for index in range(num_queries):
-        print_title(f"Configuration for query #{index+1}")
         q = query_questions(index+1)
         queries.append(q)
     if len(queries) == 0:

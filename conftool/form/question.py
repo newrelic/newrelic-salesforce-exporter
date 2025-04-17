@@ -63,20 +63,17 @@ def ask_dict(question: Question, key_checker, val_checker) -> dict[str,str]:
 # Print formating
 
 def print_response(r):
-    print("-> Response =", r)
+    #print("-> Response =", r)
     print()
 
 def print_question(question: Question):
     print_path()
-    print(question.text.desc)
-    print("Required." if question.required else "Optional.")
+    print(Color.BG_BLUE + Color.FG_BOLD_WHITE + question.text.desc + Color.RESET + "\n")
+    print("REQUIRED" if question.required else "OPTIONAL")
     print()
 
-def print_title(title: str):
-    print(title + '\n')
-
 def print_warning(warning: str):
-    print(warning + '\n')
+    print(Color.BG_YELLOW + Color.FG_BOLD_BLACK + "!! " + warning + " !!" + Color.RESET + "\n")
 
 # Question hierarchy
 
@@ -89,4 +86,18 @@ def pop_level():
     _question_path.pop()
 
 def print_path():
-    print(">>> " + " > ".join(_question_path) + '\n')
+    print(Color.BG_RED + Color.FG_BOLD_WHITE + " @ " + " > ".join(_question_path) + ' ' + Color.RESET + '\n')
+
+class Color:
+    BG_RED = '\x1b[41m'
+    FG_BOLD_RED = '\x1b[1;31m'
+
+    FG_BOLD_WHITE = '\x1b[1;37m'
+
+    BG_BLUE = '\x1b[44m'
+
+    BG_YELLOW = '\x1b[43m'
+
+    FG_BOLD_BLACK = '\x1b[1;30m'
+
+    RESET = '\x1b[0m'

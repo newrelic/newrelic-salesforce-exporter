@@ -248,3 +248,7 @@ t_limits_name_list = Text(
     desc = "An array of limit names to collect.",
     prom = "Names (comma separated)?"
 )
+
+t_warning_missing_auth = """Auth data is REQUIRED.
+If you don't set it in the config file, you MUST provide it as env variables.
+Check the documentation for details."""

@@ -52,6 +52,8 @@ def main():
             print(err)
             print("----")
             exit(1)
+
+        #TODO: if auth data not present, print warning message "t_warning_missing_auth"
         
         # Serialize model into YAML
         serialized_yaml = config_model.to_yaml()
