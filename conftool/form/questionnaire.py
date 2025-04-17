@@ -15,7 +15,8 @@ from conftool.model.query import QueryModel
 from conftool.model.redis import RedisModel
 from conftool.model.service_schedule import ServiceScheduleModel
 from .question import Question, ask_int, ask_enum, ask_bool, ask_str, ask_any, \
-                                ask_dict, print_warning, push_level, pop_level
+                                ask_dict, push_level, pop_level
+from .format import print_warning
 from .text import *
 
 import validators
