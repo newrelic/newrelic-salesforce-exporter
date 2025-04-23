@@ -1,3 +1,4 @@
+from conftool.model.token_url import TokenUrlModel
 from .base import BaseModel
 from .generation_interval import GenerationIntervalModel
 from .auth import AuthModel
@@ -8,14 +9,11 @@ from .query import QueryModel
 from .limits import LimitsModel
 from .exception import ConfigException
 
-import validators
-
 class ArgumentsModel(BaseModel):
     auth: AuthModel
     redis: RedisModel
     api_ver: ApiVerModel
-    #TODO create TokenUrlModel with __inner_val__ to self-check URL format
-    token_url: str
+    token_url: TokenUrlModel
     auth_env_prefix: str
     cache_enabled: bool
     date_field: DateFieldModel
@@ -28,8 +26,6 @@ class ArgumentsModel(BaseModel):
     def check(self):
         if self.token_url is None:
             raise ConfigException(f"`token_url` is required")
-        if validators.url(self.token_url) != True:
-            raise ConfigException(f"Wrong URL format in `token_url`")
         if self.cache_enabled:
             if self.redis is None:
                 raise ConfigException(f"`redis` must be defined when `cache_enabled` is True")
