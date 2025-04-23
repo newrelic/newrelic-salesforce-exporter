@@ -10,11 +10,16 @@ Tested with Python versions 3.9 and 3.13.
 
 From `conftool` folder:
 
-- Create a virtual environment (how to install [venv](https://virtualenv.pypa.io/en/latest/installation.html)):
+- Create a virtual environment ([venv](https://virtualenv.pypa.io/en/latest/installation.html) is required):
 
     ```
-    python<version> -m venv sf_env
-    source sf_env/bin/activate
+    python<version> -m venv my_env
+    ```
+
+- Activate the environment:
+
+    ```
+    source my_env/bin/activate
     ```
 
 - Then install dependencies:
