@@ -130,10 +130,10 @@ class BaseModel:
 # Helpers
 
 def is_enum(cls: type) -> bool:
-    return issubclass(cls, ConfigEnum)
+    return isinstance(cls, type) and issubclass(cls, ConfigEnum)
 
 def is_base_model(cls: type) -> bool:
-    return issubclass(cls, BaseModel)
+    return isinstance(cls, type) and issubclass(cls, BaseModel)
 
 def is_list(cls: type) -> bool:
     return type(cls()) is list

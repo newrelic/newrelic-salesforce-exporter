@@ -4,9 +4,7 @@ Configuration tool for the New Relic Salesforce Exporter.
 
 ## Requirements
 
-Python 3.9.
-
-TODO: Test with newer versions of Python.
+Tested with Python versions 3.9 and 3.13.
 
 ## Install
 
