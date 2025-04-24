@@ -386,7 +386,15 @@ to specify the directory containing the [configuration file](#configyml).
 
 Several configuration files are used to control the behavior of the exporter.
 
-#### `config.yml`
+#### Guided configuration
+
+In order to simplify the configuration process, we provided a CLI application:
+The [ConfTool](./conftool/).
+
+Please follow the provided instructions in the [README](./conftool/README.md) for
+installation and usage.
+
+#### Manual configuration
 
 The main configuration for the exporter is the `config.yml` file. In fact, it
 does not need to be named `config.yml` although that is the default name if a
