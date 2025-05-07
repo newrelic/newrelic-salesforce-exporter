@@ -13,7 +13,7 @@ class ApiVerModel(BaseModel):
         if len(components) != 2:
             raise ConfigException(f"Wrong api_ver value `{self.__inner_val__}`, it must have the format 'X.Y'")
         for n in components:
-            if not n.isnumeric():
+            if not n.isdecimal():
                 raise ConfigException(f"Wrong api_ver value `{self.__inner_val__}`, components must be numbers")
         super().check()
         

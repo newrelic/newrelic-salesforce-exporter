@@ -14,4 +14,4 @@ class InstanceModel(BaseModel):
             raise ConfigException(f"`name` must be defined")
         if self.arguments is None:
             raise ConfigException(f"`arguments` must be defined")
-        return super().check()
+        super().check()

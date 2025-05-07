@@ -82,7 +82,7 @@ class ListNumberValidator(SkippableValidator):
             )
     
     def digit_in_range(self, text: str) -> bool:
-        if text.isdigit():
+        if text.isdecimal():
             n = int(text)
             return n >= self.min and n <= self.max
         else:

@@ -18,7 +18,7 @@ class ConfigModel(BaseModel):
     newrelic: NewrelicModel
 
     def check(self):
-        if self.run_as_service:
+        if not self.run_as_service:
             if self.cron_interval_minutes is not None:
                 if self.cron_interval_minutes <= 0:
                     raise ConfigException("`cron_interval_minutes` must be greater than 0")

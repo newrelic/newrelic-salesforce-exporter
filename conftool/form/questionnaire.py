@@ -44,10 +44,10 @@ def run() -> ConfigModel:
         ask_int(Question(
             text=t_cron_interval,
             required=False),
-            1, 10000)
+            i_cron_interval_min, i_cron_interval_max)
         
     # Queries
-    conf.queries = queries_questions(requird=True, text=t_num_queries)
+    conf.queries = queries_questions(required=True, text=t_num_queries)
 
     # Newrelic
     conf.newrelic = newrelic_questions()
@@ -58,7 +58,7 @@ def run() -> ConfigModel:
     ask_int(Question(
         text=t_num_instances,
         required=True),
-        1, 10)
+        i_num_instances_min, i_num_instances_max)
 
     for index in range(num_instances):
         i = instance_questions(conf.run_as_service, index + 1)
@@ -116,15 +116,17 @@ def arguments_questions() -> ArgumentsModel:
         text=t_token_url,
         required=True),
         token_url_check)
-    args.api_ver = \
+    api_ver = \
     ask_str(Question(
         text=t_api_ver,
         required=False),
         api_ver_check)
+    args.api_ver = ApiVerModel(api_ver)
     args.auth_env_prefix = \
-    ask_any(Question(
+    ask_str(Question(
         text=t_auth_env_prefix,
-        required=False))
+        required=False),
+        id_check)
     args.date_field = \
     ask_any(Question(
         text=t_date_field,
@@ -138,7 +140,7 @@ def arguments_questions() -> ArgumentsModel:
     ask_int(Question(
         text=t_time_lag_minutes,
         required=False),
-        0, 1000)
+        i_time_lag_minutes_min, i_time_lag_minutes_max)
     args.logs_enabled = \
     ask_bool(Question(
         text=t_logs_enabled,
@@ -157,7 +159,7 @@ def arguments_questions() -> ArgumentsModel:
         required=False))
     if args.cache_enabled == True:
         args.redis = redis_questions()
-    args.queries = queries_questions(requird=False, text=t_num_queries_instance)
+    args.queries = queries_questions(required=False, text=t_num_queries_instance)
     args.limits = limits_questions()
     pop_level()
     return args
@@ -239,7 +241,7 @@ def auth_questions() -> AuthModel:
         ask_int(Question(
             text=t_expiration_offset,
             required=True),
-            0, 100)
+            i_expiration_offset_min, i_expiration_offset_max)
     pop_level()
     return auth
 
@@ -255,12 +257,12 @@ def redis_questions() -> RedisModel:
     ask_int(Question(
         text=t_redis_post,
         required=False),
-        0, 65535)
+        i_redis_post_min, i_redis_post_max)
     redis.db_number = \
     ask_int(Question(
         text=t_redis_dbnum,
         required=False),
-        0, 16)
+        i_redis_dbnum_min, i_redis_dbnum_max)
     redis.ssl = \
     ask_bool(Question(
         text=t_redis_ssl,
@@ -275,7 +277,7 @@ def redis_questions() -> RedisModel:
     ask_int(Question(
         text=t_redis_expire,
         required=False),
-        0, 100)
+        i_redis_expire_min, i_redis_expire_max)
     pop_level()
     return redis
 
@@ -298,17 +300,20 @@ def query_questions(num: int) -> QueryModel:
         required=False,
         datatype=ApiNameModel))
     query.event_type = \
-    ask_any(Question(
+    ask_str(Question(
         text=t_query_event_type,
-        required=False))
+        required=False),
+        id_check)
     query.timestamp_attr = \
-    ask_any(Question(
+    ask_str(Question(
         text=t_query_timestamp_attr,
-        required=False))
+        required=False),
+        id_check)
     query.rename_timestamp = \
-    ask_any(Question(
+    ask_str(Question(
         text=t_query_rename_timestamp,
-        required=False))
+        required=False),
+        id_check)
     id_list = \
     ask_str(Question(
         text=t_query_id_list,
@@ -327,27 +332,23 @@ def query_questions(num: int) -> QueryModel:
     pop_level()
     return query
 
-def queries_questions(requird: bool, text: Text) -> list[QueryModel]:
+def queries_questions(required: bool, text: Text) -> list[QueryModel]:
     push_level("Queries")
     queries = list()
-    if requird:
-        min_queries = 1
+    if required:
+        min_queries = i_num_queries_min
     else:
-        min_queries = 0
+        min_queries = i_num_queries_instance_min
     num_queries = \
     ask_int(Question(
         text=text,
         required=True),
-        min_queries, 10)
+        min_queries, i_num_queries_max)
     for index in range(num_queries):
         q = query_questions(index+1)
         queries.append(q)
-    if len(queries) == 0:
-        pop_level()
-        return None
-    else:
-        pop_level()
-        return queries
+    pop_level()
+    return queries if len(queries) > 0 else None
 
 def newrelic_questions() -> NewrelicModel:
     push_level("Newrelic")
@@ -366,12 +367,16 @@ def newrelic_questions() -> NewrelicModel:
         newrelic.account_id = \
         ask_str(Question(
             text=t_nr_account_id,
-            required=True),
+            required=False),
             numeric_check)
+        if newrelic.account_id is None:
+            print_warning(t_warning_missing_account_id)
     newrelic.license_key = \
     ask_any(Question(
         text=t_nr_license_key,
-        required=True))
+        required=False))
+    if newrelic.license_key is None:
+        print_warning(t_warning_missing_license)
     pop_level()
     return newrelic
 
@@ -380,18 +385,19 @@ def newrelic_questions() -> NewrelicModel:
 def cron_hours_check(text: str) -> bool:
     try:
         ServiceScheduleModel().check_cron_format('hour', 0, 23, text)
+        return True
     except ConfigException:
         return False
-    return True
 
 def cron_minutes_check(text: str) -> bool:
     try:
         ServiceScheduleModel().check_cron_format('minute', 0, 59, text)
+        return True
     except ConfigException:
         return False
-    return True
 
 def token_url_check(text: str) -> bool:
+    # NOTE: `validators.url` returns either True or a custom error object.
     if validators.url(text) == True:
         return True
     else:
@@ -405,6 +411,7 @@ def api_ver_check(text: str) -> bool:
         return False
     
 def host_check(text: str) -> bool:
+    # NOTE: these methods return either True or a custom error object.
     if validators.domain(text) != True and \
        validators.ipv4(text) != True and \
        validators.ipv6(text) != True:
@@ -417,8 +424,8 @@ def numeric_check(text: str) -> bool:
 
 def id_list_check(text: str) -> bool:
     elements = text.split(",")
-    valids_elements = [x.strip() for x in elements if x.strip().isidentifier()]
-    return len(valids_elements) == len(elements)
+    valid_elements = [x.strip() for x in elements if x.strip().isidentifier()]
+    return len(valid_elements) == len(elements)
 
 def id_check(text: str) -> bool:
     return text.isidentifier()

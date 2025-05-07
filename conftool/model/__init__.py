@@ -11,8 +11,7 @@ def to_dict(obj, classkey=None) -> dict:
                 data[k] = to_dict(v, classkey)
         if not data:
             return None
-        else:
-            return data
+        return data
     elif hasattr(obj, "__iter__") and not isinstance(obj, str):
         ret_list = []
         for v in obj:
@@ -22,8 +21,7 @@ def to_dict(obj, classkey=None) -> dict:
                     ret_list.append(sub_dat)
         if not ret_list:
             return None
-        else:
-            return ret_list
+        return ret_list
     elif hasattr(obj, "__dict__"):
         if obj is None:
             return None
@@ -36,10 +34,9 @@ def to_dict(obj, classkey=None) -> dict:
                         data_dict[key] = sub_dat
             elif key == "__objclass__" and issubclass(value, ConfigEnum):
                 # Enum
-                return str(obj)
+                return obj._value_
         if not data_dict:
             return None
-        else:
-            return data_dict
+        return data_dict
     else:
         return obj

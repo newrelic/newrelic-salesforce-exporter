@@ -14,43 +14,43 @@ def ask_enum(question: Question) -> ConfigEnum:
     print_question(question)
     options = [e._name_ for e in question.datatype]
     values = [e.value for e in question.datatype]
-    num = prompt_list(question.text.prom, options, question.required)
+    num = prompt_list(question.text.prompt, options, question.required)
     if num is None:
         r = None
     else:
         r = question.datatype(values[num - 1])
-    print_response(r)
+    print()
     return r
 
 def ask_int(question: Question, min: int, max: int) -> int:
     print_question(question)
-    r = prompt_int(question.text.prom, min, max, question.required)
-    print_response(r)
+    r = prompt_int(question.text.prompt, min, max, question.required)
+    print()
     return r
 
 def ask_bool(question: Question) -> bool:
     print_question(question)
-    r = prompt_bool(question.text.prom, question.required)
-    print_response(r)
+    r = prompt_bool(question.text.prompt, question.required)
+    print()
     return r
 
 def ask_str(question: Question, checker) -> str:
     print_question(question)
-    r = prompt_str(question.text.prom, checker, question.required)
-    print_response(r)
+    r = prompt_str(question.text.prompt, checker, question.required)
+    print()
     return r
 
 def ask_any(question: Question) -> str:
     print_question(question)
-    r = prompt_any(question.text.prom, question.required)
-    print_response(r)
+    r = prompt_any(question.text.prompt, question.required)
+    print()
     return r
 
 def ask_dict(question: Question, key_checker, val_checker) -> dict[str,str]:
     print_question(question)
     k = prompt_str("Key?", key_checker, question.required)
     if k == None:
-        print_response(None)
+        print()
         return None
     v = prompt_str("Value?", val_checker, True)
     res = {k:v}
@@ -60,14 +60,10 @@ def ask_dict(question: Question, key_checker, val_checker) -> dict[str,str]:
             break
         v = prompt_str("Value?", val_checker, True)
         res[k] = v
-    print_response(res)
+    print()
     return res
 
 # Print formating
-
-def print_response(r):
-    #print("-> Response =", r)
-    print()
 
 def print_question(question: Question):
     print_path()

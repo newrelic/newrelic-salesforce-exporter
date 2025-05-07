@@ -17,4 +17,4 @@ class NewrelicModel(BaseModel):
            raise ConfigException("`account_id` must be defined")
         if self.license_key is None:
             raise ConfigException("`license_ley` must be defined")
-        return super().check()
+        super().check()

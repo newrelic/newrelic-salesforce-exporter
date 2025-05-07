@@ -24,7 +24,7 @@ class ServiceScheduleModel(BaseModel):
             last_num = -1
             for n in str_nums:
                 try:
-                    num = int(n)
+                    num = int(n.strip())
                 except Exception:
                     raise ConfigException(f"values in service_schedule `{attr_name}` must be valid numbers")
                 if num > last_num:

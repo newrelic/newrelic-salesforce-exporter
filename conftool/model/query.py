@@ -16,4 +16,4 @@ class QueryModel(BaseModel):
     def check(self):
         if self.query is None:
             raise ConfigException(f"`query` must be defined")
-        return super().check()
+        super().check()
