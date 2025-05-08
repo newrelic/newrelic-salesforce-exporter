@@ -81,11 +81,9 @@ def main():
         if  config_model.newrelic.data_format == DataFormatModel.EVENTS and \
             config_model.newrelic.account_id is None:
             print_warning(t_warning_missing_account_id)
-            pass
 
         if config_model.newrelic.license_key is None:
             print_warning(t_warning_missing_license)
-            pass
         
         # Serialize model into YAML
         serialized_yaml = config_model.to_yaml()
