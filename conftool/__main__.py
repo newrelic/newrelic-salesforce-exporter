@@ -1,9 +1,11 @@
+from conftool.model.data_format import DataFormatModel
 from . import VERSION
 from .model.config import ConfigModel
 from .model.exception import ConfigException
 from .form import questionnaire
 from .form.format import print_warning, print_fail, print_ok
-from .form.text import t_warning_missing_auth
+from .form.text import t_warning_missing_auth, t_warning_missing_account_id, \
+                       t_warning_missing_license
 
 import argparse
 import os.path
@@ -75,6 +77,15 @@ def main():
                 print(f"At instance #{index + 1}:")
                 print_warning(t_warning_missing_auth)
                 print()
+
+        if  config_model.newrelic.data_format == DataFormatModel.EVENTS and \
+            config_model.newrelic.account_id is None:
+            print_warning(t_warning_missing_account_id)
+            pass
+
+        if config_model.newrelic.license_key is None:
+            print_warning(t_warning_missing_license)
+            pass
         
         # Serialize model into YAML
         serialized_yaml = config_model.to_yaml()
