@@ -21,76 +21,82 @@ def main():
 
     print(f"{TITLE}\n")
 
-    if not args.check:
-        print("Creating new config file...\n")
-
-        if os.path.isfile(args.config_file):
-            print("Error: Config file already exists.")
-            exit(1)
-
-        try:
-            conf = questionnaire.run()
-        except KeyboardInterrupt:
-            print("\nAborted.")
-            exit(1)
-        
-        conf_yml = conf.to_yaml()
-
-        print_config(conf_yml)
-
-        try:
-            with open(args.config_file, "w+") as file:
-                try:
-                    file.write(conf_yml)
-                    file.close()
-                except (IOError, OSError):
-                    print("Error: Could not write to file.")
-                    exit(1)
-        except (FileNotFoundError, PermissionError, OSError):
-            print("Error: Could not open file.")
-            exit(1)
-
-        print_ok("Done.")
-        print()
+    if args.check:
+        check_config(args.config_file)
     else:
-        print("Validating config file...\n")
+        create_config(args.config_file)
 
-        if not os.path.isfile(args.config_file):
-            print("Error: Config file doesn't exist.")
-            exit(1)
-        
-        try:
-            config_yaml_str = read_file(args.config_file)
-        except Exception as err:
-            print("Error opening file:", err)
-            exit(1)
+def create_config(config_file: str):
+    print("Creating new config file...\n")
 
-        try:
-            config_model = ConfigModel.from_yaml(config_yaml_str)
-        except ConfigException as err:
-            print_fail(str(err))
-            print()
-            exit(1)
+    if os.path.isfile(config_file):
+        print("Error: Config file already exists.")
+        exit(1)
 
-        for index,i in enumerate(config_model.instances):
-            if i.arguments.auth is None:
-                print(f"At instance #{index + 1}:")
-                print_warning(t_warning_missing_auth)
-                print()
+    try:
+        conf = questionnaire.run()
+    except KeyboardInterrupt:
+        print("\nAborted.")
+        exit(1)
+    
+    conf_yml = conf.to_yaml()
 
-        if  config_model.newrelic.data_format == DataFormatModel.EVENTS and \
-            config_model.newrelic.account_id is None:
-            print_warning(t_warning_missing_account_id)
+    print_config(conf_yml)
 
-        if config_model.newrelic.license_key is None:
-            print_warning(t_warning_missing_license)
-        
-        # Serialize model into YAML
-        serialized_yaml = config_model.to_yaml()
-        print_config(serialized_yaml)
+    try:
+        with open(config_file, "w+") as file:
+            try:
+                file.write(conf_yml)
+                file.close()
+            except (IOError, OSError):
+                print("Error: Could not write to file.")
+                exit(1)
+    except (FileNotFoundError, PermissionError, OSError):
+        print("Error: Could not open file.")
+        exit(1)
 
-        print_ok("Validation OK!")
+    print_ok("Done.")
+    print()
+
+def check_config(config_file: str):
+    print("Validating config file...\n")
+
+    if not os.path.isfile(config_file):
+        print("Error: Config file doesn't exist.")
+        exit(1)
+    
+    try:
+        config_yaml_str = read_file(config_file)
+    except Exception as err:
+        print("Error opening file:", err)
+        exit(1)
+
+    try:
+        config_model = ConfigModel.from_yaml(config_yaml_str)
+    except ConfigException as err:
+        print_fail(str(err))
         print()
+        exit(1)
+
+    for index,i in enumerate(config_model.instances):
+        if i.arguments.auth is None:
+            print(f"At instance #{index + 1}:")
+            print_warning(t_warning_missing_auth)
+            print()
+
+    if  config_model.newrelic.data_format == DataFormatModel.EVENTS and \
+        config_model.newrelic.account_id is None:
+        print_warning(t_warning_missing_account_id)
+
+    if config_model.newrelic.license_key is None:
+        print_warning(t_warning_missing_license)
+    
+    # Serialize model into YAML
+    serialized_yaml = config_model.to_yaml()
+    print_config(serialized_yaml)
+
+    print_ok("Validation OK!")
+    print()
 
 def read_file(file_name: str) -> str:
     with open(file_name) as file:
