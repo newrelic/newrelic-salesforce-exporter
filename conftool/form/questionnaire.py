@@ -423,8 +423,8 @@ def numeric_check(text: str) -> bool:
     return text.isnumeric()
 
 def id_list_check(text: str) -> bool:
-    elements = text.split(",")
-    valid_elements = [x.strip() for x in elements if x.strip().isidentifier()]
+    elements = [x.strip() for x in text.split(",")]
+    valid_elements = [x for x in elements if x.isidentifier()]
     return len(valid_elements) == len(elements)
 
 def id_check(text: str) -> bool:
