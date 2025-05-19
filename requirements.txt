@@ -13,7 +13,7 @@ PyJWT~=2.4.0
 cryptography==43.0.1
 pip==23.3
 wheel==0.38.1
-setuptools==70.0.0
+setuptools==78.1.1
 future~=0.18.2
 newrelic==9.7.0
 coverage~=7.4
