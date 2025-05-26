@@ -127,11 +127,11 @@ t_redis_host = Text(
     prompt = "Host?"
 )
 
-i_redis_post_min = 0
-i_redis_post_max = 65535
-t_redis_post = Text(
+i_redis_port_min = 0
+i_redis_port_max = 65535
+t_redis_port = Text(
     desc = "Redis server port number.",
-    prompt = f"Port ({i_redis_post_min}-{i_redis_post_max})?"
+    prompt = f"Port ({i_redis_port_min}-{i_redis_port_max})?"
 )
 
 i_redis_dbnum_min = 0

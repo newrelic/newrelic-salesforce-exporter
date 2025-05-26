@@ -255,9 +255,9 @@ def redis_questions() -> RedisModel:
         host_check)
     redis.port = \
     ask_int(Question(
-        text=t_redis_post,
+        text=t_redis_port,
         required=False),
-        i_redis_post_min, i_redis_post_max)
+        i_redis_port_min, i_redis_port_max)
     redis.db_number = \
     ask_int(Question(
         text=t_redis_dbnum,
