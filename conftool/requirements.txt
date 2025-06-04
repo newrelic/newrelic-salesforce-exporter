@@ -1,0 +1,4 @@
+typing_extensions==4.13.0
+PyYAML==6.0.2
+validators==0.34.0
+prompt_toolkit==3.0.50
