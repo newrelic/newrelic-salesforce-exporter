@@ -79,3 +79,5 @@ config.yml
 #local files
 *.local.*
 .DS_Store
+
+credentials.json
