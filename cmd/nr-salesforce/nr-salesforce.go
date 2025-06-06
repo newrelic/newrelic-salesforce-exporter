@@ -6,9 +6,9 @@ import (
 	"os"
 	"sync"
 
-	"github.com/newrelic/newrelic-salesforce-exporter/common"
-	"github.com/newrelic/newrelic-salesforce-exporter/grpcclient"
-	"github.com/newrelic/newrelic-salesforce-exporter/proto"
+	"github.com/newrelic/newrelic-salesforce-exporter/pkg/common"
+	"github.com/newrelic/newrelic-salesforce-exporter/pkg/grpcclient"
+	"github.com/newrelic/newrelic-salesforce-exporter/pkg/proto"
 )
 
 func main() {

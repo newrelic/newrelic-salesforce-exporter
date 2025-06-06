@@ -8,7 +8,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/newrelic/newrelic-salesforce-exporter/common"
+	"github.com/newrelic/newrelic-salesforce-exporter/pkg/common"
 )
 
 const (

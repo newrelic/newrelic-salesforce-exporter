@@ -3,7 +3,7 @@ package common
 import (
 	"time"
 
-	"github.com/newrelic/newrelic-salesforce-exporter/proto"
+	"github.com/newrelic/newrelic-salesforce-exporter/pkg/proto"
 )
 
 var (
