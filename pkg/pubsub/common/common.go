@@ -3,11 +3,11 @@ package common
 import (
 	"time"
 
-	"github.com/newrelic/newrelic-salesforce-exporter/pkg/proto"
+	"github.com/newrelic/newrelic-salesforce-exporter/pkg/pubsub/proto"
 )
 
 var (
-	//TODO: get tipics from config file
+	//TODO: set topics in the config file
 
 	// topic and subscription-related variables
 	Topics = []string{
@@ -21,9 +21,10 @@ var (
 	}
 
 	ReplayPreset = proto.ReplayPreset_LATEST
-	//TODO: set a different ReplayId per topic.
+	//TODO: get replay ID from a database, one per topic
 	ReplayId []byte = nil
-	Appetite int32  = 1
+	//TODO: set the number of events to ask for in the config file
+	Appetite int32 = 1
 
 	// gRPC server variables
 	GRPCEndpoint    = "api.pubsub.salesforce.com:7443"

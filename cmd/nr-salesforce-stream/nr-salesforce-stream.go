@@ -1,29 +1,49 @@
 package main
 
 import (
-	"encoding/json"
 	"log"
-	"os"
 	"sync"
 
-	"github.com/newrelic/newrelic-salesforce-exporter/pkg/common"
-	"github.com/newrelic/newrelic-salesforce-exporter/pkg/grpcclient"
-	"github.com/newrelic/newrelic-salesforce-exporter/pkg/proto"
+	"github.com/newrelic/newrelic-salesforce-exporter/pkg/pubsub/common"
+	"github.com/newrelic/newrelic-salesforce-exporter/pkg/pubsub/grpcclient"
+	"github.com/newrelic/newrelic-salesforce-exporter/pkg/pubsub/proto"
+	"github.com/spf13/viper"
+
+	"github.com/newrelic/newrelic-labs-sdk/v2/pkg/integration"
 )
 
+// TODO: use the labs SDK to
+// - Send events or logs to to NR
+
+type Config struct {
+	Version     string `mapstructure:"version"`
+	IsTemplate  bool   `mapstructure:"is_template"` //TODO: optional, default value False
+	EventStream struct {
+		IntegrationName string `mapstructure:"integration_name"`
+		Auth            struct {
+			TokenUrl string `mapstructure:"token_url"`
+			UserPass struct {
+				ClientId     string `mapstructure:"client_id"`
+				ClientSecret string `mapstructure:"client_secret"`
+				Username     string `mapstructure:"username"`
+				Password     string `mapstructure:"password"`
+			} `mapstructure:"user_pass"`
+		} `mapstructure:"auth"`
+	} `mapstructure:"event_stream"`
+}
+
 func main() {
-	var credentials map[string]string
-	file_content, err := os.ReadFile("credentials.json")
-	file_content = []byte(file_content)
-	if err := json.Unmarshal(file_content, &credentials); err != nil {
-		log.Fatalf("could not read file credentials.json")
+	conf, err := readConfig("config.yml")
+	if err != nil {
+		log.Fatalln("Error loading config = ", err)
 	}
-	common.GrantType = credentials["GrantType"]
-	common.ClientId = credentials["ClientId"]
-	common.ClientSecret = credentials["ClientSecret"]
-	common.Username = credentials["Username"]
-	common.Password = credentials["Password"]
-	common.OAuthEndpoint = credentials["OAuthEndpoint"]
+
+	common.GrantType = "password"
+	common.ClientId = conf.EventStream.Auth.UserPass.ClientId
+	common.ClientSecret = conf.EventStream.Auth.UserPass.ClientSecret
+	common.Username = conf.EventStream.Auth.UserPass.Username
+	common.Password = conf.EventStream.Auth.UserPass.Password
+	common.OAuthEndpoint = conf.EventStream.Auth.TokenUrl
 
 	if common.ReplayPreset == proto.ReplayPreset_CUSTOM && common.ReplayId == nil {
 		log.Fatalf("the replayId variable must be populated when the replayPreset variable is set to CUSTOM")
@@ -93,4 +113,20 @@ func subscribe(client *grpcclient.PubSubClient, topicName string) {
 			log.Printf("error occurred while subscribing to topic: %v", err)
 		}
 	}
+}
+
+func readConfig(file string) (Config, error) {
+	if err := integration.NewConfigWithFile(file); err != nil {
+		return Config{}, err
+	}
+
+	conf := Config{}
+
+	if err := viper.Unmarshal(&conf); err != nil {
+		return Config{}, err
+	}
+
+	//TODO: check conf integrity
+
+	return conf, nil
 }

@@ -10,9 +10,9 @@ import (
 	"time"
 
 	"github.com/linkedin/goavro/v2"
-	"github.com/newrelic/newrelic-salesforce-exporter/pkg/common"
 	"github.com/newrelic/newrelic-salesforce-exporter/pkg/oauth"
-	"github.com/newrelic/newrelic-salesforce-exporter/pkg/proto"
+	"github.com/newrelic/newrelic-salesforce-exporter/pkg/pubsub/common"
+	"github.com/newrelic/newrelic-salesforce-exporter/pkg/pubsub/proto"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
