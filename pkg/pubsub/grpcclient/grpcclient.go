@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"strings"
 	"sync"
 	"time"
 
@@ -188,7 +189,16 @@ func (c *PubSubClient) Subscribe(ch chan<- map[string]any, topicName string, rep
 			log.Printf("event body: %+v\n", body)
 
 			// Send event to channel
-			ch <- transformEvent(body)
+			ev := transformEvent(body)
+			topicName := parseTypeName(codec)
+			topicNameComponents := strings.Split(topicName, ".")
+			eventType := "SFDCEvent"
+			if len(topicNameComponents) > 0 {
+				eventType = topicNameComponents[len(topicNameComponents)-1]
+			}
+			ev["eventType"] = "SFDC" + eventType
+
+			ch <- ev
 
 			// decrement our counter to keep track of how many events have been requested but not yet processed. If we're below our configured
 			// batch size then proactively request more events to stay ahead of the processor

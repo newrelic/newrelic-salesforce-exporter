@@ -37,7 +37,11 @@ func (t *eventStreamReceiver) PollEvents(ctx context.Context, writer chan<- mode
 	for {
 		ev := <-t.ch
 		labslog.Debugf("Send new event.")
-		writer <- model.NewEvent("SFDCEvent", ev, time.Now())
+
+		eventType := ev["eventType"].(string)
+		delete(ev, "eventType")
+
+		writer <- model.NewEvent(eventType, ev, time.Now())
 	}
 }
 
