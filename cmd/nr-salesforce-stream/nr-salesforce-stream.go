@@ -15,7 +15,7 @@ import (
 
 	"github.com/newrelic/newrelic-labs-sdk/v2/pkg/integration"
 	"github.com/newrelic/newrelic-labs-sdk/v2/pkg/integration/exporters"
-	lablog "github.com/newrelic/newrelic-labs-sdk/v2/pkg/integration/log"
+	labslog "github.com/newrelic/newrelic-labs-sdk/v2/pkg/integration/log"
 	"github.com/newrelic/newrelic-labs-sdk/v2/pkg/integration/model"
 	"github.com/newrelic/newrelic-labs-sdk/v2/pkg/integration/pipeline"
 )
@@ -36,7 +36,7 @@ func (t *eventStreamReceiver) GetId() string {
 func (t *eventStreamReceiver) PollEvents(ctx context.Context, writer chan<- model.Event) error {
 	for {
 		ev := <-t.ch
-		lablog.Debugf("Send new event.")
+		labslog.Debugf("Send new event.")
 		writer <- model.NewEvent("SFDCEvent", ev, time.Now())
 	}
 }
@@ -60,8 +60,8 @@ type Config struct {
 }
 
 func main() {
-	if os.Getenv("DEBUG") == "1" {
-		lablog.RootLogger.SetLevel(logrus.TraceLevel)
+	if os.Getenv("LOGS") == "1" {
+		labslog.RootLogger.SetLevel(logrus.TraceLevel)
 	}
 
 	conf, err := readConfig("config.yml")
@@ -98,12 +98,10 @@ func main() {
 	)
 
 	pipe := pipeline.NewEventsPipeline("sfdc-event-stream-pipeline")
-
 	ch := make(chan map[string]any)
 
 	pipe.AddReceiver(&eventStreamReceiver{ch})
 	pipe.AddExporter(newRelicExporter)
-
 	i.AddComponent(pipe)
 
 	go readEventStream(ch)
@@ -159,7 +157,7 @@ func readEventStream(ch chan<- map[string]any) {
 		}
 	}
 
-	// Crate one subscriber per topic
+	// Create one subscriber per topic
 	var wg sync.WaitGroup
 	for _, topicName := range common.Topics {
 		wg.Add(1)

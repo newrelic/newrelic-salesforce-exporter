@@ -188,7 +188,7 @@ func (c *PubSubClient) Subscribe(ch chan<- map[string]any, topicName string, rep
 			log.Printf("event body: %+v\n", body)
 
 			// Send event to channel
-			ch <- body
+			ch <- transformEvent(body)
 
 			// decrement our counter to keep track of how many events have been requested but not yet processed. If we're below our configured
 			// batch size then proactively request more events to stay ahead of the processor
@@ -539,4 +539,27 @@ func printTrailer(trailer metadata.MD) {
 		log.Printf("[trailer] = %s, [value] = %s", key, val)
 	}
 	log.Printf("end of trailers")
+}
+
+func transformEvent(ev map[string]any) map[string]any {
+	nrEv := map[string]any{}
+
+	for evName, evValue := range ev {
+		attrType := "other"
+		if val, ok := evValue.(map[string]any); ok {
+			if _, is_string := val["string"]; is_string {
+				attrType = "string"
+			} else if _, is_long := val["long"]; is_long {
+				attrType = "long"
+			} else if _, is_int := val["int"]; is_int {
+				attrType = "int"
+			} else if _, is_double := val["double"]; is_double {
+				attrType = "double"
+			}
+
+			nrEv[evName] = val[attrType]
+		}
+	}
+
+	return nrEv
 }
