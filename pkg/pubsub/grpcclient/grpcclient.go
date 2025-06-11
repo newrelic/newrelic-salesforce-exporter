@@ -189,16 +189,7 @@ func (c *PubSubClient) Subscribe(ch chan<- map[string]any, topicName string, rep
 			log.Printf("event body: %+v\n", body)
 
 			// Send event to channel
-			ev := transformEvent(body)
-			topicName := parseTypeName(codec)
-			topicNameComponents := strings.Split(topicName, ".")
-			eventType := "SFDCEvent"
-			if len(topicNameComponents) > 0 {
-				eventType = topicNameComponents[len(topicNameComponents)-1]
-			}
-			ev["eventType"] = "SFDC" + eventType
-
-			ch <- ev
+			ch <- buildEvent(body, parseTypeName(codec))
 
 			// decrement our counter to keep track of how many events have been requested but not yet processed. If we're below our configured
 			// batch size then proactively request more events to stay ahead of the processor
@@ -572,4 +563,16 @@ func transformEvent(ev map[string]any) map[string]any {
 	}
 
 	return nrEv
+}
+
+func buildEvent(body map[string]any, topicName string) map[string]any {
+	ev := transformEvent(body)
+	topicNameComponents := strings.Split(topicName, ".")
+	eventType := "SFDCEvent"
+	if len(topicNameComponents) > 0 {
+		eventType = topicNameComponents[len(topicNameComponents)-1]
+	}
+	ev["eventType"] = "SFDC" + eventType
+
+	return ev
 }

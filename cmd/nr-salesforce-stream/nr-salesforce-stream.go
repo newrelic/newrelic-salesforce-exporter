@@ -108,7 +108,7 @@ func main() {
 	pipe.AddExporter(newRelicExporter)
 	i.AddComponent(pipe)
 
-	go readEventStream(ch)
+	go readEventStreams(ch)
 
 	// Run the integration
 	defer i.Shutdown(ctx)
@@ -119,7 +119,20 @@ func main() {
 	}
 }
 
-func readEventStream(ch chan<- map[string]any) {
+func readEventStreams(ch chan<- map[string]any) {
+	// Create one subscriber per topic
+	var wg sync.WaitGroup
+	for _, topicName := range common.Topics {
+		wg.Add(1)
+		go func(topicName string) {
+			defer wg.Done()
+			subscribeToTopic(topicName, ch)
+		}(topicName)
+	}
+	wg.Wait()
+}
+
+func subscribeToTopic(topicName string, ch chan<- map[string]any) {
 	if common.ReplayPreset == proto.ReplayPreset_CUSTOM && common.ReplayId == nil {
 		log.Fatalf("the replayId variable must be populated when the replayPreset variable is set to CUSTOM")
 	} else if common.ReplayPreset != proto.ReplayPreset_CUSTOM && common.ReplayId != nil {
@@ -147,34 +160,7 @@ func readEventStream(ch chan<- map[string]any) {
 		log.Fatalf("could not fetch user info: %v", err)
 	}
 
-	for _, topicName := range common.Topics {
-		log.Printf("Making GetTopic request...")
-		topic, err := client.GetTopic(topicName)
-		if err != nil {
-			client.Close()
-			log.Fatalf("could not fetch topic: %v", err)
-		}
-
-		if !topic.GetCanSubscribe() {
-			client.Close()
-			log.Fatalf("this user is not allowed to subscribe to the following topic: %s", topicName)
-		}
-	}
-
-	// Create one subscriber per topic
-	var wg sync.WaitGroup
-	for _, topicName := range common.Topics {
-		wg.Add(1)
-		go func(topicName string) {
-			defer wg.Done()
-			subscribe(ch, client, topicName)
-		}(topicName)
-	}
-	wg.Wait()
-}
-
-func subscribe(ch chan<- map[string]any, client *grpcclient.PubSubClient, topicName string) {
-	var err error
+	//TODO: store replay id in a DB
 	curReplayId := common.ReplayId
 	for {
 		log.Printf("Subscribing to topic %s", topicName)
