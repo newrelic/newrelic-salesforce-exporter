@@ -119,7 +119,7 @@ func (c *PubSubClient) GetSchema(schemaId string) (*proto.SchemaInfo, error) {
 // fetch data from the topic. This method will continuously consume messages unless an error occurs; if an error does occur then this method will
 // return the last successfully consumed ReplayId as well as the error message. If no messages were successfully consumed then this method will return
 // the same ReplayId that it originally received as a parameter
-func (c *PubSubClient) Subscribe(topicName string, replayPreset proto.ReplayPreset, replayId []byte) ([]byte, error) {
+func (c *PubSubClient) Subscribe(ch chan<- map[string]any, topicName string, replayPreset proto.ReplayPreset, replayId []byte) ([]byte, error) {
 	ctx, cancelFn := context.WithCancel(c.getAuthContext())
 	defer cancelFn()
 
@@ -186,6 +186,9 @@ func (c *PubSubClient) Subscribe(topicName string, replayPreset proto.ReplayPres
 			curReplayId = event.GetReplayId()
 
 			log.Printf("event body: %+v\n", body)
+
+			// Send event to channel
+			ch <- body
 
 			// decrement our counter to keep track of how many events have been requested but not yet processed. If we're below our configured
 			// batch size then proactively request more events to stay ahead of the processor
