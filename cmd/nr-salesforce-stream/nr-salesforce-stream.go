@@ -45,8 +45,15 @@ func (t *eventStreamReceiver) PollEvents(ctx context.Context, writer chan<- mode
 			eventType := ev["eventType"].(string)
 			delete(ev, "eventType")
 
-			//TODO: use event time as timestamp
-			writer <- model.NewEvent(eventType, ev, time.Now())
+			var timestamp time.Time
+			if ev["EventDate"] != nil {
+				timestamp = time.UnixMilli(ev["EventDate"].(int64))
+				delete(ev, "EventDate")
+			} else {
+				timestamp = time.Now()
+			}
+
+			writer <- model.NewEvent(eventType, ev, timestamp)
 
 			labslog.Debugf("Event sent!")
 			break

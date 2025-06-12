@@ -186,7 +186,7 @@ func (c *PubSubClient) Subscribe(ch chan<- map[string]any, topicName string, rep
 			// Again, this should be stored in a persistent external datastore instead of a variable
 			curReplayId = event.GetReplayId()
 
-			log.Printf("event body: %+v\n", body)
+			//log.Printf("event body: %+v\n", body)
 
 			// Send event to channel
 			ch <- buildEvent(body, parseTypeName(codec))
