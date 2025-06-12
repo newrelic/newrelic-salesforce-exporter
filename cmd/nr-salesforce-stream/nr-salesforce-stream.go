@@ -21,7 +21,7 @@ import (
 )
 
 const (
-	INTEGRATION_ID   = "com.newrelic.salesforce.event.stream"
+	INTEGRATION_ID   = "com.newrelic.salesforce.eventstream"
 	INTEGRATION_NAME = "New Relic Salesforce Event Streaming"
 )
 
@@ -35,13 +35,22 @@ func (t *eventStreamReceiver) GetId() string {
 
 func (t *eventStreamReceiver) PollEvents(ctx context.Context, writer chan<- model.Event) error {
 	for {
-		ev := <-t.ch
-		labslog.Debugf("Send new event.")
+		select {
+		case <-ctx.Done():
+			labslog.Debugf("Done! Finishing PollEvents")
+			return nil
+		case ev := <-t.ch:
+			labslog.Debugf("Send new event.")
 
-		eventType := ev["eventType"].(string)
-		delete(ev, "eventType")
+			eventType := ev["eventType"].(string)
+			delete(ev, "eventType")
 
-		writer <- model.NewEvent(eventType, ev, time.Now())
+			//TODO: use event time as timestamp
+			writer <- model.NewEvent(eventType, ev, time.Now())
+
+			labslog.Debugf("Event sent!")
+			break
+		}
 	}
 }
 
@@ -177,6 +186,7 @@ func subscribeToTopic(topicName string, ch chan<- map[string]any) {
 	}
 }
 
+// TODO: explore how viper loads config from env variables
 func readConfig(file string) (Config, error) {
 	if err := integration.NewConfigWithFile(file); err != nil {
 		return Config{}, err
