@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"log"
 	"os"
 	"sync"
@@ -23,24 +24,36 @@ import (
 const (
 	INTEGRATION_ID   = "com.newrelic.salesforce.eventstream"
 	INTEGRATION_NAME = "New Relic Salesforce Event Streaming"
+	MAX_BUFFER_SIZE  = 10
 )
 
-type eventStreamReceiver struct {
-	ch <-chan map[string]any
+type StreamComponent struct {
+	exporter pipeline.EventsExporter
+	ch chan map[string]any
+	buffer []model.Event
 }
 
-func (t *eventStreamReceiver) GetId() string {
-	return "sfdc-event-stream-receiver"
+func NewStreamComponent(exporter pipeline.EventsExporter, ch chan map[string]any) StreamComponent {
+	return StreamComponent {
+		exporter: exporter,
+		ch: ch,
+		buffer: make([]model.Event, 0),
+	}
 }
 
-func (t *eventStreamReceiver) PollEvents(ctx context.Context, writer chan<- model.Event) error {
+func (c *StreamComponent)GetId() string {
+	return "sfdc-stream-component"
+}
+
+func (c *StreamComponent)ExecuteSync(ctx context.Context) error {
+	labslog.Debugf("-------> StreamComponent ExecuteSync")
 	for {
 		select {
 		case <-ctx.Done():
-			labslog.Debugf("Done! Finishing PollEvents")
+			labslog.Debugf("Done.")
 			return nil
-		case ev := <-t.ch:
-			labslog.Debugf("Send new event.")
+		case ev := <-c.ch:
+			labslog.Debugf("Received an event from the stream")
 
 			eventType := ev["eventType"].(string)
 			delete(ev, "eventType")
@@ -53,12 +66,35 @@ func (t *eventStreamReceiver) PollEvents(ctx context.Context, writer chan<- mode
 				timestamp = time.Now()
 			}
 
-			writer <- model.NewEvent(eventType, ev, timestamp)
+			event := model.NewEvent(eventType, ev, timestamp)
+			c.buffer = append(c.buffer, event)
 
-			labslog.Debugf("Event sent!")
+			labslog.Debugf("Event buffered")
+
+			if len(c.buffer) >= MAX_BUFFER_SIZE {
+				labslog.Debugf("-----> Harvest events!")
+				err := c.exporter.ExportEvents(ctx, c.buffer)
+				if err != nil {
+					labslog.Debugf("Event export failed: %s", err.Error())
+				}
+				c.buffer = make([]model.Event, 0)
+			}
+
 			break
 		}
 	}
+}
+
+func (c *StreamComponent)Start(ctx context.Context, wg *sync.WaitGroup) error {
+	return errors.New("StreamComponent should never use Start")
+}
+
+func (c *StreamComponent)Execute(ctx context.Context) error {
+	return errors.New("StreamComponent should never use Execute")
+}
+
+func (c *StreamComponent)Shutdown(ctx context.Context) error {
+	return errors.New("StreamComponent should never use Shitdown")
 }
 
 type Config struct {
@@ -79,6 +115,30 @@ type Config struct {
 	} `mapstructure:"event_stream"`
 }
 
+func WithRunAsService(runAsService bool) integration.LabsIntegrationOpt {
+	return func(li *integration.LabsIntegration) error {
+		li.RunAsService = runAsService
+		return nil
+	}
+}
+
+func NewStreamIntegration(name, id, appName string, ctx context.Context,
+	labsIntegrationOpts ...integration.LabsIntegrationOpt,
+) (*integration.LabsIntegration, error) {
+	i, err := integration.NewStandaloneIntegration(
+		INTEGRATION_NAME,
+		INTEGRATION_ID,
+		INTEGRATION_NAME,
+		integration.WithLicenseKey(),
+		integration.WithApiKey(),
+		integration.WithAccountId(),
+		integration.WithEvents(ctx),
+		integration.WithLogs(ctx),
+		WithRunAsService(false),
+	)
+	return i, err
+}
+
 func main() {
 	if os.Getenv("LOGS") == "1" {
 		labslog.RootLogger.SetLevel(logrus.TraceLevel)
@@ -92,15 +152,12 @@ func main() {
 	fillSalesforceCredentials(conf)
 
 	ctx := context.Background()
-	i, err := integration.NewStandaloneIntegration(
+
+	i, err := NewStreamIntegration(
 		INTEGRATION_NAME,
 		INTEGRATION_ID,
 		INTEGRATION_NAME,
-		integration.WithLicenseKey(),
-		integration.WithApiKey(),
-		integration.WithAccountId(),
-		integration.WithEvents(ctx),
-		integration.WithLogs(ctx),
+		ctx,
 	)
 
 	if err != nil {
@@ -108,6 +165,7 @@ func main() {
 	}
 
 	newRelicExporter := exporters.NewNewRelicExporter(
+		//TODO: set integration data
 		"newrelic",
 		"integration_name",
 		"integration_id",
@@ -117,12 +175,10 @@ func main() {
 		i.DryRun,
 	)
 
-	pipe := pipeline.NewEventsPipeline("sfdc-event-stream-pipeline")
 	ch := make(chan map[string]any)
 
-	pipe.AddReceiver(&eventStreamReceiver{ch})
-	pipe.AddExporter(newRelicExporter)
-	i.AddComponent(pipe)
+	streamComponent := NewStreamComponent(newRelicExporter, ch)
+	i.AddComponent(&streamComponent)
 
 	go readEventStreams(ch)
 
