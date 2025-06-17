@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/newrelic/newrelic-salesforce-exporter/pkg/cache/redis"
 	"github.com/newrelic/newrelic-salesforce-exporter/pkg/pubsub/common"
 	"github.com/newrelic/newrelic-salesforce-exporter/pkg/pubsub/grpcclient"
 	"github.com/newrelic/newrelic-salesforce-exporter/pkg/pubsub/proto"
@@ -205,6 +206,15 @@ func readEventStreams(ch chan<- map[string]any) {
 }
 
 func subscribeToTopic(topicName string, ch chan<- map[string]any) {
+	//TODO: read config from file
+	db := redis.NewRedisCache(redis.RedisConfig{
+		Host: "localhost",
+		Port: 6379,
+		DbNumber: 0,
+		Password: "",
+		ExpireDays: 1,
+	})
+
 	if common.ReplayPreset == proto.ReplayPreset_CUSTOM && common.ReplayId == nil {
 		log.Fatalf("the replayId variable must be populated when the replayPreset variable is set to CUSTOM")
 	} else if common.ReplayPreset != proto.ReplayPreset_CUSTOM && common.ReplayId != nil {
@@ -232,8 +242,17 @@ func subscribeToTopic(topicName string, ch chan<- map[string]any) {
 		log.Fatalf("could not fetch user info: %v", err)
 	}
 
-	//TODO: store replay id in a DB
+	replayIdKey := topicName + "_last_replay_id"
+
 	curReplayId := common.ReplayId
+	
+	//TODO: get curReplayId from cache
+
+	// err = db.SetCacheVal(replayIdKey, string(curReplayId))
+	// if err != nil {
+	// 	labslog.Debugf("Error updating ReplayId = %s", err)
+	// }
+
 	for {
 		log.Printf("Subscribing to topic %s", topicName)
 
@@ -242,7 +261,7 @@ func subscribeToTopic(topicName string, ch chan<- map[string]any) {
 			replayPreset = proto.ReplayPreset_CUSTOM
 		}
 
-		curReplayId, err = client.Subscribe(ch, topicName, replayPreset, curReplayId)
+		curReplayId, err = client.Subscribe(ch, topicName, replayPreset, curReplayId, &db, replayIdKey)
 		if err != nil {
 			log.Printf("error occurred while subscribing to topic: %v", err)
 		}

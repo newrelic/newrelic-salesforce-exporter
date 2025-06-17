@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/linkedin/goavro/v2"
+	"github.com/newrelic/newrelic-salesforce-exporter/pkg/cache"
 	"github.com/newrelic/newrelic-salesforce-exporter/pkg/oauth"
 	"github.com/newrelic/newrelic-salesforce-exporter/pkg/pubsub/common"
 	"github.com/newrelic/newrelic-salesforce-exporter/pkg/pubsub/proto"
@@ -120,7 +121,7 @@ func (c *PubSubClient) GetSchema(schemaId string) (*proto.SchemaInfo, error) {
 // fetch data from the topic. This method will continuously consume messages unless an error occurs; if an error does occur then this method will
 // return the last successfully consumed ReplayId as well as the error message. If no messages were successfully consumed then this method will return
 // the same ReplayId that it originally received as a parameter
-func (c *PubSubClient) Subscribe(ch chan<- map[string]any, topicName string, replayPreset proto.ReplayPreset, replayId []byte) ([]byte, error) {
+func (c *PubSubClient) Subscribe(ch chan<- map[string]any, topicName string, replayPreset proto.ReplayPreset, replayId []byte, db cache.Cache, replayIdKey string) ([]byte, error) {
 	ctx, cancelFn := context.WithCancel(c.getAuthContext())
 	defer cancelFn()
 
@@ -153,6 +154,11 @@ func (c *PubSubClient) Subscribe(ch chan<- map[string]any, topicName string, rep
 
 	// NOTE: the replayId should be stored in a persistent data store rather than being stored in a variable
 	curReplayId := replayId
+	err = db.SetCacheVal(replayIdKey, string(curReplayId))
+	if err != nil {
+		log.Printf("Error updating ReplayId = %s", err)
+	}
+
 	for {
 		log.Printf("Waiting for events...")
 		resp, err := subscribeClient.Recv()
@@ -185,6 +191,10 @@ func (c *PubSubClient) Subscribe(ch chan<- map[string]any, topicName string, rep
 
 			// Again, this should be stored in a persistent external datastore instead of a variable
 			curReplayId = event.GetReplayId()
+			err = db.SetCacheVal(replayIdKey, string(curReplayId))
+			if err != nil {
+				log.Printf("Error updating ReplayId = %s", err)
+			}
 
 			//log.Printf("event body: %+v\n", body)
 
