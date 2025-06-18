@@ -99,6 +99,30 @@ func (c *StreamComponent)Shutdown(ctx context.Context) error {
 	return errors.New("StreamComponent should never use Shitdown")
 }
 
+func WithRunAsService(runAsService bool) integration.LabsIntegrationOpt {
+	return func(li *integration.LabsIntegration) error {
+		li.RunAsService = runAsService
+		return nil
+	}
+}
+
+func NewStreamIntegration(name, id, appName string, ctx context.Context,
+	labsIntegrationOpts ...integration.LabsIntegrationOpt,
+) (*integration.LabsIntegration, error) {
+	i, err := integration.NewStandaloneIntegration(
+		INTEGRATION_NAME,
+		INTEGRATION_ID,
+		INTEGRATION_NAME,
+		integration.WithLicenseKey(),
+		integration.WithApiKey(),
+		integration.WithAccountId(),
+		integration.WithEvents(ctx),
+		integration.WithLogs(ctx),
+		WithRunAsService(false),
+	)
+	return i, err
+}
+
 type Config struct {
 	Version    string `mapstructure:"version"`
 	IsTemplate bool   `mapstructure:"is_template"`
@@ -124,31 +148,8 @@ type Config struct {
 				ExpireDays int `mapstructure:"expire_days"`
 			} `mapstructure:"redis"`
 		} `mapstructure:"cache"`
+		Topics []string `mapstructure:"topics"`
 	} `mapstructure:"event_stream"`
-}
-
-func WithRunAsService(runAsService bool) integration.LabsIntegrationOpt {
-	return func(li *integration.LabsIntegration) error {
-		li.RunAsService = runAsService
-		return nil
-	}
-}
-
-func NewStreamIntegration(name, id, appName string, ctx context.Context,
-	labsIntegrationOpts ...integration.LabsIntegrationOpt,
-) (*integration.LabsIntegration, error) {
-	i, err := integration.NewStandaloneIntegration(
-		INTEGRATION_NAME,
-		INTEGRATION_ID,
-		INTEGRATION_NAME,
-		integration.WithLicenseKey(),
-		integration.WithApiKey(),
-		integration.WithAccountId(),
-		integration.WithEvents(ctx),
-		integration.WithLogs(ctx),
-		WithRunAsService(false),
-	)
-	return i, err
 }
 
 var integrationConf Config
@@ -181,10 +182,9 @@ func main() {
 	}
 
 	newRelicExporter := exporters.NewNewRelicExporter(
-		//TODO: set integration data
-		"newrelic",
-		"integration_name",
-		"integration_id",
+		INTEGRATION_ID,
+		INTEGRATION_NAME,
+		INTEGRATION_ID,
 		i.NrClient,
 		i.GetLicenseKey(),
 		i.GetRegion(),
@@ -210,7 +210,7 @@ func main() {
 func readEventStreams(ch chan<- map[string]any) {
 	// Create one subscriber per topic
 	var wg sync.WaitGroup
-	for _, topicName := range common.Topics {
+	for _, topicName := range integrationConf.EventStream.Topics {
 		wg.Add(1)
 		go func(topicName string) {
 			defer wg.Done()
@@ -310,7 +310,7 @@ func fillSalesforceCredentials() {
 	common.ClientSecret = integrationConf.EventStream.Auth.UserPass.ClientSecret
 	common.Username = integrationConf.EventStream.Auth.UserPass.Username
 	common.Password = integrationConf.EventStream.Auth.UserPass.Password
-	common.OAuthEndpoint = integrationConf.EventStream.Auth.TokenUrl
+	common.TokenEndpoint = integrationConf.EventStream.Auth.TokenUrl
 }
 
 type DummyCache struct {}

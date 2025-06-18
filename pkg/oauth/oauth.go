@@ -41,7 +41,7 @@ func Login() (*LoginResponse, error) {
 	ctx, cancelFn := context.WithTimeout(context.Background(), common.OAuthDialTimeout)
 	defer cancelFn()
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, common.OAuthEndpoint+loginEndpoint, strings.NewReader(body.Encode()))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, common.TokenEndpoint+loginEndpoint, strings.NewReader(body.Encode()))
 	if err != nil {
 		return nil, err
 	}
@@ -72,7 +72,7 @@ func UserInfo(accessToken string) (*UserInfoResponse, error) {
 	ctx, cancelFn := context.WithTimeout(context.Background(), common.OAuthDialTimeout)
 	defer cancelFn()
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, common.OAuthEndpoint+userInfoEndpoint, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, common.TokenEndpoint+userInfoEndpoint, nil)
 	if err != nil {
 		return nil, err
 	}
