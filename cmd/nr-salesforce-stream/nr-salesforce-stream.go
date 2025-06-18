@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/newrelic/newrelic-salesforce-exporter/pkg/cache"
 	"github.com/newrelic/newrelic-salesforce-exporter/pkg/cache/redis"
 	"github.com/newrelic/newrelic-salesforce-exporter/pkg/pubsub/common"
 	"github.com/newrelic/newrelic-salesforce-exporter/pkg/pubsub/grpcclient"
@@ -100,7 +101,7 @@ func (c *StreamComponent)Shutdown(ctx context.Context) error {
 
 type Config struct {
 	Version    string `mapstructure:"version"`
-	IsTemplate bool   `mapstructure:"is_template"` //TODO: optional, default value False
+	IsTemplate bool   `mapstructure:"is_template"`
 
 	EventStream struct {
 		IntegrationName string `mapstructure:"integration_name"`
@@ -113,6 +114,16 @@ type Config struct {
 				Password     string `mapstructure:"password"`
 			} `mapstructure:"user_pass"`
 		} `mapstructure:"auth"`
+		Cache *struct {
+			Redis *struct {
+				Host string `mapstructure:"host"`
+				Port int `mapstructure:"port"`
+				DbNumber int `mapstructure:"db_number"`
+				Password string `mapstructure:"password"`
+				Ssl bool `mapstructure:"ssl"`
+				ExpireDays int `mapstructure:"expire_days"`
+			} `mapstructure:"redis"`
+		} `mapstructure:"cache"`
 	} `mapstructure:"event_stream"`
 }
 
@@ -140,6 +151,8 @@ func NewStreamIntegration(name, id, appName string, ctx context.Context,
 	return i, err
 }
 
+var integrationConf Config
+
 func main() {
 	if os.Getenv("LOGS") == "1" {
 		labslog.RootLogger.SetLevel(logrus.TraceLevel)
@@ -150,7 +163,9 @@ func main() {
 		log.Fatalln("Error loading config = ", err)
 	}
 
-	fillSalesforceCredentials(conf)
+	integrationConf = conf
+
+	fillSalesforceCredentials()
 
 	ctx := context.Background()
 
@@ -206,20 +221,7 @@ func readEventStreams(ch chan<- map[string]any) {
 }
 
 func subscribeToTopic(topicName string, ch chan<- map[string]any) {
-	//TODO: read config from file
-	db := redis.NewRedisCache(redis.RedisConfig{
-		Host: "localhost",
-		Port: 6379,
-		DbNumber: 0,
-		Password: "",
-		ExpireDays: 1,
-	})
-
-	if common.ReplayPreset == proto.ReplayPreset_CUSTOM && common.ReplayId == nil {
-		log.Fatalf("the replayId variable must be populated when the replayPreset variable is set to CUSTOM")
-	} else if common.ReplayPreset != proto.ReplayPreset_CUSTOM && common.ReplayId != nil {
-		log.Fatalf("the replayId variable must not be populated when the replayPreset variable is set to EARLIEST or LATEST")
-	}
+	db := buildCache()
 
 	log.Printf("Creating gRPC client...")
 	client, err := grpcclient.NewGRPCClient()
@@ -244,24 +246,41 @@ func subscribeToTopic(topicName string, ch chan<- map[string]any) {
 
 	replayIdKey := topicName + "_last_replay_id"
 
-	curReplayId := common.ReplayId
+	var curReplayId []byte = nil
 	
-	//TODO: get curReplayId from cache
+	// Try to get replay ID from the cache
+	res, err := db.GetCacheVal(replayIdKey) ; if err != nil {
+		labslog.Debugf("Error reading '%s' from cache: %s", replayIdKey, err.Error())
+	}
 
-	// err = db.SetCacheVal(replayIdKey, string(curReplayId))
-	// if err != nil {
-	// 	labslog.Debugf("Error updating ReplayId = %s", err)
-	// }
+	if res != nil {
+		res, ok := res.(string)
+		if ok {
+			curReplayId = []byte(res)
+			labslog.Infof("Got Replay ID from cache")
+		} else {
+			labslog.Debugf("Error reading '%s' as a string from cache", replayIdKey)
+		}
+	}
 
 	for {
 		log.Printf("Subscribing to topic %s", topicName)
 
-		replayPreset := common.ReplayPreset
+		replayPreset := proto.ReplayPreset_LATEST
 		if curReplayId != nil {
 			replayPreset = proto.ReplayPreset_CUSTOM
 		}
 
-		curReplayId, err = client.Subscribe(ch, topicName, replayPreset, curReplayId, &db, replayIdKey)
+		subsOpts := grpcclient.SubscribeOpts {
+			Channel: ch,
+			TopicName: topicName,
+			ReplayPreset: replayPreset,
+			ReplayId: curReplayId,
+			Cache: db,
+			ReplayIdKey: replayIdKey,
+		}
+
+		curReplayId, err = client.Subscribe(subsOpts)
 		if err != nil {
 			log.Printf("error occurred while subscribing to topic: %v", err)
 		}
@@ -285,11 +304,48 @@ func readConfig(file string) (Config, error) {
 	return conf, nil
 }
 
-func fillSalesforceCredentials(conf Config) {
+func fillSalesforceCredentials() {
 	common.GrantType = "password"
-	common.ClientId = conf.EventStream.Auth.UserPass.ClientId
-	common.ClientSecret = conf.EventStream.Auth.UserPass.ClientSecret
-	common.Username = conf.EventStream.Auth.UserPass.Username
-	common.Password = conf.EventStream.Auth.UserPass.Password
-	common.OAuthEndpoint = conf.EventStream.Auth.TokenUrl
+	common.ClientId = integrationConf.EventStream.Auth.UserPass.ClientId
+	common.ClientSecret = integrationConf.EventStream.Auth.UserPass.ClientSecret
+	common.Username = integrationConf.EventStream.Auth.UserPass.Username
+	common.Password = integrationConf.EventStream.Auth.UserPass.Password
+	common.OAuthEndpoint = integrationConf.EventStream.Auth.TokenUrl
+}
+
+type DummyCache struct {}
+
+func (c *DummyCache) GetCacheVal(key string) (any, error) {
+	return nil, nil
+}
+
+func (c *DummyCache) SetCacheVal(key string, val any) error {
+	return nil
+}
+
+func (c *DummyCache) DelCacheVal(key string) error {
+	return nil
+}
+
+func buildCache() cache.Cache {
+	var db cache.Cache
+	if integrationConf.EventStream.Cache != nil {
+		if integrationConf.EventStream.Cache.Redis != nil {
+			labslog.Debugf("Using Redis cache")
+			redisDb := redis.NewRedisCache(redis.RedisConfig{
+				Host: integrationConf.EventStream.Cache.Redis.Host,
+				Port: integrationConf.EventStream.Cache.Redis.Port,
+				DbNumber: integrationConf.EventStream.Cache.Redis.DbNumber,
+				Password: integrationConf.EventStream.Cache.Redis.Password,
+				ExpireDays: integrationConf.EventStream.Cache.Redis.ExpireDays,
+			})
+			db = &redisDb
+		} else {
+			db = &DummyCache{}
+		}
+	} else {
+		db = &DummyCache{}
+	}
+
+	return db
 }

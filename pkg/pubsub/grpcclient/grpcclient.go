@@ -117,27 +117,36 @@ func (c *PubSubClient) GetSchema(schemaId string) (*proto.SchemaInfo, error) {
 	return resp, nil
 }
 
+type SubscribeOpts struct {
+	Channel chan<- map[string]any
+	TopicName string
+	ReplayPreset proto.ReplayPreset
+	ReplayId []byte
+	Cache cache.Cache
+	ReplayIdKey string
+}
+
 // Wrapper function around the Subscribe RPC. This will add the OAuth credentials and create a separate streaming client that will be used to
 // fetch data from the topic. This method will continuously consume messages unless an error occurs; if an error does occur then this method will
 // return the last successfully consumed ReplayId as well as the error message. If no messages were successfully consumed then this method will return
 // the same ReplayId that it originally received as a parameter
-func (c *PubSubClient) Subscribe(ch chan<- map[string]any, topicName string, replayPreset proto.ReplayPreset, replayId []byte, db cache.Cache, replayIdKey string) ([]byte, error) {
+func (c *PubSubClient) Subscribe(subsOpts SubscribeOpts) ([]byte, error) {
 	ctx, cancelFn := context.WithCancel(c.getAuthContext())
 	defer cancelFn()
 
 	subscribeClient, err := c.pubSubClient.Subscribe(ctx)
 	if err != nil {
-		return replayId, err
+		return subsOpts.ReplayId, err
 	}
 	defer subscribeClient.CloseSend()
 
 	initialFetchRequest := &proto.FetchRequest{
-		TopicName:    topicName,
-		ReplayPreset: replayPreset,
+		TopicName:    subsOpts.TopicName,
+		ReplayPreset: subsOpts.ReplayPreset,
 		NumRequested: common.Appetite,
 	}
-	if replayPreset == proto.ReplayPreset_CUSTOM && replayId != nil {
-		initialFetchRequest.ReplayId = replayId
+	if subsOpts.ReplayPreset == proto.ReplayPreset_CUSTOM && subsOpts.ReplayId != nil {
+		initialFetchRequest.ReplayId = subsOpts.ReplayId
 	}
 
 	err = subscribeClient.Send(initialFetchRequest)
@@ -147,14 +156,14 @@ func (c *PubSubClient) Subscribe(ch chan<- map[string]any, topicName string, rep
 	if err == io.EOF {
 		log.Printf("WARNING - EOF error returned from initial Send call, proceeding anyway")
 	} else if err != nil {
-		return replayId, err
+		return subsOpts.ReplayId, err
 	}
 
 	requestedEvents := initialFetchRequest.NumRequested
 
-	// NOTE: the replayId should be stored in a persistent data store rather than being stored in a variable
-	curReplayId := replayId
-	err = db.SetCacheVal(replayIdKey, string(curReplayId))
+	// Store the Replay ID in the cache
+	curReplayId := subsOpts.ReplayId
+	err = subsOpts.Cache.SetCacheVal(subsOpts.ReplayIdKey, string(curReplayId))
 	if err != nil {
 		log.Printf("Error updating ReplayId = %s", err)
 	}
@@ -189,9 +198,9 @@ func (c *PubSubClient) Subscribe(ch chan<- map[string]any, topicName string, rep
 				return curReplayId, fmt.Errorf("error casting parsed event: %v", body)
 			}
 
-			// Again, this should be stored in a persistent external datastore instead of a variable
+			// Store the Replay ID in the cache
 			curReplayId = event.GetReplayId()
-			err = db.SetCacheVal(replayIdKey, string(curReplayId))
+			err = subsOpts.Cache.SetCacheVal(subsOpts.ReplayIdKey, string(curReplayId))
 			if err != nil {
 				log.Printf("Error updating ReplayId = %s", err)
 			}
@@ -199,7 +208,7 @@ func (c *PubSubClient) Subscribe(ch chan<- map[string]any, topicName string, rep
 			//log.Printf("event body: %+v\n", body)
 
 			// Send event to channel
-			ch <- buildEvent(body, parseTypeName(codec))
+			subsOpts.Channel <- buildEvent(body, parseTypeName(codec))
 
 			// decrement our counter to keep track of how many events have been requested but not yet processed. If we're below our configured
 			// batch size then proactively request more events to stay ahead of the processor
@@ -207,7 +216,7 @@ func (c *PubSubClient) Subscribe(ch chan<- map[string]any, topicName string, rep
 			if requestedEvents < common.Appetite {
 				log.Printf("Sending next FetchRequest...")
 				fetchRequest := &proto.FetchRequest{
-					TopicName:    topicName,
+					TopicName:    subsOpts.TopicName,
 					NumRequested: common.Appetite,
 				}
 

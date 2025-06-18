@@ -2,8 +2,6 @@ package common
 
 import (
 	"time"
-
-	"github.com/newrelic/newrelic-salesforce-exporter/pkg/pubsub/proto"
 )
 
 var (
@@ -20,11 +18,7 @@ var (
 		//"/event/LightningUriEventStream",
 	}
 
-	ReplayPreset = proto.ReplayPreset_LATEST
-	//TODO: get replay ID from a database, one per topic
-	ReplayId []byte = nil
-	//TODO: set the number of events to ask for in the config file
-	Appetite int32 = 1
+	Appetite int32 = 10
 
 	// gRPC server variables
 	GRPCEndpoint    = "api.pubsub.salesforce.com:7443"
