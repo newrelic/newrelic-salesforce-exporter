@@ -8,7 +8,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/newrelic/newrelic-salesforce-exporter/internal/pubsub/common"
+	"github.com/newrelic/newrelic-salesforce-exporter/internal/integration/stream/pubsub/common"
 )
 
 const (

@@ -12,9 +12,9 @@ import (
 
 	"github.com/linkedin/goavro/v2"
 	"github.com/newrelic/newrelic-salesforce-exporter/internal/cache"
+	"github.com/newrelic/newrelic-salesforce-exporter/internal/integration/stream/pubsub/common"
+	"github.com/newrelic/newrelic-salesforce-exporter/internal/integration/stream/pubsub/proto"
 	"github.com/newrelic/newrelic-salesforce-exporter/internal/oauth"
-	"github.com/newrelic/newrelic-salesforce-exporter/internal/pubsub/common"
-	"github.com/newrelic/newrelic-salesforce-exporter/internal/pubsub/proto"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"

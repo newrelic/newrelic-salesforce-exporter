@@ -5,7 +5,7 @@ import (
 	labslog "github.com/newrelic/newrelic-labs-sdk/v2/pkg/integration/log"
 	"github.com/newrelic/newrelic-salesforce-exporter/internal/cache"
 	"github.com/newrelic/newrelic-salesforce-exporter/internal/cache/redis"
-	"github.com/newrelic/newrelic-salesforce-exporter/internal/pubsub/common"
+	"github.com/newrelic/newrelic-salesforce-exporter/internal/integration/stream/pubsub/common"
 	"github.com/spf13/viper"
 )
 

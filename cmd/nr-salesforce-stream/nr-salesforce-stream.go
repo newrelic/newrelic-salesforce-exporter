@@ -7,8 +7,8 @@ import (
 	"sync"
 
 	"github.com/newrelic/newrelic-salesforce-exporter/internal/integration/stream"
-	"github.com/newrelic/newrelic-salesforce-exporter/internal/pubsub/grpcclient"
-	"github.com/newrelic/newrelic-salesforce-exporter/internal/pubsub/proto"
+	"github.com/newrelic/newrelic-salesforce-exporter/internal/integration/stream/pubsub/grpcclient"
+	"github.com/newrelic/newrelic-salesforce-exporter/internal/integration/stream/pubsub/proto"
 	"github.com/sirupsen/logrus"
 
 	labslog "github.com/newrelic/newrelic-labs-sdk/v2/pkg/integration/log"
