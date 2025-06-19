@@ -54,7 +54,7 @@ func NewRedisCache(conf RedisConfig) RedisCache {
         Password: conf.Password,
         DB:       conf.DbNumber,
     })
-	//TODO: how to set expireDays and ssl?
+	//TODO: how to set SSL?
 	return RedisCache{
 		Conf: conf,
 		Client: client,

@@ -5,6 +5,7 @@ import (
 )
 
 const (
+	// Number of events to ask for
 	Appetite int32 = 10
 
 	// gRPC server constants
