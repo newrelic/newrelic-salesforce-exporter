@@ -84,7 +84,7 @@ func scanEnvVars(dict map[string]any) {
 				if exists {
 					dict[key] = envVal
 				} else {
-					labslog.Fatalf(errors.New(fmt.Sprintf("Env var %s does not exist", varName)))
+					labslog.Fatalf(fmt.Errorf("Env var %s does not exist", varName))
 				}
 			}
 		}
@@ -106,8 +106,7 @@ func ReadConfig(file string) (Config, error) {
 		return Config{}, err
 	}
 
-	err := integrityCheck(conf)
-	if err != nil {
+	if err := integrityCheck(conf) ; err != nil {
 		labslog.Fatalf(err)
 	}
 

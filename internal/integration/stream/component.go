@@ -71,8 +71,6 @@ func (c *StreamComponent)ExecuteSync(ctx context.Context) error {
 				}
 				c.buffer = make([]model.Event, 0)
 			}
-
-			break
 		}
 	}
 }
