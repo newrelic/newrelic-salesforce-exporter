@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"os"
 	"sync"
@@ -27,7 +26,7 @@ func main() {
 		log.Fatalln("Error loading config = ", err)
 	}
 
-	fmt.Printf("Config = %+v\n", integrationConf)
+	// fmt.Printf("Config = %+v\n", integrationConf)
 
 	stream.FillSalesforceCredentials(integrationConf)
 

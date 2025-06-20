@@ -11,8 +11,6 @@ import (
 	"github.com/go-viper/mapstructure/v2"
 	"github.com/newrelic/newrelic-labs-sdk/v2/pkg/integration"
 	labslog "github.com/newrelic/newrelic-labs-sdk/v2/pkg/integration/log"
-	"github.com/newrelic/newrelic-salesforce-exporter/internal/cache"
-	"github.com/newrelic/newrelic-salesforce-exporter/internal/cache/redis"
 	"github.com/newrelic/newrelic-salesforce-exporter/internal/integration/stream/pubsub/common"
 	"github.com/spf13/viper"
 )
@@ -23,6 +21,7 @@ type Config struct {
 
 	EventStream struct {
 		IntegrationName string `mapstructure:"integration_name"`
+
 		Auth            struct {
 			TokenUrl string `mapstructure:"token_url"`
 			UserPass struct {
@@ -32,6 +31,7 @@ type Config struct {
 				Password     string `mapstructure:"password"`
 			} `mapstructure:"user_pass"`
 		} `mapstructure:"auth"`
+
 		Cache *struct {
 			Redis *struct {
 				Host string `mapstructure:"host"`
@@ -42,6 +42,7 @@ type Config struct {
 				ExpireDays int `mapstructure:"expire_days"`
 			} `mapstructure:"redis"`
 		} `mapstructure:"cache"`
+		
 		Topics []string `mapstructure:"topics"`
 	} `mapstructure:"event_stream"`
 }
@@ -118,27 +119,4 @@ func FillSalesforceCredentials(conf Config) {
 	common.Username = conf.EventStream.Auth.UserPass.Username
 	common.Password = conf.EventStream.Auth.UserPass.Password
 	common.TokenEndpoint = conf.EventStream.Auth.TokenUrl
-}
-
-func BuildCache(conf Config) cache.Cache {
-	var db cache.Cache
-	if conf.EventStream.Cache != nil {
-		if conf.EventStream.Cache.Redis != nil {
-			labslog.Debugf("Using Redis cache")
-			redisDb := redis.NewRedisCache(redis.RedisConfig{
-				Host: conf.EventStream.Cache.Redis.Host,
-				Port: conf.EventStream.Cache.Redis.Port,
-				DbNumber: conf.EventStream.Cache.Redis.DbNumber,
-				Password: conf.EventStream.Cache.Redis.Password,
-				ExpireDays: conf.EventStream.Cache.Redis.ExpireDays,
-			})
-			db = &redisDb
-		} else {
-			db = &cache.DummyCache{}
-		}
-	} else {
-		db = &cache.DummyCache{}
-	}
-
-	return db
 }
