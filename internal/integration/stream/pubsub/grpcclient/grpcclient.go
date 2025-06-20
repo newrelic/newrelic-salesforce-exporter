@@ -5,12 +5,12 @@ import (
 	"crypto/x509"
 	"fmt"
 	"io"
-	"log"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/linkedin/goavro/v2"
+	"github.com/newrelic/newrelic-labs-sdk/v2/pkg/integration/log"
 	"github.com/newrelic/newrelic-salesforce-exporter/internal/cache"
 	"github.com/newrelic/newrelic-salesforce-exporter/internal/integration/stream/pubsub/common"
 	"github.com/newrelic/newrelic-salesforce-exporter/internal/integration/stream/pubsub/proto"
@@ -154,7 +154,7 @@ func (c *PubSubClient) Subscribe(subsOpts SubscribeOpts) ([]byte, error) {
 	// if there's a more specific error that can be returned
 	// See the SendMsg description at https://pkg.go.dev/google.golang.org/grpc#ClientStream
 	if err == io.EOF {
-		log.Printf("WARNING - EOF error returned from initial Send call, proceeding anyway")
+		log.Debugf("WARNING - EOF error returned from initial Send call, proceeding anyway")
 	} else if err != nil {
 		return subsOpts.ReplayId, err
 	}
@@ -165,11 +165,11 @@ func (c *PubSubClient) Subscribe(subsOpts SubscribeOpts) ([]byte, error) {
 	curReplayId := subsOpts.ReplayId
 	err = subsOpts.Cache.SetCacheVal(subsOpts.ReplayIdKey, string(curReplayId))
 	if err != nil {
-		log.Printf("Error updating ReplayId = %s", err)
+		log.Debugf("Error updating ReplayId = %s", err)
 	}
 
 	for {
-		log.Printf("Waiting for events...")
+		log.Debugf("Waiting for events...")
 		resp, err := subscribeClient.Recv()
 		if err == io.EOF {
 			printTrailer(subscribeClient.Trailer())
@@ -179,10 +179,10 @@ func (c *PubSubClient) Subscribe(subsOpts SubscribeOpts) ([]byte, error) {
 			return curReplayId, err
 		}
 
-		log.Printf("Recv returned, check for events. Num events = %d", len(resp.Events))
+		log.Debugf("Recv returned, check for events. Num events = %d", len(resp.Events))
 
 		for _, event := range resp.Events {
-			log.Printf("Schema ID = %s", event.GetEvent().GetSchemaId())
+			log.Debugf("Schema ID = %s", event.GetEvent().GetSchemaId())
 			codec, err := c.fetchCodec(event.GetEvent().GetSchemaId())
 			if err != nil {
 				return curReplayId, err
@@ -202,10 +202,10 @@ func (c *PubSubClient) Subscribe(subsOpts SubscribeOpts) ([]byte, error) {
 			curReplayId = event.GetReplayId()
 			err = subsOpts.Cache.SetCacheVal(subsOpts.ReplayIdKey, string(curReplayId))
 			if err != nil {
-				log.Printf("Error updating ReplayId = %s", err)
+				log.Debugf("Error updating ReplayId = %s", err)
 			}
 
-			//log.Printf("event body: %+v\n", body)
+			//log.Debugf("event body: %+v\n", body)
 
 			// Send event to channel
 			subsOpts.Channel <- buildEvent(body, parseTypeName(codec))
@@ -214,7 +214,7 @@ func (c *PubSubClient) Subscribe(subsOpts SubscribeOpts) ([]byte, error) {
 			// batch size then proactively request more events to stay ahead of the processor
 			requestedEvents--
 			if requestedEvents < common.Appetite {
-				log.Printf("Sending next FetchRequest...")
+				log.Debugf("Sending next FetchRequest...")
 				fetchRequest := &proto.FetchRequest{
 					TopicName:    subsOpts.TopicName,
 					NumRequested: common.Appetite,
@@ -225,7 +225,7 @@ func (c *PubSubClient) Subscribe(subsOpts SubscribeOpts) ([]byte, error) {
 				// if there's a more specific error that can be returned
 				// See the SendMsg description at https://pkg.go.dev/google.golang.org/grpc#ClientStream
 				if err == io.EOF {
-					log.Printf("WARNING - EOF error returned from subsequent Send call, proceeding anyway")
+					log.Debugf("WARNING - EOF error returned from subsequent Send call, proceeding anyway")
 				} else if err != nil {
 					return curReplayId, err
 				}
@@ -241,26 +241,26 @@ func (c *PubSubClient) Subscribe(subsOpts SubscribeOpts) ([]byte, error) {
 func (c *PubSubClient) fetchCodec(schemaId string) (*goavro.Codec, error) {
 	codec, ok := c.schemaCache[schemaId]
 	if ok {
-		log.Printf("Fetched cached codec...")
+		log.Debugf("Fetched cached codec...")
 		name := parseTypeName(codec)
-		log.Printf("Event type name = %s", name)
+		log.Debugf("Event type name = %s", name)
 		return codec, nil
 	}
 
-	log.Printf("Making GetSchema request for uncached schema...")
+	log.Debugf("Making GetSchema request for uncached schema...")
 	schema, err := c.GetSchema(schemaId)
 	if err != nil {
 		return nil, err
 	}
 
-	log.Printf("Creating codec from uncached schema...")
+	log.Debugf("Creating codec from uncached schema...")
 	codec, err = goavro.NewCodec(schema.GetSchemaJson())
 	if err != nil {
 		return nil, err
 	}
 
 	name := parseTypeName(codec)
-	log.Printf("Event type name = %s", name)
+	log.Debugf("Event type name = %s", name)
 
 	c.schemaCache[schemaId] = codec
 
@@ -283,7 +283,7 @@ func parseTypeName(codec *goavro.Codec) string {
 
 // Wrapper function around the Publish RPC. This will add the OAuth credentials and produce a single hardcoded event to the specified topic.
 func (c *PubSubClient) Publish(topicName string, schema *proto.SchemaInfo) error {
-	log.Printf("Creating codec from schema...")
+	log.Debugf("Creating codec from schema...")
 	codec, err := goavro.NewCodec(schema.SchemaJson)
 	if err != nil {
 		return err
@@ -338,7 +338,7 @@ func (c *PubSubClient) Publish(topicName string, schema *proto.SchemaInfo) error
 
 // Wrapper function around the PublishStream RPC. This will add the OAuth credentials and produce an event to the topic every five seconds
 func (c *PubSubClient) PublishStream(topicName string, schema *proto.SchemaInfo) error {
-	log.Printf("Creating codec from schema...")
+	log.Debugf("Creating codec from schema...")
 	codec, err := goavro.NewCodec(schema.SchemaJson)
 	if err != nil {
 		return err
@@ -380,12 +380,12 @@ func (c *PubSubClient) PublishStream(topicName string, schema *proto.SchemaInfo)
 	// if there's a more specific error that can be returned
 	// See the SendMsg description at https://pkg.go.dev/google.golang.org/grpc#ClientStream
 	if err == io.EOF {
-		log.Printf("WARNING - EOF error returned from initial Send call, proceeding anyway")
+		log.Debugf("WARNING - EOF error returned from initial Send call, proceeding anyway")
 	} else if err != nil {
 		return err
 	}
 
-	log.Printf("Entering event loop...")
+	log.Debugf("Entering event loop...")
 
 	var resErrMutex sync.Mutex
 	var resErr error
@@ -420,7 +420,7 @@ func (c *PubSubClient) PublishStream(topicName string, schema *proto.SchemaInfo)
 			default:
 				time.Sleep(5 * time.Second)
 
-				log.Printf("Sending next PublishRequest...")
+				log.Debugf("Sending next PublishRequest...")
 				sampleEvent["CreatedDate"] = time.Now().Unix()
 
 				payload, sendErr := codec.BinaryFromNative(nil, sampleEvent)
@@ -444,7 +444,7 @@ func (c *PubSubClient) PublishStream(topicName string, schema *proto.SchemaInfo)
 				// The Recv method called in the receiver goroutine may return a more specific error explaining why the stream was closed.
 				// See the SendMsg description at https://pkg.go.dev/google.golang.org/grpc#ClientStream
 				if sendErr == io.EOF {
-					log.Printf("WARNING - EOF error returned from subsequent Send call, proceeding anyway")
+					log.Debugf("WARNING - EOF error returned from subsequent Send call, proceeding anyway")
 					return
 				} else if sendErr != nil {
 					shutdownGoroutine(sendErr)
@@ -490,7 +490,7 @@ func (c *PubSubClient) PublishStream(topicName string, schema *proto.SchemaInfo)
 					}
 				}
 
-				log.Printf("successfully published event")
+				log.Debugf("successfully published event")
 			}
 		}
 	}()
@@ -550,15 +550,15 @@ func getCerts() *x509.CertPool {
 // Helper function to display trailers on the console in a more readable format
 func printTrailer(trailer metadata.MD) {
 	if len(trailer) == 0 {
-		log.Printf("no trailers returned")
+		log.Debugf("no trailers returned")
 		return
 	}
 
-	log.Printf("beginning of trailers")
+	log.Debugf("beginning of trailers")
 	for key, val := range trailer {
-		log.Printf("[trailer] = %s, [value] = %s", key, val)
+		log.Debugf("[trailer] = %s, [value] = %s", key, val)
 	}
-	log.Printf("end of trailers")
+	log.Debugf("end of trailers")
 }
 
 func transformEvent(ev map[string]any) map[string]any {

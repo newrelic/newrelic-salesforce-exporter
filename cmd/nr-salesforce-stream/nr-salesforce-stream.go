@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"log"
 	"os"
 	"sync"
 
@@ -13,29 +12,41 @@ import (
 	"github.com/newrelic/newrelic-salesforce-exporter/internal/integration/stream/pubsub/proto"
 	"github.com/sirupsen/logrus"
 
-	labslog "github.com/newrelic/newrelic-labs-sdk/v2/pkg/integration/log"
+	"github.com/newrelic/newrelic-labs-sdk/v2/pkg/integration/log"
 )
 
 var integrationConf internal.Config
 
 func main() {
-	if os.Getenv("LOGS") == "1" {
-		labslog.RootLogger.SetLevel(logrus.TraceLevel)
+	loglevel := os.Getenv("LOGS")
+	switch loglevel {
+	case "0":
+		log.RootLogger.SetLevel(logrus.TraceLevel)
+	case "1":
+		log.RootLogger.SetLevel(logrus.DebugLevel)
+	case "2":
+		log.RootLogger.SetLevel(logrus.InfoLevel)
+	case "3":
+		log.RootLogger.SetLevel(logrus.WarnLevel)
+	case "4":
+		log.RootLogger.SetLevel(logrus.ErrorLevel)
 	}
-
+	
 	var err error
 	integrationConf, err = internal.ReadConfig("config.yml") ; if err != nil {
-		log.Fatalln("Error loading config = ", err)
+		log.Errorf("Error loading config = %s", err)
+		os.Exit(1)
 	}
 
-	// fmt.Printf("Config = %+v\n", integrationConf)
+	// log.Debugf("Config = %+v", integrationConf)
 
 	stream.FillSalesforceCredentials(integrationConf)
 
 	ctx := context.Background()
 
 	i, err := stream.NewStreamIntegration(ctx) ; if err != nil {
-		log.Fatalln("Error creating NR integration = ", err)
+		log.Errorf("Error creating NR integration = %s", err)
+		os.Exit(1)
 	}
 
 	exporter := stream.NewExporter(i)
@@ -50,7 +61,8 @@ func main() {
 	// Run the integration
 	defer i.Shutdown(ctx)
 	err = i.Run(ctx) ; if err != nil {
-		log.Fatalln("Error running the integration = ", err)
+		log.Errorf("Error running the integration = %s", err)
+		os.Exit(1)
 	}
 }
 
@@ -70,25 +82,28 @@ func readEventStreams(ch chan<- map[string]any, topics []string) {
 func subscribeToTopic(topicName string, ch chan<- map[string]any) {
 	db := cache.BuildCache(integrationConf.EventStream.Cache)
 
-	log.Printf("Creating gRPC client...")
+	log.Debugf("Creating gRPC client...")
 	client, err := grpcclient.NewGRPCClient()
 	if err != nil {
-		log.Fatalf("could not create gRPC client: %v", err)
+		log.Errorf("could not create gRPC client: %s", err)
+		os.Exit(1)
 	}
 	defer client.Close()
 
-	log.Printf("Populating auth token...")
+	log.Debugf("Populating auth token...")
 	err = client.Authenticate()
 	if err != nil {
 		client.Close()
-		log.Fatalf("could not authenticate: %v", err)
+		log.Errorf("could not authenticate: %s", err)
+		os.Exit(1)
 	}
 
-	log.Printf("Populating user info...")
+	log.Debugf("Populating user info...")
 	err = client.FetchUserInfo()
 	if err != nil {
 		client.Close()
-		log.Fatalf("could not fetch user info: %v", err)
+		log.Errorf("could not fetch user info: %s", err)
+		os.Exit(1)
 	}
 
 	replayIdKey := topicName + "_last_replay_id"
@@ -97,21 +112,21 @@ func subscribeToTopic(topicName string, ch chan<- map[string]any) {
 	
 	// Try to get replay ID from the cache
 	res, err := db.GetCacheVal(replayIdKey) ; if err != nil {
-		labslog.Debugf("Error reading '%s' from cache: %s", replayIdKey, err.Error())
+		log.Debugf("Error reading '%s' from cache: %s", replayIdKey, err.Error())
 	}
 
 	if res != nil {
 		res, ok := res.(string)
 		if ok {
 			curReplayId = []byte(res)
-			labslog.Infof("Got Replay ID from cache")
+			log.Debugf("Got Replay ID from cache")
 		} else {
-			labslog.Debugf("Error reading '%s' as a string from cache", replayIdKey)
+			log.Debugf("Error reading '%s' as a string from cache", replayIdKey)
 		}
 	}
 
 	for {
-		log.Printf("Subscribing to topic %s", topicName)
+		log.Debugf("Subscribing to topic %s", topicName)
 
 		replayPreset := proto.ReplayPreset_LATEST
 		if curReplayId != nil {
@@ -129,7 +144,7 @@ func subscribeToTopic(topicName string, ch chan<- map[string]any) {
 
 		curReplayId, err = client.Subscribe(subsOpts)
 		if err != nil {
-			log.Printf("error occurred while subscribing to topic: %v", err)
+			log.Errorf("error occurred while subscribing to topic: %s", err)
 		}
 	}
 }

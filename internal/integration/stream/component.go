@@ -8,7 +8,7 @@ import (
 
 	"github.com/newrelic/newrelic-labs-sdk/v2/pkg/integration"
 	"github.com/newrelic/newrelic-labs-sdk/v2/pkg/integration/exporters"
-	labslog "github.com/newrelic/newrelic-labs-sdk/v2/pkg/integration/log"
+	"github.com/newrelic/newrelic-labs-sdk/v2/pkg/integration/log"
 	"github.com/newrelic/newrelic-labs-sdk/v2/pkg/integration/model"
 	"github.com/newrelic/newrelic-labs-sdk/v2/pkg/integration/pipeline"
 )
@@ -38,14 +38,14 @@ func (c *StreamComponent)GetId() string {
 }
 
 func (c *StreamComponent)ExecuteSync(ctx context.Context) error {
-	labslog.Debugf("-------> StreamComponent ExecuteSync")
+	log.Debugf("StreamComponent ExecuteSync")
 	for {
 		select {
 		case <-ctx.Done():
-			labslog.Debugf("Done.")
+			log.Debugf("Done.")
 			return nil
 		case ev := <-c.ch:
-			labslog.Debugf("Received an event from the stream")
+			log.Debugf("Received an event from the stream")
 
 			eventType := ev["eventType"].(string)
 			delete(ev, "eventType")
@@ -61,13 +61,13 @@ func (c *StreamComponent)ExecuteSync(ctx context.Context) error {
 			event := model.NewEvent(eventType, ev, timestamp)
 			c.buffer = append(c.buffer, event)
 
-			labslog.Debugf("Event buffered")
+			log.Debugf("Event buffered")
 
 			if len(c.buffer) >= MAX_BUFFER_SIZE {
-				labslog.Debugf("-----> Harvest events!")
+				log.Debugf("Harvest events!")
 				err := c.exporter.ExportEvents(ctx, c.buffer)
 				if err != nil {
-					labslog.Debugf("Event export failed: %s", err.Error())
+					log.Debugf("Event export failed: %s", err.Error())
 				}
 				c.buffer = make([]model.Event, 0)
 			}
