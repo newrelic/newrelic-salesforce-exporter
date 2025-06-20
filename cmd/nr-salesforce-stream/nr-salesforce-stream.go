@@ -6,6 +6,8 @@ import (
 	"os"
 	"sync"
 
+	"github.com/newrelic/newrelic-salesforce-exporter/internal"
+	"github.com/newrelic/newrelic-salesforce-exporter/internal/cache"
 	"github.com/newrelic/newrelic-salesforce-exporter/internal/integration/stream"
 	"github.com/newrelic/newrelic-salesforce-exporter/internal/integration/stream/pubsub/grpcclient"
 	"github.com/newrelic/newrelic-salesforce-exporter/internal/integration/stream/pubsub/proto"
@@ -14,7 +16,7 @@ import (
 	labslog "github.com/newrelic/newrelic-labs-sdk/v2/pkg/integration/log"
 )
 
-var integrationConf stream.Config
+var integrationConf internal.Config
 
 func main() {
 	if os.Getenv("LOGS") == "1" {
@@ -22,7 +24,7 @@ func main() {
 	}
 
 	var err error
-	integrationConf, err = stream.ReadConfig("config.yml") ; if err != nil {
+	integrationConf, err = internal.ReadConfig("config.yml") ; if err != nil {
 		log.Fatalln("Error loading config = ", err)
 	}
 
@@ -66,7 +68,7 @@ func readEventStreams(ch chan<- map[string]any, topics []string) {
 }
 
 func subscribeToTopic(topicName string, ch chan<- map[string]any) {
-	db := stream.BuildCache(integrationConf)
+	db := cache.BuildCache(integrationConf.EventStream.Cache)
 
 	log.Printf("Creating gRPC client...")
 	client, err := grpcclient.NewGRPCClient()
