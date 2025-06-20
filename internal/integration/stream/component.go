@@ -113,7 +113,7 @@ func NewStreamIntegration(ctx context.Context,
 	return i, err
 }
 
-func NewNewRelicExporter(i *integration.LabsIntegration) *exporters.NewRelicExporter {
+func NewExporter(i *integration.LabsIntegration) *exporters.NewRelicExporter {
 	return exporters.NewNewRelicExporter(
 		INTEGRATION_ID,
 		INTEGRATION_NAME,

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"os"
 	"sync"
@@ -21,37 +22,33 @@ func main() {
 		labslog.RootLogger.SetLevel(logrus.TraceLevel)
 	}
 
-	conf, err := stream.ReadConfig("config.yml")
-	if err != nil {
+	var err error
+	integrationConf, err = stream.ReadConfig("config.yml") ; if err != nil {
 		log.Fatalln("Error loading config = ", err)
 	}
 
-	integrationConf = conf
+	fmt.Printf("Config = %+v\n", integrationConf)
 
 	stream.FillSalesforceCredentials(integrationConf)
 
 	ctx := context.Background()
 
-	i, err := stream.NewStreamIntegration(ctx)
-
-	if err != nil {
+	i, err := stream.NewStreamIntegration(ctx) ; if err != nil {
 		log.Fatalln("Error creating NR integration = ", err)
 	}
 
-	newRelicExporter := stream.NewNewRelicExporter(i)
+	exporter := stream.NewExporter(i)
 
 	ch := make(chan map[string]any)
 
-	streamComponent := stream.NewStreamComponent(newRelicExporter, ch)
+	streamComponent := stream.NewStreamComponent(exporter, ch)
 	i.AddComponent(&streamComponent)
 
 	go readEventStreams(ch, integrationConf.EventStream.Topics)
 
 	// Run the integration
 	defer i.Shutdown(ctx)
-	err = i.Run(ctx)
-
-	if err != nil {
+	err = i.Run(ctx) ; if err != nil {
 		log.Fatalln("Error running the integration = ", err)
 	}
 }

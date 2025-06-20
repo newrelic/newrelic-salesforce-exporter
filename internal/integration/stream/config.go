@@ -1,6 +1,14 @@
 package stream
 
 import (
+	"errors"
+	"fmt"
+	"os"
+	"reflect"
+
+	"regexp"
+
+	"github.com/go-viper/mapstructure/v2"
 	"github.com/newrelic/newrelic-labs-sdk/v2/pkg/integration"
 	labslog "github.com/newrelic/newrelic-labs-sdk/v2/pkg/integration/log"
 	"github.com/newrelic/newrelic-salesforce-exporter/internal/cache"
@@ -38,7 +46,45 @@ type Config struct {
 	} `mapstructure:"event_stream"`
 }
 
-// TODO: explore how viper loads config from env variables
+func envVarDecoder() mapstructure.DecodeHookFunc {
+	return func(
+		f reflect.Type,
+		t reflect.Type,
+		data any,
+	) (any, error) {
+		if t == reflect.TypeOf(Config{}) {
+			scanEnvVars(data.(map[string]any))
+			return data, nil			
+		} else {
+			return data, nil
+		}
+	}
+}
+
+// Check if the value of a field is an env var "$VAR_NAM", and read it.
+func scanEnvVars(dict map[string]any) {
+	for key, val := range dict {
+		switch val := val.(type) {
+		case map[string]any:
+			scanEnvVars(val)
+		case string:
+			var re = regexp.MustCompile(`^\$[a-zA-Z_]+[a-zA-Z0-9_]*`)
+			loc := re.FindStringIndex(val)
+			// Regex is a full match
+			isEnvVar := len(loc) == 2 && (loc[0] == 0 && loc[1] == len(val))
+			if isEnvVar {
+				varName := val[1:]
+				envVal, exists := os.LookupEnv(varName)
+				if exists {
+					dict[key] = envVal
+				} else {
+					labslog.Fatalf(errors.New(fmt.Sprintf("Env var %s does not exist", varName)))
+				}
+			}
+		}
+	}
+}
+
 func ReadConfig(file string) (Config, error) {
 	if err := integration.NewConfigWithFile(file); err != nil {
 		return Config{}, err
@@ -46,11 +92,21 @@ func ReadConfig(file string) (Config, error) {
 
 	conf := Config{}
 
-	if err := viper.Unmarshal(&conf); err != nil {
+	decoderConf := viper.DecodeHook(
+		mapstructure.ComposeDecodeHookFunc(
+			envVarDecoder(),
+		),
+	)
+	
+	if err := viper.Unmarshal(&conf, decoderConf); err != nil {
 		return Config{}, err
 	}
 
-	//TODO: check conf integrity
+	if conf.IsTemplate {
+		labslog.Fatalf(errors.New("Config file is a template"))
+	}
+
+	//TODO: check config integrity
 
 	return conf, nil
 }
