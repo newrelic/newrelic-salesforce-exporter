@@ -16,29 +16,29 @@ func CheckUrl(urlStr string) bool {
 
 func CheckAuth(auth AuthConfig) error {
 	if auth.TokenUrl == "" {
-		return errors.New("Empty 'auth.token_url'")
+		return errors.New("Empty 'auth.tokenUrl'")
 	}
 	if !CheckUrl(auth.TokenUrl) {
-   		return errors.New("Invalid URL 'auth.token_url'")
+   		return errors.New("Invalid URL 'auth.tokenUrl'")
 	}
 	return nil
 }
 
 func CheckUserPassCredentials(userPassAuth *UserPassAuth) error {
 	if userPassAuth == nil {
-		return errors.New("Undefined user_pass credentials")
+		return errors.New("Undefined userPass credentials")
 	}
 	if userPassAuth.ClientId == "" {
-		return errors.New("Empty 'user_pass.client_id'")
+		return errors.New("Empty 'userPass.clientId'")
 	}
 	if userPassAuth.ClientSecret == "" {
-		return errors.New("Empty 'user_pass.client_secret'")
+		return errors.New("Empty 'userPass.clientSecret'")
 	}
 	if userPassAuth.Username == "" {
-		return errors.New("Empty 'user_pass.username'")
+		return errors.New("Empty 'userPass.username'")
 	}
 	if userPassAuth.Password == "" {
-		return errors.New("Empty 'user_pass.password'")
+		return errors.New("Empty 'userPass.password'")
 	}
 	return nil
 }

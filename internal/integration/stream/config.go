@@ -35,10 +35,10 @@ func CheckConfig(conf config.Config) error {
 
 func checkTopics(topics []string) error {
 	if topics == nil {
-		return errors.New("'event_stream.topics' must be a list of strings")
+		return errors.New("'eventStream.topics' must be a list of strings")
 	}
 	if len(topics) == 0 {
-		return errors.New("Empty 'event_stream.topics'")
+		return errors.New("Empty 'eventStream.topics'")
 	}
 	return nil
 }
