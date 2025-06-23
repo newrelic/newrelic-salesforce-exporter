@@ -111,22 +111,7 @@ func subscribeToTopic(topicName string, ch chan<- map[string]any) {
 
 	replayIdKey := topicName + "_last_replay_id"
 
-	var curReplayId []byte = nil
-	
-	// Try to get replay ID from the cache
-	res, err := db.GetCacheVal(replayIdKey) ; if err != nil {
-		log.Debugf("Error reading '%s' from cache: %s", replayIdKey, err.Error())
-	}
-
-	if res != nil {
-		res, ok := res.(string)
-		if ok {
-			curReplayId = []byte(res)
-			log.Debugf("Got Replay ID from cache")
-		} else {
-			log.Debugf("Error reading '%s' as a string from cache", replayIdKey)
-		}
-	}
+	curReplayId := readReplayIdFromCache(db, replayIdKey)
 
 	for {
 		log.Debugf("Subscribing to topic %s", topicName)
@@ -150,4 +135,29 @@ func subscribeToTopic(topicName string, ch chan<- map[string]any) {
 			log.Errorf("error occurred while subscribing to topic: %s", err)
 		}
 	}
+}
+
+func readReplayIdFromCache(db cache.Cache, replayIdKey string) []byte {
+	var curReplayId []byte = nil
+	
+	// Try to get replay ID from the cache
+	cacheResp, err := db.GetCacheVal(replayIdKey) ; if err != nil {
+		log.Debugf("Error reading '%s' from cache: %s", replayIdKey, err.Error())
+	}
+
+	if cacheResp != nil {
+		cacheResp, ok := cacheResp.(string)
+		if ok {
+			if cacheResp != "" {
+				curReplayId = []byte(cacheResp)
+				log.Debugf("Got Replay ID from cache")
+			} else {
+				log.Debugf("Read '%s' from cache and is empty, ignoring.", replayIdKey)	
+			}
+		} else {
+			log.Debugf("Error reading '%s' as a string from cache", replayIdKey)
+		}
+	}
+
+	return curReplayId
 }
