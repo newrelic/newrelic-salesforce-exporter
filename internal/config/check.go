@@ -3,6 +3,8 @@ package config
 import (
 	"errors"
 	"net/url"
+
+	"github.com/newrelic/newrelic-labs-sdk/v2/pkg/integration/log"
 )
 
 func CheckUrl(urlStr string) bool {
@@ -37,6 +39,21 @@ func CheckUserPassCredentials(userPassAuth *UserPassAuth) error {
 	}
 	if userPassAuth.Password == "" {
 		return errors.New("Empty 'user_pass.password'")
+	}
+	return nil
+}
+
+func CheckCache(cache *CacheConfig) error {
+	if cache == nil {
+		log.Warnf("Cache not defined, events won't be de-duplicated.")
+	} else {
+		if cache.Redis == nil {
+			log.Warnf("Redis DB not defined, events won't be de-duplicated.")
+		} else {
+			if cache.Redis.Host == "" {
+				return errors.New("Empty 'cache.redis.host'")
+			}
+		}
 	}
 	return nil
 }

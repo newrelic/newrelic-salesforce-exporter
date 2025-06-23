@@ -113,7 +113,7 @@ func ReadConfig(file string) (Config, error) {
 	return conf, nil
 }
 
-// TODO: check config integrity, the oarts that are common to both integrations
+// Check config integrity, the parts that are common to both integrations
 func integrityCheck(conf Config) error {
 	if conf.IsTemplate {
 		return errors.New("Config file is a template")

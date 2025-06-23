@@ -1,10 +1,10 @@
 package stream
 
 import (
+	"errors"
+
 	"github.com/newrelic/newrelic-salesforce-exporter/internal/config"
 	"github.com/newrelic/newrelic-salesforce-exporter/internal/integration/stream/pubsub/common"
-
-	"github.com/newrelic/newrelic-labs-sdk/v2/pkg/integration/log"
 )
 
 func FillSalesforceCredentials(conf config.Config) {
@@ -24,8 +24,21 @@ func CheckConfig(conf config.Config) error {
 	if err := config.CheckUserPassCredentials(conf.EventStream.Auth.UserPass) ; err != nil {
 		return err
 	}
-	if conf.EventStream.Cache == nil {
-		log.Warnf("Cache not defined, events won't be de-duplicated.")
+	if err := config.CheckCache(conf.EventStream.Cache) ; err != nil {
+		return err
+	}
+	if err := checkTopics(conf.EventStream.Topics) ; err != nil {
+		return err
+	}
+	return nil
+}
+
+func checkTopics(topics []string) error {
+	if topics == nil {
+		return errors.New("'event_stream.topics' must be a list of strings")
+	}
+	if len(topics) == 0 {
+		return errors.New("Empty 'event_stream.topics'")
 	}
 	return nil
 }
