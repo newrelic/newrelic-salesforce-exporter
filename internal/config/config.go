@@ -15,13 +15,13 @@ import (
 )
 
 type AuthConfig struct {
-	TokenUrl string        `mapstructure:"token_url"`
-	UserPass *UserPassAuth `mapstructure:"user_pass"`
+	TokenUrl string        `mapstructure:"tokenUrl"`
+	UserPass *UserPassAuth `mapstructure:"userPass"`
 }
 
 type UserPassAuth struct {
-	ClientId     string `mapstructure:"client_id"`
-	ClientSecret string `mapstructure:"client_secret"`
+	ClientId     string `mapstructure:"clientId"`
+	ClientSecret string `mapstructure:"clientSecret"`
 	Username     string `mapstructure:"username"`
 	Password     string `mapstructure:"password"`
 }
@@ -33,14 +33,14 @@ type CacheConfig struct {
 type RedisConfig struct {
 	Host       string `mapstructure:"host"`
 	Port       int    `mapstructure:"port"`
-	DbNumber   int    `mapstructure:"db_number"`
+	DbNumber   int    `mapstructure:"dbNumber"`
 	Password   string `mapstructure:"password"`
 	Ssl        bool   `mapstructure:"ssl"`
-	ExpireDays int    `mapstructure:"expire_days"`
+	ExpireDays int    `mapstructure:"expireDays"`
 }
 
 type EventStreamConfig struct {
-	IntegrationName string       `mapstructure:"integration_name"`
+	IntegrationName string       `mapstructure:"integrationName"`
 	Auth            AuthConfig   `mapstructure:"auth"`
 	Cache           *CacheConfig `mapstructure:"cache"`
 	Topics          []string     `mapstructure:"topics"`
@@ -48,8 +48,8 @@ type EventStreamConfig struct {
 
 type Config struct {
 	Version     string            `mapstructure:"version"`
-	IsTemplate  bool              `mapstructure:"is_template"`
-	EventStream EventStreamConfig `mapstructure:"event_stream"`
+	IsTemplate  bool              `mapstructure:"isTemplate"`
+	EventStream EventStreamConfig `mapstructure:"eventStream"`
 }
 
 func envVarDecoder() mapstructure.DecodeHookFunc {
