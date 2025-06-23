@@ -1,4 +1,4 @@
-package internal
+package config
 
 import (
 	"errors"
@@ -10,23 +10,24 @@ import (
 
 	"github.com/go-viper/mapstructure/v2"
 	"github.com/newrelic/newrelic-labs-sdk/v2/pkg/integration"
-	labslog "github.com/newrelic/newrelic-labs-sdk/v2/pkg/integration/log"
+	"github.com/newrelic/newrelic-labs-sdk/v2/pkg/integration/log"
 	"github.com/spf13/viper"
 )
 
 type AuthConfig struct {
-	TokenUrl string `mapstructure:"token_url"`
-	UserPass struct {
-		ClientId     string `mapstructure:"client_id"`
-		ClientSecret string `mapstructure:"client_secret"`
-		Username     string `mapstructure:"username"`
-		Password     string `mapstructure:"password"`
-	} `mapstructure:"user_pass"`
+	TokenUrl string        `mapstructure:"token_url"`
+	UserPass *UserPassAuth `mapstructure:"user_pass"`
+}
+
+type UserPassAuth struct {
+	ClientId     string `mapstructure:"client_id"`
+	ClientSecret string `mapstructure:"client_secret"`
+	Username     string `mapstructure:"username"`
+	Password     string `mapstructure:"password"`
 }
 
 type CacheConfig struct {
 	Redis *RedisConfig `mapstructure:"redis"`
-	//TODO: add DynamoDB config
 }
 
 type RedisConfig struct {
@@ -46,10 +47,9 @@ type EventStreamConfig struct {
 }
 
 type Config struct {
-	Version    string `mapstructure:"version"`
-	IsTemplate bool   `mapstructure:"is_template"`
+	Version     string            `mapstructure:"version"`
+	IsTemplate  bool              `mapstructure:"is_template"`
 	EventStream EventStreamConfig `mapstructure:"event_stream"`
-	//TODO: add Eventlog config
 }
 
 func envVarDecoder() mapstructure.DecodeHookFunc {
@@ -84,7 +84,7 @@ func scanEnvVars(dict map[string]any) {
 				if exists {
 					dict[key] = envVal
 				} else {
-					labslog.Fatalf(fmt.Errorf("Env var %s does not exist", varName))
+					log.Fatalf(fmt.Errorf("Env var %s does not exist", varName))
 				}
 			}
 		}
@@ -106,14 +106,14 @@ func ReadConfig(file string) (Config, error) {
 		return Config{}, err
 	}
 
-	if err := integrityCheck(conf) ; err != nil {
-		labslog.Fatalf(err)
+	if err := integrityCheck(conf); err != nil {
+		log.Fatalf(err)
 	}
 
 	return conf, nil
 }
 
-// TODO: check config integrity
+// TODO: check config integrity, the oarts that are common to both integrations
 func integrityCheck(conf Config) error {
 	if conf.IsTemplate {
 		return errors.New("Config file is a template")

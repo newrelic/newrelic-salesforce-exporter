@@ -5,8 +5,8 @@ import (
 	"os"
 	"sync"
 
-	"github.com/newrelic/newrelic-salesforce-exporter/internal"
 	"github.com/newrelic/newrelic-salesforce-exporter/internal/cache"
+	"github.com/newrelic/newrelic-salesforce-exporter/internal/config"
 	"github.com/newrelic/newrelic-salesforce-exporter/internal/integration/stream"
 	"github.com/newrelic/newrelic-salesforce-exporter/internal/integration/stream/pubsub/grpcclient"
 	"github.com/newrelic/newrelic-salesforce-exporter/internal/integration/stream/pubsub/proto"
@@ -15,7 +15,7 @@ import (
 	"github.com/newrelic/newrelic-labs-sdk/v2/pkg/integration/log"
 )
 
-var integrationConf internal.Config
+var integrationConf config.Config
 
 func main() {
 	loglevel := os.Getenv("LOGS")
@@ -31,14 +31,17 @@ func main() {
 	case "4":
 		log.RootLogger.SetLevel(logrus.ErrorLevel)
 	}
-	
+
 	var err error
-	integrationConf, err = internal.ReadConfig("config.yml") ; if err != nil {
+	integrationConf, err = config.ReadConfig("config.yml") ; if err != nil {
 		log.Errorf("Error loading config = %s", err)
 		os.Exit(1)
 	}
 
-	// log.Debugf("Config = %+v", integrationConf)
+	if err := stream.CheckConfig(integrationConf) ; err != nil {
+		log.Errorf("Error checking config integrity = %s", err)
+		os.Exit(1)
+	}
 
 	stream.FillSalesforceCredentials(integrationConf)
 

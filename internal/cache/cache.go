@@ -2,8 +2,8 @@ package cache
 
 import (
 	labslog "github.com/newrelic/newrelic-labs-sdk/v2/pkg/integration/log"
-	"github.com/newrelic/newrelic-salesforce-exporter/internal"
 	"github.com/newrelic/newrelic-salesforce-exporter/internal/cache/redis"
+	"github.com/newrelic/newrelic-salesforce-exporter/internal/config"
 )
 
 type Cache interface {
@@ -26,7 +26,7 @@ func (c *DummyCache) DelCacheVal(key string) error {
 	return nil
 }
 
-func BuildCache(conf *internal.CacheConfig) Cache {
+func BuildCache(conf *config.CacheConfig) Cache {
 	var db Cache
 	if conf != nil {
 		if conf.Redis != nil {
