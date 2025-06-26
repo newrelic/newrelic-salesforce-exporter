@@ -50,6 +50,7 @@ type Config struct {
 	Version     string            `mapstructure:"version"`
 	IsTemplate  bool              `mapstructure:"isTemplate"`
 	EventStream EventStreamConfig `mapstructure:"eventStream"`
+	Format      string            `mapstructure:"format"`
 }
 
 func envVarDecoder() mapstructure.DecodeHookFunc {

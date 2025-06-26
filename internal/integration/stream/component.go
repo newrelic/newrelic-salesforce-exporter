@@ -19,25 +19,57 @@ const (
 	MAX_BUFFER_SIZE  = 10
 )
 
+type EventLogExporter interface {
+	pipeline.EventsExporter
+	pipeline.LogsExporter
+}
+
+type DataFormat int
+
+const (
+	Events DataFormat = iota
+	Logs
+)
+
 type StreamComponent struct {
-	exporter pipeline.EventsExporter
-	ch chan map[string]any
-	buffer []model.Event
+	exporter  EventLogExporter
+	ch        chan map[string]any
+	eventBuff []model.Event
+	logBuff   []model.Log
+	format    DataFormat
 }
 
-func NewStreamComponent(exporter pipeline.EventsExporter, ch chan map[string]any) StreamComponent {
-	return StreamComponent {
-		exporter: exporter,
-		ch: ch,
-		buffer: make([]model.Event, 0),
+func NewStreamComponent(exporter EventLogExporter, ch chan map[string]any, formatConf string) (StreamComponent, error) {
+	var format DataFormat
+	var eventBuff []model.Event = nil
+	var logBuff []model.Log = nil
+
+	switch formatConf {
+	case "events":
+		format = Events
+		eventBuff = make([]model.Event, 0)
+	case "logs":
+		format = Logs
+		logBuff = make([]model.Log, 0)
+	default:
+		err := errors.New("Format must be either 'events' or 'logs'")
+		return StreamComponent{}, err
 	}
+
+	return StreamComponent{
+		exporter:  exporter,
+		ch:        ch,
+		eventBuff: eventBuff,
+		logBuff:   logBuff,
+		format:    format,
+	}, nil
 }
 
-func (c *StreamComponent)GetId() string {
+func (c *StreamComponent) GetId() string {
 	return "sfdc-stream-component"
 }
 
-func (c *StreamComponent)ExecuteSync(ctx context.Context) error {
+func (c *StreamComponent) ExecuteSync(ctx context.Context) error {
 	log.Debugf("StreamComponent ExecuteSync")
 	for {
 		select {
@@ -58,32 +90,49 @@ func (c *StreamComponent)ExecuteSync(ctx context.Context) error {
 				timestamp = time.Now()
 			}
 
-			event := model.NewEvent(eventType, ev, timestamp)
-			c.buffer = append(c.buffer, event)
+			switch c.format {
+			case Events:
+				event := model.NewEvent(eventType, ev, timestamp)
+				c.eventBuff = append(c.eventBuff, event)
 
-			log.Debugf("Event buffered")
+				log.Debugf("Event buffered")
 
-			if len(c.buffer) >= MAX_BUFFER_SIZE {
-				log.Debugf("Harvest events!")
-				err := c.exporter.ExportEvents(ctx, c.buffer)
-				if err != nil {
-					log.Debugf("Event export failed: %s", err.Error())
+				if len(c.eventBuff) >= MAX_BUFFER_SIZE {
+					log.Debugf("Harvest events!")
+					err := c.exporter.ExportEvents(ctx, c.eventBuff)
+					if err != nil {
+						log.Debugf("Event export failed: %s", err.Error())
+					}
+					c.eventBuff = make([]model.Event, 0)
 				}
-				c.buffer = make([]model.Event, 0)
+			case Logs:
+				mlog := model.NewLog(eventType, ev, timestamp)
+				c.logBuff = append(c.logBuff, mlog)
+
+				log.Debugf("Log buffered")
+
+				if len(c.logBuff) >= MAX_BUFFER_SIZE {
+					log.Debugf("Harvest logs!")
+					err := c.exporter.ExportLogs(ctx, c.logBuff)
+					if err != nil {
+						log.Debugf("Log export failed: %s", err.Error())
+					}
+					c.logBuff = make([]model.Log, 0)
+				}
 			}
 		}
 	}
 }
 
-func (c *StreamComponent)Start(ctx context.Context, wg *sync.WaitGroup) error {
+func (c *StreamComponent) Start(ctx context.Context, wg *sync.WaitGroup) error {
 	return errors.New("StreamComponent should never use Start")
 }
 
-func (c *StreamComponent)Execute(ctx context.Context) error {
+func (c *StreamComponent) Execute(ctx context.Context) error {
 	return errors.New("StreamComponent should never use Execute")
 }
 
-func (c *StreamComponent)Shutdown(ctx context.Context) error {
+func (c *StreamComponent) Shutdown(ctx context.Context) error {
 	return errors.New("StreamComponent should never use Shitdown")
 }
 

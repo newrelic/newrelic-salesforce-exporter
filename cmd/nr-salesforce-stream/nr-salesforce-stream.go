@@ -56,7 +56,11 @@ func main() {
 
 	ch := make(chan map[string]any)
 
-	streamComponent := stream.NewStreamComponent(exporter, ch)
+	streamComponent, err := stream.NewStreamComponent(exporter, ch, integrationConf.Format)
+	if err != nil {
+		log.Errorf("Error creating stream component = %s", err)
+		os.Exit(1)
+	}
 	i.AddComponent(&streamComponent)
 
 	go readEventStreams(ch, integrationConf.EventStream.Topics)
