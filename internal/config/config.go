@@ -35,7 +35,6 @@ type RedisConfig struct {
 	Port       int    `mapstructure:"port"`
 	DbNumber   int    `mapstructure:"dbNumber"`
 	Password   string `mapstructure:"password"`
-	Ssl        bool   `mapstructure:"ssl"`
 	ExpireDays int    `mapstructure:"expireDays"`
 }
 

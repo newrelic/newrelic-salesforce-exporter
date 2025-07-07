@@ -33,12 +33,13 @@ func main() {
 	}
 
 	var err error
-	integrationConf, err = config.ReadConfig("config.yml") ; if err != nil {
+	integrationConf, err = config.ReadConfig("config.yml")
+	if err != nil {
 		log.Errorf("Error loading config = %s", err)
 		os.Exit(1)
 	}
 
-	if err := stream.CheckConfig(integrationConf) ; err != nil {
+	if err := stream.CheckConfig(integrationConf); err != nil {
 		log.Errorf("Error checking config integrity = %s", err)
 		os.Exit(1)
 	}
@@ -47,7 +48,8 @@ func main() {
 
 	ctx := context.Background()
 
-	i, err := stream.NewStreamIntegration(ctx) ; if err != nil {
+	i, err := stream.NewStreamIntegration(ctx)
+	if err != nil {
 		log.Errorf("Error creating NR integration = %s", err)
 		os.Exit(1)
 	}
@@ -67,7 +69,8 @@ func main() {
 
 	// Run the integration
 	defer i.Shutdown(ctx)
-	err = i.Run(ctx) ; if err != nil {
+	err = i.Run(ctx)
+	if err != nil {
 		log.Errorf("Error running the integration = %s", err)
 		os.Exit(1)
 	}
@@ -125,13 +128,13 @@ func subscribeToTopic(topicName string, ch chan<- map[string]any) {
 			replayPreset = proto.ReplayPreset_CUSTOM
 		}
 
-		subsOpts := grpcclient.SubscribeOpts {
-			Channel: ch,
-			TopicName: topicName,
+		subsOpts := grpcclient.SubscribeOpts{
+			Channel:      ch,
+			TopicName:    topicName,
 			ReplayPreset: replayPreset,
-			ReplayId: curReplayId,
-			Cache: db,
-			ReplayIdKey: replayIdKey,
+			ReplayId:     curReplayId,
+			Cache:        db,
+			ReplayIdKey:  replayIdKey,
 		}
 
 		curReplayId, err = client.Subscribe(subsOpts)
@@ -143,9 +146,10 @@ func subscribeToTopic(topicName string, ch chan<- map[string]any) {
 
 func readReplayIdFromCache(db cache.Cache, replayIdKey string) []byte {
 	var curReplayId []byte = nil
-	
+
 	// Try to get replay ID from the cache
-	cacheResp, err := db.GetCacheVal(replayIdKey) ; if err != nil {
+	cacheResp, err := db.GetCacheVal(replayIdKey)
+	if err != nil {
 		log.Debugf("Error reading '%s' from cache: %s", replayIdKey, err.Error())
 	}
 
@@ -156,7 +160,7 @@ func readReplayIdFromCache(db cache.Cache, replayIdKey string) []byte {
 				curReplayId = []byte(cacheResp)
 				log.Debugf("Got Replay ID from cache")
 			} else {
-				log.Debugf("Read '%s' from cache and is empty, ignoring.", replayIdKey)	
+				log.Debugf("Read '%s' from cache and is empty, ignoring.", replayIdKey)
 			}
 		} else {
 			log.Debugf("Error reading '%s' as a string from cache", replayIdKey)

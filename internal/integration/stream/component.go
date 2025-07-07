@@ -32,11 +32,12 @@ const (
 )
 
 type StreamComponent struct {
-	exporter  EventLogExporter
-	ch        chan map[string]any
-	eventBuff []model.Event
-	logBuff   []model.Log
-	format    DataFormat
+	exporter      EventLogExporter
+	ch            chan map[string]any
+	eventBuff     []model.Event
+	logBuff       []model.Log
+	format        DataFormat
+	maxBufferSize int
 }
 
 func NewStreamComponent(exporter EventLogExporter, ch chan map[string]any, formatConf string) (StreamComponent, error) {
@@ -57,11 +58,12 @@ func NewStreamComponent(exporter EventLogExporter, ch chan map[string]any, forma
 	}
 
 	return StreamComponent{
-		exporter:  exporter,
-		ch:        ch,
-		eventBuff: eventBuff,
-		logBuff:   logBuff,
-		format:    format,
+		exporter:      exporter,
+		ch:            ch,
+		eventBuff:     eventBuff,
+		logBuff:       logBuff,
+		format:        format,
+		maxBufferSize: MAX_BUFFER_SIZE,
 	}, nil
 }
 
@@ -97,7 +99,7 @@ func (c *StreamComponent) ExecuteSync(ctx context.Context) error {
 
 				log.Debugf("Event buffered")
 
-				if len(c.eventBuff) >= MAX_BUFFER_SIZE {
+				if len(c.eventBuff) >= c.maxBufferSize {
 					log.Debugf("Harvest events!")
 					err := c.exporter.ExportEvents(ctx, c.eventBuff)
 					if err != nil {
@@ -111,7 +113,7 @@ func (c *StreamComponent) ExecuteSync(ctx context.Context) error {
 
 				log.Debugf("Log buffered")
 
-				if len(c.logBuff) >= MAX_BUFFER_SIZE {
+				if len(c.logBuff) >= c.maxBufferSize {
 					log.Debugf("Harvest logs!")
 					err := c.exporter.ExportLogs(ctx, c.logBuff)
 					if err != nil {
@@ -143,6 +145,16 @@ func WithRunAsService(runAsService bool) integration.LabsIntegrationOpt {
 	}
 }
 
+func withOptionalApiKey() integration.LabsIntegrationOpt {
+	return func(li *integration.LabsIntegration) error {
+		res := (integration.WithApiKey())(li)
+		if res != nil {
+			log.Debugf("ApiKey not set, ignoring")
+		}
+		return nil
+	}
+}
+
 func NewStreamIntegration(ctx context.Context,
 	labsIntegrationOpts ...integration.LabsIntegrationOpt,
 ) (*integration.LabsIntegration, error) {
@@ -151,7 +163,7 @@ func NewStreamIntegration(ctx context.Context,
 		INTEGRATION_ID,
 		INTEGRATION_NAME,
 		integration.WithLicenseKey(),
-		integration.WithApiKey(),
+		withOptionalApiKey(),
 		integration.WithAccountId(),
 		integration.WithEvents(ctx),
 		integration.WithLogs(ctx),

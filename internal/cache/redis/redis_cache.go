@@ -13,7 +13,6 @@ type RedisConfig struct {
   	Port int
   	DbNumber int
   	Password string
-  	Ssl bool
   	ExpireDays int
 }
 
