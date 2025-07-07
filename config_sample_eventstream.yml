@@ -1,0 +1,34 @@
+version: 2.0
+isTemplate: true
+
+# Event stream conf
+eventStream:
+  integrationName: "com.newrelic.labs.sfdc.eventstream"
+  auth:
+    tokenUrl: "<TOKEN URL HERE>"
+    userPass:
+      clientId: "<CLIENT ID HERE>"
+      clientSecret: "<CLIENT SECRET HERE>"
+      username: "<USER NAME HERE>"
+      password: "<PASSWORD HERE<"
+  cache:
+    redis:
+      host: "<HOST HERE>"
+      port: 6379
+      dbNumber: 0
+      password: "<PASSWORD HERE or empty if no password>"
+      expireDays: 1
+  topics:
+    - "/event/LoginEventStream"
+    - "/event/LogoutEventStream"
+    - "/event/ReportEventStream"
+    - "/event/ApiEventStream"
+    - "/event/FileEvent"
+    - "/event/UriEventStream"
+    - "/event/LightningUriEventStream"
+
+# Config for the New Relic Go agent
+licenseKey: "<LICENSE KEY HERE>"
+accountId: "<ACCOUNT ID HERE>"
+region: "<REGION HERE>" # either "EU" or "US"
+format: "<FORMAT HERE>" # either "events" or "logs"
