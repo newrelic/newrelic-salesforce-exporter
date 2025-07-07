@@ -138,7 +138,7 @@ func (c *StreamComponent) Shutdown(ctx context.Context) error {
 	return errors.New("StreamComponent should never use Shitdown")
 }
 
-func WithRunAsService(runAsService bool) integration.LabsIntegrationOpt {
+func withRunAsService(runAsService bool) integration.LabsIntegrationOpt {
 	return func(li *integration.LabsIntegration) error {
 		li.RunAsService = runAsService
 		return nil
@@ -147,8 +147,8 @@ func WithRunAsService(runAsService bool) integration.LabsIntegrationOpt {
 
 func withOptionalApiKey() integration.LabsIntegrationOpt {
 	return func(li *integration.LabsIntegration) error {
-		res := (integration.WithApiKey())(li)
-		if res != nil {
+		err := (integration.WithApiKey())(li)
+		if err != nil {
 			log.Debugf("ApiKey not set, ignoring")
 		}
 		return nil
@@ -167,7 +167,7 @@ func NewStreamIntegration(ctx context.Context,
 		integration.WithAccountId(),
 		integration.WithEvents(ctx),
 		integration.WithLogs(ctx),
-		WithRunAsService(false),
+		withRunAsService(false),
 	)
 	return i, err
 }
