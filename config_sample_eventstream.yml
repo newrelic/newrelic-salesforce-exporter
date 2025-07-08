@@ -10,15 +10,15 @@ eventStream:
       clientId: "<CLIENT ID HERE>"
       clientSecret: "<CLIENT SECRET HERE>"
       username: "<USER NAME HERE>"
-      password: "<PASSWORD HERE<"
+      password: "<PASSWORD HERE>"
   cache:
     redis:
-      host: "<HOST HERE>"
+      host: "<REDIS SERVER HOST HERE>"
       port: 6379
       dbNumber: 0
       password: "<PASSWORD HERE or empty if no password>"
       expireDays: 1
-  topics:
+  topics: # EDIT TOPICS HERE (events to capture)
     - "/event/LoginEventStream"
     - "/event/LogoutEventStream"
     - "/event/ReportEventStream"
@@ -27,7 +27,7 @@ eventStream:
     - "/event/UriEventStream"
     - "/event/LightningUriEventStream"
 
-# Config for the New Relic Go agent
+# Config for the New Relic client
 licenseKey: "<LICENSE KEY HERE>"
 accountId: "<ACCOUNT ID HERE>"
 region: "<REGION HERE>" # either "EU" or "US"
