@@ -10,7 +10,6 @@ import (
 	"github.com/newrelic/newrelic-salesforce-exporter/internal/integration/stream"
 	"github.com/newrelic/newrelic-salesforce-exporter/internal/integration/stream/pubsub/grpcclient"
 	"github.com/newrelic/newrelic-salesforce-exporter/internal/integration/stream/pubsub/proto"
-	"github.com/sirupsen/logrus"
 
 	"github.com/newrelic/newrelic-labs-sdk/v2/pkg/integration/log"
 )
@@ -18,20 +17,6 @@ import (
 var integrationConf config.Config
 
 func main() {
-	loglevel := os.Getenv("LOGS")
-	switch loglevel {
-	case "0":
-		log.RootLogger.SetLevel(logrus.TraceLevel)
-	case "1":
-		log.RootLogger.SetLevel(logrus.DebugLevel)
-	case "2":
-		log.RootLogger.SetLevel(logrus.InfoLevel)
-	case "3":
-		log.RootLogger.SetLevel(logrus.WarnLevel)
-	case "4":
-		log.RootLogger.SetLevel(logrus.ErrorLevel)
-	}
-
 	ctx := context.Background()
 
 	i, err := stream.NewStreamIntegration(ctx)
