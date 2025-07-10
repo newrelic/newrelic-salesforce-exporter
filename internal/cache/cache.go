@@ -40,9 +40,11 @@ func BuildCache(conf *config.CacheConfig) Cache {
 			})
 			db = &redisDb
 		} else {
+			labslog.Warnf("No redis cache config")
 			db = &DummyCache{}
 		}
 	} else {
+		labslog.Warnf("No cache config")
 		db = &DummyCache{}
 	}
 

@@ -32,20 +32,6 @@ func main() {
 		log.RootLogger.SetLevel(logrus.ErrorLevel)
 	}
 
-	var err error
-	integrationConf, err = config.ReadConfig("config.yml")
-	if err != nil {
-		log.Errorf("Error loading config = %s", err)
-		os.Exit(1)
-	}
-
-	if err := stream.CheckConfig(integrationConf); err != nil {
-		log.Errorf("Error checking config integrity = %s", err)
-		os.Exit(1)
-	}
-
-	stream.FillSalesforceCredentials(integrationConf)
-
 	ctx := context.Background()
 
 	i, err := stream.NewStreamIntegration(ctx)
@@ -53,6 +39,19 @@ func main() {
 		log.Errorf("Error creating NR integration = %s", err)
 		os.Exit(1)
 	}
+	
+	integrationConf, err = config.ReadConfig()
+	if err != nil {
+		log.Errorf("Error loading config = %s", err)
+		os.Exit(1)
+	}
+
+	if err := stream.IntegrityCheck(integrationConf); err != nil {
+		log.Errorf("Error checking config integrity = %s", err)
+		os.Exit(1)
+	}
+
+	stream.FillSalesforceCredentials(integrationConf)
 
 	exporter := stream.NewExporter(i)
 
@@ -150,7 +149,7 @@ func readReplayIdFromCache(db cache.Cache, replayIdKey string) []byte {
 	// Try to get replay ID from the cache
 	cacheResp, err := db.GetCacheVal(replayIdKey)
 	if err != nil {
-		log.Debugf("Error reading '%s' from cache: %s", replayIdKey, err.Error())
+		log.Errorf("Error reading '%s' from cache: %s", replayIdKey, err.Error())
 	}
 
 	if cacheResp != nil {
@@ -163,7 +162,7 @@ func readReplayIdFromCache(db cache.Cache, replayIdKey string) []byte {
 				log.Debugf("Read '%s' from cache and is empty, ignoring.", replayIdKey)
 			}
 		} else {
-			log.Debugf("Error reading '%s' as a string from cache", replayIdKey)
+			log.Errorf("Error reading '%s' as a string from cache", replayIdKey)
 		}
 	}
 

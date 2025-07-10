@@ -17,7 +17,7 @@ func FillSalesforceCredentials(conf config.Config) {
 }
 
 // Config checks specific to the event stream integration
-func CheckConfig(conf config.Config) error {
+func IntegrityCheck(conf config.Config) error {
 	if err := config.CheckAuth(conf.EventStream.Auth) ; err != nil {
 		return err
 	}

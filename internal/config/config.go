@@ -9,7 +9,6 @@ import (
 	"regexp"
 
 	"github.com/go-viper/mapstructure/v2"
-	"github.com/newrelic/newrelic-labs-sdk/v2/pkg/integration"
 	"github.com/newrelic/newrelic-labs-sdk/v2/pkg/integration/log"
 	"github.com/spf13/viper"
 )
@@ -91,11 +90,7 @@ func scanEnvVars(dict map[string]any) {
 	}
 }
 
-func ReadConfig(file string) (Config, error) {
-	if err := integration.NewConfigWithFile(file); err != nil {
-		return Config{}, err
-	}
-
+func ReadConfig() (Config, error) {
 	conf := Config{}
 	decoderConf := viper.DecodeHook(
 		mapstructure.ComposeDecodeHookFunc(
