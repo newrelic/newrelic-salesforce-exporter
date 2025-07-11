@@ -1,7 +1,8 @@
 version: 2.0
-isTemplate: true
+isTemplate: true  # Remove or set it to "false" after setting up all the options below
 
-# Event stream conf
+### Event stream conf
+
 eventStream:
   integrationName: "com.newrelic.labs.sfdc.eventstream"
   auth:
@@ -11,7 +12,7 @@ eventStream:
       clientSecret: "<CLIENT SECRET HERE>"
       username: "<USER NAME HERE>"
       password: "<PASSWORD HERE>"
-  cache:
+  cache:  # Cache is optional, just remove it if you don't need de-duplication
     redis:
       host: "<REDIS SERVER HOST HERE>"
       port: 6379
@@ -27,7 +28,8 @@ eventStream:
     - "/event/UriEventStream"
     - "/event/LightningUriEventStream"
 
-# Config for the New Relic client
+### Config for the New Relic client
+
 licenseKey: "<LICENSE KEY HERE>"
 accountId: "<ACCOUNT ID HERE>"
 region: "<REGION HERE>" # either "EU" or "US"
