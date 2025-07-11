@@ -1,4 +1,4 @@
-version: 2.0
+version: "2.0"
 isTemplate: true  # Remove or set it to "false" after setting up all the options below
 
 ### Config for the Event Streamming integration

@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os"
 	"reflect"
+	"strconv"
+	"strings"
 
 	"regexp"
 
@@ -112,6 +114,24 @@ func ReadConfig() (Config, error) {
 func integrityCheck(conf Config) error {
 	if conf.IsTemplate {
 		return errors.New("Config file is a template")
+	}
+	verCompos := strings.Split(conf.Version, ".")
+	if len(verCompos) != 2 {
+		return errors.New("Conf file, version key must be 'X.Y'")
+	}
+    major, err := strconv.Atoi(verCompos[0])
+    if err != nil {
+        return errors.New("Conf file, wrong version key format, major must be a number")
+    }
+    minor, err := strconv.Atoi(verCompos[1])
+    if err != nil {
+        return errors.New("Conf file, wrong version key format, minor must be a number")
+    }
+	if major != 2 {
+		return errors.New("Conf file, wrong version")
+	}
+	if minor != 0 {
+		log.Warnf("Conf file minor version is '%d', expected '0'", minor)
 	}
 	return nil
 }
