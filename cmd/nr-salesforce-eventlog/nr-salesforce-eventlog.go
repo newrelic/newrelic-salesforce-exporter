@@ -10,6 +10,7 @@ import (
 	"github.com/newrelic/newrelic-labs-sdk/v2/pkg/integration/pipeline"
 	"github.com/newrelic/newrelic-salesforce-exporter/internal/config"
 	"github.com/newrelic/newrelic-salesforce-exporter/internal/integration/eventlog"
+	"github.com/newrelic/newrelic-salesforce-exporter/internal/oauth"
 )
 
 const (
@@ -50,6 +51,17 @@ func main() {
 		log.Errorf("Error checking config integrity = %s", err)
 		os.Exit(1)
 	}
+
+	oauth.SetCredentials(integrationConf.EventLog.Instances[0].Auth)
+
+	// TEST auth
+	login, err := oauth.Login()
+	if err != nil {
+		log.Errorf("Error loging in = %s", err)
+		os.Exit(1)
+	}
+	log.Debugf("Token type = %v", login.TokenType)
+	log.Debugf("Access token = %v", login.AccessToken)
 
 	newRelicExporter := exporters.NewNewRelicExporter(
 		"newrelic-api",

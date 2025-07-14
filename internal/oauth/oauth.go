@@ -7,13 +7,25 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
-	"github.com/newrelic/newrelic-salesforce-exporter/internal/integration/stream/pubsub/common"
+	"github.com/newrelic/newrelic-salesforce-exporter/internal/config"
 )
 
 const (
+	oAuthDialTimeout = 5 * time.Second
 	loginEndpoint    = "/services/oauth2/token"
 	userInfoEndpoint = "/services/oauth2/userinfo"
+)
+
+var (
+	// OAuth credentials
+	grantType     string
+	clientId      string
+	clientSecret  string
+	username      string
+	password      string
+	tokenEndpoint string
 )
 
 type LoginResponse struct {
@@ -30,18 +42,28 @@ type UserInfoResponse struct {
 	OrganizationID string `json:"organization_id"`
 }
 
+//TODO: fill JWT credentials
+func SetCredentials(auth config.AuthConfig) {
+	grantType = "password"
+	clientId = auth.UserPass.ClientId
+	clientSecret = auth.UserPass.ClientSecret
+	username = auth.UserPass.Username
+	password = auth.UserPass.Password
+	tokenEndpoint = auth.TokenUrl
+}
+
 func Login() (*LoginResponse, error) {
 	body := url.Values{}
-	body.Set("grant_type", common.GrantType)
-	body.Set("client_id", common.ClientId)
-	body.Set("client_secret", common.ClientSecret)
-	body.Set("username", common.Username)
-	body.Set("password", common.Password)
+	body.Set("grant_type", grantType)
+	body.Set("client_id", clientId)
+	body.Set("client_secret", clientSecret)
+	body.Set("username", username)
+	body.Set("password", password)
 
-	ctx, cancelFn := context.WithTimeout(context.Background(), common.OAuthDialTimeout)
+	ctx, cancelFn := context.WithTimeout(context.Background(), oAuthDialTimeout)
 	defer cancelFn()
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, common.TokenEndpoint+loginEndpoint, strings.NewReader(body.Encode()))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, tokenEndpoint+loginEndpoint, strings.NewReader(body.Encode()))
 	if err != nil {
 		return nil, err
 	}
@@ -69,10 +91,10 @@ func Login() (*LoginResponse, error) {
 }
 
 func UserInfo(accessToken string) (*UserInfoResponse, error) {
-	ctx, cancelFn := context.WithTimeout(context.Background(), common.OAuthDialTimeout)
+	ctx, cancelFn := context.WithTimeout(context.Background(), oAuthDialTimeout)
 	defer cancelFn()
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, common.TokenEndpoint+userInfoEndpoint, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, tokenEndpoint+userInfoEndpoint, nil)
 	if err != nil {
 		return nil, err
 	}

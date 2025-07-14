@@ -10,6 +10,7 @@ import (
 	"github.com/newrelic/newrelic-salesforce-exporter/internal/integration/stream"
 	"github.com/newrelic/newrelic-salesforce-exporter/internal/integration/stream/pubsub/grpcclient"
 	"github.com/newrelic/newrelic-salesforce-exporter/internal/integration/stream/pubsub/proto"
+	"github.com/newrelic/newrelic-salesforce-exporter/internal/oauth"
 
 	"github.com/newrelic/newrelic-labs-sdk/v2/pkg/integration/log"
 )
@@ -36,7 +37,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	stream.FillSalesforceCredentials(integrationConf)
+	oauth.SetCredentials(integrationConf.EventStream.Auth)
 
 	exporter := stream.NewExporter(i)
 
