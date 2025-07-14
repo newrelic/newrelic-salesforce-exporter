@@ -47,18 +47,23 @@ type EventStreamConfig struct {
 	Topics          []string     `mapstructure:"topics"`
 }
 
+type EventLogInstance struct {
+	Name  string       `mapstructure:"name"`
+	Auth  AuthConfig   `mapstructure:"auth"`
+	Cache *CacheConfig `mapstructure:"cache"`
+}
+
 type EventLogConfig struct {
-	IntegrationName string       `mapstructure:"integrationName"`
-	Auth            AuthConfig   `mapstructure:"auth"`
-	Cache           *CacheConfig `mapstructure:"cache"`
+	IntegrationName string             `mapstructure:"integrationName"`
+	Instances       []EventLogInstance `mapstructure:"instances"`
 }
 
 type Config struct {
-	Version     string            `mapstructure:"version"`
-	IsTemplate  bool              `mapstructure:"isTemplate"`
-	EventStream EventStreamConfig `mapstructure:"eventStream"`
-	EventLog    EventLogConfig    `mapstructure:"eventLog"`
-	Format      string            `mapstructure:"format"`
+	Version     string             `mapstructure:"version"`
+	IsTemplate  bool               `mapstructure:"isTemplate"`
+	EventStream *EventStreamConfig `mapstructure:"eventStream"`
+	EventLog    *EventLogConfig    `mapstructure:"eventLog"`
+	Format      string             `mapstructure:"format"`
 }
 
 func envVarDecoder() mapstructure.DecodeHookFunc {
