@@ -2,14 +2,14 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"os"
 
 	"github.com/newrelic/newrelic-labs-sdk/v2/pkg/integration"
 	"github.com/newrelic/newrelic-labs-sdk/v2/pkg/integration/exporters"
 	"github.com/newrelic/newrelic-labs-sdk/v2/pkg/integration/log"
-	"github.com/newrelic/newrelic-labs-sdk/v2/pkg/integration/model"
 	"github.com/newrelic/newrelic-labs-sdk/v2/pkg/integration/pipeline"
+	"github.com/newrelic/newrelic-salesforce-exporter/internal/config"
+	"github.com/newrelic/newrelic-salesforce-exporter/internal/integration/eventlog"
 )
 
 const (
@@ -18,25 +18,7 @@ const (
 	DEFAULT_INTERVAL = 5
 )
 
-type SalesforceEventsReceiver struct {
-	i *integration.LabsIntegration
-}
-
-func (s *SalesforceEventsReceiver) GetId() string {
-	return "salesforce-events-receiver"
-}
-
-func (s *SalesforceEventsReceiver) PollEvents(context context.Context, writer chan <- model.Event) error {
-	//TODO: send events
-	fmt.Printf("-----> Polling events")
-	return nil	
-}
-
-func NewSalesforceEventsReceiver(i *integration.LabsIntegration) (pipeline.EventsReceiver, error) {
-	return &SalesforceEventsReceiver{
-		i: i,
-	}, nil
-}
+var integrationConf config.Config
 
 func main() {
 	ctx := context.Background()
@@ -58,6 +40,17 @@ func main() {
 		os.Exit(1)
 	}
 
+	integrationConf, err = config.ReadConfig()
+	if err != nil {
+		log.Errorf("Error loading config = %s", err)
+		os.Exit(1)
+	}
+
+	if err := eventlog.IntegrityCheck(integrationConf); err != nil {
+		log.Errorf("Error checking config integrity = %s", err)
+		os.Exit(1)
+	}
+
 	newRelicExporter := exporters.NewNewRelicExporter(
 		"newrelic-api",
 		i.Name,
@@ -71,7 +64,7 @@ func main() {
 	ep := pipeline.NewEventsPipeline("sfdc-events-pipeline")
 	ep.AddExporter(newRelicExporter)
 
-	sfdcReceiver, err := NewSalesforceEventsReceiver(i)
+	sfdcReceiver, err := eventlog.NewSalesforceEventsReceiver(i)
 	if err != nil {
 		log.Errorf("Error creating Salesforce event receiver = %s", err)
 		os.Exit(1)
@@ -89,5 +82,5 @@ func main() {
 		os.Exit(1)
 	}
 
-	fmt.Printf("-----> END integration")
+	log.Debugf("Finish integration")
 }

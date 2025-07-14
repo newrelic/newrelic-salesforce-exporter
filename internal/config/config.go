@@ -18,6 +18,7 @@ import (
 type AuthConfig struct {
 	TokenUrl string        `mapstructure:"tokenUrl"`
 	UserPass *UserPassAuth `mapstructure:"userPass"`
+	//TODO: add JWT auth
 }
 
 type UserPassAuth struct {
@@ -46,10 +47,17 @@ type EventStreamConfig struct {
 	Topics          []string     `mapstructure:"topics"`
 }
 
+type EventLogConfig struct {
+	IntegrationName string       `mapstructure:"integrationName"`
+	Auth            AuthConfig   `mapstructure:"auth"`
+	Cache           *CacheConfig `mapstructure:"cache"`
+}
+
 type Config struct {
 	Version     string            `mapstructure:"version"`
 	IsTemplate  bool              `mapstructure:"isTemplate"`
 	EventStream EventStreamConfig `mapstructure:"eventStream"`
+	EventLog    EventLogConfig    `mapstructure:"eventLog"`
 	Format      string            `mapstructure:"format"`
 }
 
@@ -119,16 +127,16 @@ func integrityCheck(conf Config) error {
 	if len(verCompos) != 2 {
 		return errors.New("Conf file, version key must be 'X.Y'")
 	}
-    major, err := strconv.Atoi(verCompos[0])
-    if err != nil {
-        return errors.New("Conf file, wrong version key format, major must be a number")
-    }
-    minor, err := strconv.Atoi(verCompos[1])
-    if err != nil {
-        return errors.New("Conf file, wrong version key format, minor must be a number")
-    }
+	major, err := strconv.Atoi(verCompos[0])
+	if err != nil {
+		return errors.New("Conf file, wrong version key format, major must be a number")
+	}
+	minor, err := strconv.Atoi(verCompos[1])
+	if err != nil {
+		return errors.New("Conf file, wrong version key format, minor must be a number")
+	}
 	if major != 2 {
-		return errors.New("Conf file, wrong version")
+		return fmt.Errorf("Conf file major version is '%d', expected '2'", major)
 	}
 	if minor != 0 {
 		log.Warnf("Conf file minor version is '%d', expected '0'", minor)
