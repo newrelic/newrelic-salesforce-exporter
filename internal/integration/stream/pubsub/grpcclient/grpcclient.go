@@ -12,7 +12,6 @@ import (
 	"github.com/linkedin/goavro/v2"
 	"github.com/newrelic/newrelic-labs-sdk/v2/pkg/integration/log"
 	"github.com/newrelic/newrelic-salesforce-exporter/internal/cache"
-	"github.com/newrelic/newrelic-salesforce-exporter/internal/config"
 	"github.com/newrelic/newrelic-salesforce-exporter/internal/integration/stream/pubsub/common"
 	"github.com/newrelic/newrelic-salesforce-exporter/internal/integration/stream/pubsub/proto"
 	"github.com/newrelic/newrelic-salesforce-exporter/internal/oauth"
@@ -51,16 +50,7 @@ func (c *PubSubClient) Close() {
 // Makes a call to the OAuth server to fetch credentials. Credentials are stored as part of the PubSubClient object so that they can be
 // referenced later in other methods
 func (c *PubSubClient) Authenticate() error {
-	auth := config.AuthConfig {
-		TokenUrl: common.TokenEndpoint,
-		UserPass: &config.UserPassAuth{
-			ClientId: common.ClientId,
-			ClientSecret: common.ClientSecret,
-			Username: common.Username,
-			Password: common.Password,
-		},
-	}
-	resp, err := oauth.Login(auth)
+	resp, err := oauth.Login(common.Auth)
 	if err != nil {
 		return err
 	}
@@ -74,7 +64,7 @@ func (c *PubSubClient) Authenticate() error {
 // Makes a call to the OAuth server to fetch user info. User info is stored as part of the PubSubClient object so that it can be referenced
 // later in other methods
 func (c *PubSubClient) FetchUserInfo() error {
-	resp, err := oauth.UserInfo(common.TokenEndpoint, c.accessToken)
+	resp, err := oauth.UserInfo(common.Auth.TokenUrl, c.accessToken)
 	if err != nil {
 		return err
 	}

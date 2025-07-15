@@ -18,19 +18,9 @@ const (
 
 var (
 	// OAuth credentials
-	GrantType     string
-	ClientId      string
-	ClientSecret  string
-	Username      string
-	Password      string
-	TokenEndpoint string
+	Auth          config.AuthConfig
 )
 
 func FillCredentials(auth config.AuthConfig) {
-	GrantType = "password"
-	ClientId = auth.UserPass.ClientId
-	ClientSecret = auth.UserPass.ClientSecret
-	Username = auth.UserPass.Username
-	Password = auth.UserPass.Password
-	TokenEndpoint = auth.TokenUrl
+	Auth = auth
 }
