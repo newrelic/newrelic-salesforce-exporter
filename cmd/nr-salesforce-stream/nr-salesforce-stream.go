@@ -8,9 +8,9 @@ import (
 	"github.com/newrelic/newrelic-salesforce-exporter/internal/cache"
 	"github.com/newrelic/newrelic-salesforce-exporter/internal/config"
 	"github.com/newrelic/newrelic-salesforce-exporter/internal/integration/stream"
+	"github.com/newrelic/newrelic-salesforce-exporter/internal/integration/stream/pubsub/common"
 	"github.com/newrelic/newrelic-salesforce-exporter/internal/integration/stream/pubsub/grpcclient"
 	"github.com/newrelic/newrelic-salesforce-exporter/internal/integration/stream/pubsub/proto"
-	"github.com/newrelic/newrelic-salesforce-exporter/internal/oauth"
 
 	"github.com/newrelic/newrelic-labs-sdk/v2/pkg/integration/log"
 )
@@ -37,7 +37,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	oauth.SetCredentials(integrationConf.EventStream.Auth)
+	common.FillCredentials(integrationConf.EventStream.Auth)
 
 	exporter := stream.NewExporter(i)
 
@@ -84,6 +84,8 @@ func subscribeToTopic(topicName string, ch chan<- map[string]any) {
 		os.Exit(1)
 	}
 	defer client.Close()
+
+	//TODO: handle token refresh and re-authentication
 
 	log.Debugf("Populating auth token...")
 	err = client.Authenticate()

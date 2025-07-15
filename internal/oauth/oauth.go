@@ -18,16 +18,6 @@ const (
 	userInfoEndpoint = "/services/oauth2/userinfo"
 )
 
-var (
-	// OAuth credentials
-	grantType     string
-	clientId      string
-	clientSecret  string
-	username      string
-	password      string
-	tokenEndpoint string
-)
-
 type LoginResponse struct {
 	AccessToken string `json:"access_token"`
 	InstanceURL string `json:"instance_url"`
@@ -42,28 +32,21 @@ type UserInfoResponse struct {
 	OrganizationID string `json:"organization_id"`
 }
 
-//TODO: fill JWT credentials
-func SetCredentials(auth config.AuthConfig) {
-	grantType = "password"
-	clientId = auth.UserPass.ClientId
-	clientSecret = auth.UserPass.ClientSecret
-	username = auth.UserPass.Username
-	password = auth.UserPass.Password
-	tokenEndpoint = auth.TokenUrl
-}
-
-func Login() (*LoginResponse, error) {
+func Login(auth config.AuthConfig) (*LoginResponse, error) {
 	body := url.Values{}
-	body.Set("grant_type", grantType)
-	body.Set("client_id", clientId)
-	body.Set("client_secret", clientSecret)
-	body.Set("username", username)
-	body.Set("password", password)
+
+	//TODO: JWT auth
+
+	body.Set("grant_type", "password")
+	body.Set("client_id", auth.UserPass.ClientId)
+	body.Set("client_secret", auth.UserPass.ClientSecret)
+	body.Set("username", auth.UserPass.Username)
+	body.Set("password", auth.UserPass.Password)
 
 	ctx, cancelFn := context.WithTimeout(context.Background(), oAuthDialTimeout)
 	defer cancelFn()
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, tokenEndpoint+loginEndpoint, strings.NewReader(body.Encode()))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, auth.TokenUrl+loginEndpoint, strings.NewReader(body.Encode()))
 	if err != nil {
 		return nil, err
 	}
@@ -90,7 +73,7 @@ func Login() (*LoginResponse, error) {
 	return &loginResponse, nil
 }
 
-func UserInfo(accessToken string) (*UserInfoResponse, error) {
+func UserInfo(tokenEndpoint string, accessToken string) (*UserInfoResponse, error) {
 	ctx, cancelFn := context.WithTimeout(context.Background(), oAuthDialTimeout)
 	defer cancelFn()
 

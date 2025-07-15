@@ -10,7 +10,6 @@ import (
 	"github.com/newrelic/newrelic-labs-sdk/v2/pkg/integration/pipeline"
 	"github.com/newrelic/newrelic-salesforce-exporter/internal/config"
 	"github.com/newrelic/newrelic-salesforce-exporter/internal/integration/eventlog"
-	"github.com/newrelic/newrelic-salesforce-exporter/internal/oauth"
 )
 
 const (
@@ -52,17 +51,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	oauth.SetCredentials(integrationConf.EventLog.Instances[0].Auth)
-
-	// TEST auth
-	login, err := oauth.Login()
-	if err != nil {
-		log.Errorf("Error loging in = %s", err)
-		os.Exit(1)
-	}
-	log.Debugf("Token type = %v", login.TokenType)
-	log.Debugf("Access token = %v", login.AccessToken)
-
 	newRelicExporter := exporters.NewNewRelicExporter(
 		"newrelic-api",
 		i.Name,
@@ -76,13 +64,15 @@ func main() {
 	ep := pipeline.NewEventsPipeline("sfdc-events-pipeline")
 	ep.AddExporter(newRelicExporter)
 
-	sfdcReceiver, err := eventlog.NewSalesforceEventsReceiver(i)
-	if err != nil {
-		log.Errorf("Error creating Salesforce event receiver = %s", err)
-		os.Exit(1)
+	// Add one Salesforce Events Receiver component per instance
+	for _, instanceConfig  := range integrationConf.EventLog.Instances {
+		sfdcReceiver, err := eventlog.NewSalesforceEventsReceiver(i, &instanceConfig)
+		if err != nil {
+			log.Errorf("Error creating Salesforce event receiver = %s", err)
+			os.Exit(1)
+		}
+		ep.AddReceiver(sfdcReceiver)
 	}
-
-	ep.AddReceiver(sfdcReceiver)
 
 	i.AddComponent(ep)
 
