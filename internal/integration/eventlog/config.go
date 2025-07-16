@@ -3,6 +3,7 @@ package eventlog
 import (
 	"errors"
 
+	"github.com/newrelic/newrelic-labs-sdk/v2/pkg/integration/log"
 	"github.com/newrelic/newrelic-salesforce-exporter/internal/config"
 )
 
@@ -24,7 +25,11 @@ func IntegrityCheck(conf config.Config) error {
 		}
 		if err := config.CheckCache(instance.Cache) ; err != nil {
 			return err
-		}		
+		}
+		if instance.ApiVer == "" {
+			log.Warnf("Config 'apiVer' not defined, using default: '55.0'")
+			instance.ApiVer = "55.0"
+		}
 	}
 
 	return nil

@@ -48,9 +48,10 @@ type EventStreamConfig struct {
 }
 
 type EventLogInstance struct {
-	Name  string       `mapstructure:"name"`
-	Auth  AuthConfig   `mapstructure:"auth"`
-	Cache *CacheConfig `mapstructure:"cache"`
+	Name   string       `mapstructure:"name"`
+	ApiVer string       `mapstructure:"apiVer"`
+	Auth   AuthConfig   `mapstructure:"auth"`
+	Cache  *CacheConfig `mapstructure:"cache"`
 }
 
 type EventLogConfig struct {
