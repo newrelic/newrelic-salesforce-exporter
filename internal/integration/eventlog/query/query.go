@@ -8,13 +8,23 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/newrelic/newrelic-labs-sdk/v2/pkg/integration/log"
 	"github.com/newrelic/newrelic-salesforce-exporter/internal/config"
 )
 
 const (
 	defaultTimeout = 5 * time.Second
 )
+
+type ReloginError struct {}
+
+func (e *ReloginError) Error() string {
+    return "Relogin error (401)"
+}
+
+func IsReloginError(e error) bool {
+	_, ok := e.(*ReloginError)
+	return ok
+}
 
 func RequestLogFiles(conf *config.EventLogInstance, token string, since time.Time, until time.Time) (EventLogfileResponse, error) {
 	soqlModel := MakeSoqlQuery("EventLogFile", "Id", "EventType", "LogDate", "LogFile")
@@ -46,9 +56,7 @@ func RequestLogFiles(conf *config.EventLogInstance, token string, since time.Tim
 
 		return response, nil
 	case 401:
-		//TODO: relogin
-		log.Errorf("Invalid token, must relogin")
-		return EventLogfileResponse{}, err
+		return EventLogfileResponse{}, &ReloginError{}
 	default:
 		return EventLogfileResponse{}, err
 	}

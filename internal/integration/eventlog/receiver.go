@@ -23,39 +23,48 @@ func (s *SalesforceEventsReceiver) GetId() string {
 }
 
 func (s *SalesforceEventsReceiver) PollEvents(context context.Context, writer chan <- model.Event) error {
-	//TODO: send events
 	log.Debugf("-----> PollEvents for instance '%s'", s.instanceConfig.Name)
 
-	//TODO: check if there is a token in the cache for current instance
-	//TODO: if not present: Login, store the token, and try the request
-	//TODO: 	if ok: process the response
-	//TODO: 	if error: print error, abort
-	//TODO: if present: try the request with this token
-	//TODO: 	if ok: process the response
-	//TODO: 	if 401 error: Login, store the token, retry request
-	//TODO: 	if other error: print error, abort
-
-	
-	// TEST: login and request log files since 4 hours ago
-
+	//TODO: check if token exists for current instance in the cache, login only it it doesn't exist
 	login, err := oauth.Login(s.instanceConfig.Auth)
 	if err != nil {
 		return err
 	}
-
-	log.Debugf("Token type = %v", login.TokenType)
+	
 	log.Debugf("Access token = %v", login.AccessToken)
 
+	accessToken := login.AccessToken
+
+	//TODO: get actual time range from the config
 	since := time.Now().Add(-time.Hour * 4)
 	until := time.Now()
-	response, err := query.RequestLogFiles(s.instanceConfig, login.AccessToken, since, until)
+	
+	var response query.EventLogfileResponse
+
+	response, err = query.RequestLogFiles(s.instanceConfig, accessToken, since, until)
 	if err != nil {
-		return err
+		// Is 401 error, relogin and retry request
+		if query.IsReloginError(err) {
+			log.Debugf("Wrong credentials error (401). Try relogin...")
+			login, err := oauth.Login(s.instanceConfig.Auth)
+			if err != nil {
+				return err
+			}
+			response, err = query.RequestLogFiles(s.instanceConfig, login.AccessToken, since, until)
+			if err != nil {
+				return err
+			}
+		} else {
+			return err
+		}
 	}
 
 	log.Debugf("-----> Response = '%#+v'", response)
 
-	//TODO: build events and send them through the "write" channel
+	//TODO: download CSV files
+	//TODO: generate events from each log line
+	//TODO: de-duplicate using cache
+	//TODO: send events through the "write" channel
 
 	log.Debugf("-----> END PollEvents for instance '%s'", s.instanceConfig.Name)
 
@@ -68,10 +77,6 @@ func NewSalesforceEventsReceiver(i *integration.LabsIntegration, instanceConfig 
 		instanceConfig: instanceConfig,
 	}, nil
 }
-
-//TODO: create a receiver for hourly event logs
-//TODO: create a receiver for generic queries in SOQL
-//TODO: try using the NewSimpleReceiver first, or use a custom Http Connector (NewHttpMETHODConnector).
 
 /* API interactions:
 - Authenticate (UserPass, JWT, and maybe also Client Credentials)
