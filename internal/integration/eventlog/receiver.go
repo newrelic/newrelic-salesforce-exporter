@@ -31,7 +31,6 @@ func (s *SalesforceEventsReceiver) PollEvents(context context.Context, writer ch
 	if err != nil {
 		return err
 	}
-	log.Debugf("Access token = %s", accessToken)
 
 	//TODO: get actual time range from the config
 	since := time.Now().Add(-time.Hour * 4)
@@ -89,7 +88,7 @@ func (s *SalesforceEventsReceiver) auth() (string, error) {
 }
 
 func (s *SalesforceEventsReceiver) getTokenFromCache() any {
-	val, err := s.db.GetCacheVal(tokenCacheKey(s.instanceConfig))
+	val, err := s.db.GetCacheVal(s.tokenCacheKey())
 	if err != nil {
 		log.Errorf("Error getting token from cache: %s", err.Error())
 	}
@@ -97,17 +96,21 @@ func (s *SalesforceEventsReceiver) getTokenFromCache() any {
 }
 
 func (s *SalesforceEventsReceiver) setTokenIntoCache(accessToken string) {
-	err := s.db.SetCacheVal(tokenCacheKey(s.instanceConfig), accessToken)
+	err := s.db.SetCacheVal(s.tokenCacheKey(), accessToken)
 	if err != nil {
 		log.Errorf("Error setting token into cache: %s", err.Error())
 	}
 }
 
 func (s *SalesforceEventsReceiver) deleteTokenFromCache() {
-	err := s.db.DelCacheVal(tokenCacheKey(s.instanceConfig))
+	err := s.db.DelCacheVal(s.tokenCacheKey())
 	if err != nil {
 		log.Errorf("Error deleting token from cache: %s", err.Error())
 	}
+}
+
+func (s *SalesforceEventsReceiver) tokenCacheKey() string {
+	return s.instanceConfig.Name + "_access_token"
 }
 
 func NewSalesforceEventsReceiver(i *integration.LabsIntegration, instanceConfig *config.EventLogInstance, db cache.Cache) (pipeline.EventsReceiver, error) {
@@ -117,11 +120,6 @@ func NewSalesforceEventsReceiver(i *integration.LabsIntegration, instanceConfig 
 		db: db,
 	}, nil
 }
-
-func tokenCacheKey(instanceConfig *config.EventLogInstance) string {
-	return instanceConfig.Name + "_access_token"
-}
-
 
 /* API interactions:
 - Authenticate (UserPass, JWT, and maybe also Client Credentials)
