@@ -8,6 +8,7 @@ import (
 	"github.com/newrelic/newrelic-labs-sdk/v2/pkg/integration/exporters"
 	"github.com/newrelic/newrelic-labs-sdk/v2/pkg/integration/log"
 	"github.com/newrelic/newrelic-labs-sdk/v2/pkg/integration/pipeline"
+	"github.com/newrelic/newrelic-salesforce-exporter/internal/cache"
 	"github.com/newrelic/newrelic-salesforce-exporter/internal/config"
 	"github.com/newrelic/newrelic-salesforce-exporter/internal/integration/eventlog"
 )
@@ -66,7 +67,8 @@ func main() {
 
 	// Add one Salesforce Events Receiver component per instance
 	for _, instanceConfig  := range integrationConf.EventLog.Instances {
-		sfdcReceiver, err := eventlog.NewSalesforceEventsReceiver(i, &instanceConfig)
+		db := cache.BuildCache(instanceConfig.Cache)
+		sfdcReceiver, err := eventlog.NewSalesforceEventsReceiver(i, &instanceConfig, db)
 		if err != nil {
 			log.Errorf("Error creating Salesforce event receiver = %s", err)
 			os.Exit(1)

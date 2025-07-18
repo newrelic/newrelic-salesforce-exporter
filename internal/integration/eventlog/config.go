@@ -2,6 +2,7 @@ package eventlog
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/newrelic/newrelic-labs-sdk/v2/pkg/integration/log"
 	"github.com/newrelic/newrelic-salesforce-exporter/internal/config"
@@ -15,7 +16,14 @@ func IntegrityCheck(conf config.Config) error {
 	if len(conf.EventLog.Instances) == 0 {
 		return errors.New("Config eventLog->instances must contain at least one instance")
 	}
+	instanceNames := map[string]bool{}
 	for _, instance := range conf.EventLog.Instances {
+		_, ok := instanceNames[instance.Name]
+		if ok {
+			return fmt.Errorf("Instance name '%s' is duplicated. Instances names must be unique.", instance.Name)
+		} else {
+			instanceNames[instance.Name] = true
+		}
 		if err := config.CheckAuth(instance.Auth) ; err != nil {
 			return err
 		}
