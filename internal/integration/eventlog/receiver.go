@@ -45,7 +45,7 @@ func (s *SalesforceEventsReceiver) PollEvents(context context.Context, writer ch
 			log.Debugf("Wrong credentials error (401). Try relogin...")
 
 			s.deleteTokenFromCache()
-			accessToken, err := s.auth()
+			accessToken, err = s.auth()
 			if err != nil {
 				return err
 			}
@@ -61,10 +61,7 @@ func (s *SalesforceEventsReceiver) PollEvents(context context.Context, writer ch
 
 	log.Debugf("-----> Response = '%#+v'", response)
 
-	//TODO: download CSV files
-	//TODO: generate events from each log line
-	//TODO: de-duplicate using cache
-	//TODO: send events through the "write" channel
+	s.processLogFilesResponse(&response, accessToken)
 
 	log.Debugf("-----> END PollEvents for instance '%s'", s.instanceConfig.Name)
 
@@ -113,6 +110,22 @@ func (s *SalesforceEventsReceiver) tokenCacheKey() string {
 	return s.instanceConfig.Name + "_access_token"
 }
 
+func (s *SalesforceEventsReceiver) processLogFilesResponse(response *query.EventLogfileResponse, accessToken string) {
+	// Download CSV files
+	for _, record := range response.Records {
+		filePath, err := query.DownloadCsvFile(s.instanceConfig.Auth.TokenUrl, &record, accessToken)
+		if err != nil {
+			log.Errorf("Error downloading CSV: %s", err.Error())
+		}
+		log.Debugf("Downloaded file at '%s'", filePath)
+	}
+	
+	//TODO: generate events from each log line
+	//TODO: de-duplicate using cache
+	//TODO: send events through the "write" channel
+	//TODO: remove all temporal CSV file
+}
+
 func NewSalesforceEventsReceiver(i *integration.LabsIntegration, instanceConfig *config.EventLogInstance, db cache.Cache) (pipeline.EventsReceiver, error) {
 	return &SalesforceEventsReceiver{
 		i: i,
@@ -120,6 +133,7 @@ func NewSalesforceEventsReceiver(i *integration.LabsIntegration, instanceConfig 
 		db: db,
 	}, nil
 }
+
 
 /* API interactions:
 - Authenticate (UserPass, JWT, and maybe also Client Credentials)

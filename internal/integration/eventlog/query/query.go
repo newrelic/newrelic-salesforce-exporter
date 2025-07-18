@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"runtime"
 	"time"
 
@@ -62,9 +63,27 @@ func RequestLogFiles(conf *config.EventLogInstance, token string, since time.Tim
 	}
 }
 
-//TODO: log file API request
-func RequestCsvFile() {
+func DownloadCsvFile(baseUrl string, record *EventLogfileRecord, token string) (string, error) {
+	resp, err := request(baseUrl + record.LogFile, token)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
 
+	filePath := csvFilePath(record)
+	outFile, err := os.Create(filePath)
+	if err != nil {
+		return "", err
+	}
+	defer outFile.Close()
+
+	_, err = io.Copy(outFile, resp.Body)
+
+	return filePath, err
+}
+
+func csvFilePath(record *EventLogfileRecord) string {
+	return "/tmp/" + record.Id + ".csv"
 }
 
 func request(url string, token string) (*http.Response, error) {
