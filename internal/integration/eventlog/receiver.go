@@ -27,32 +27,10 @@ func (s *SalesforceEventsReceiver) GetId() string {
 func (s *SalesforceEventsReceiver) PollEvents(context context.Context, writer chan <- model.Event) error {
 	log.Debugf("-----> PollEvents for instance '%s'", s.instanceConfig.Name)
 
-	var accessToken string
-
-	val, err := s.db.GetCacheVal(tokenCacheKey(s.instanceConfig))
+	accessToken, err := s.auth()
 	if err != nil {
-		log.Errorf("Error getting token from cache: %s", err.Error())
+		return err
 	}
-
-	valStr, ok := val.(string)
-	if ok {
-		log.Debugf("Got token from cache, skip login")
-		accessToken = valStr
-	} else {
-		log.Debugf("No token in cache, login")
-		login, err := oauth.Login(s.instanceConfig.Auth)
-		if err != nil {
-			return err
-		}
-		
-		accessToken = login.AccessToken
-
-		err = s.db.SetCacheVal(tokenCacheKey(s.instanceConfig), accessToken)
-		if err != nil {
-			log.Errorf("Error setting token into cache: %s", err.Error())
-		}
-	}
-	
 	log.Debugf("Access token = %s", accessToken)
 
 	//TODO: get actual time range from the config
@@ -66,11 +44,14 @@ func (s *SalesforceEventsReceiver) PollEvents(context context.Context, writer ch
 		// Is 401 error, relogin and retry request
 		if query.IsReloginError(err) {
 			log.Debugf("Wrong credentials error (401). Try relogin...")
-			login, err := oauth.Login(s.instanceConfig.Auth)
+
+			s.deleteTokenFromCache()
+			accessToken, err := s.auth()
 			if err != nil {
 				return err
 			}
-			response, err = query.RequestLogFiles(s.instanceConfig, login.AccessToken, since, until)
+
+			response, err = query.RequestLogFiles(s.instanceConfig, accessToken, since, until)
 			if err != nil {
 				return err
 			}
@@ -91,6 +72,44 @@ func (s *SalesforceEventsReceiver) PollEvents(context context.Context, writer ch
 	return nil	
 }
 
+func (s *SalesforceEventsReceiver) auth() (string, error) {
+	accessToken, ok := s.getTokenFromCache().(string)
+	if ok {
+		log.Debugf("Got token from cache, skip login")
+		return accessToken, nil
+	} else {
+		log.Debugf("No token in cache, login")
+		login, err := oauth.Login(s.instanceConfig.Auth)
+		if err != nil {
+			return "", err
+		}
+		s.setTokenIntoCache(login.AccessToken)
+		return login.AccessToken, nil
+	}
+}
+
+func (s *SalesforceEventsReceiver) getTokenFromCache() any {
+	val, err := s.db.GetCacheVal(tokenCacheKey(s.instanceConfig))
+	if err != nil {
+		log.Errorf("Error getting token from cache: %s", err.Error())
+	}
+	return val
+}
+
+func (s *SalesforceEventsReceiver) setTokenIntoCache(accessToken string) {
+	err := s.db.SetCacheVal(tokenCacheKey(s.instanceConfig), accessToken)
+	if err != nil {
+		log.Errorf("Error setting token into cache: %s", err.Error())
+	}
+}
+
+func (s *SalesforceEventsReceiver) deleteTokenFromCache() {
+	err := s.db.DelCacheVal(tokenCacheKey(s.instanceConfig))
+	if err != nil {
+		log.Errorf("Error deleting token from cache: %s", err.Error())
+	}
+}
+
 func NewSalesforceEventsReceiver(i *integration.LabsIntegration, instanceConfig *config.EventLogInstance, db cache.Cache) (pipeline.EventsReceiver, error) {
 	return &SalesforceEventsReceiver{
 		i: i,
@@ -102,6 +121,7 @@ func NewSalesforceEventsReceiver(i *integration.LabsIntegration, instanceConfig 
 func tokenCacheKey(instanceConfig *config.EventLogInstance) string {
 	return instanceConfig.Name + "_access_token"
 }
+
 
 /* API interactions:
 - Authenticate (UserPass, JWT, and maybe also Client Credentials)
