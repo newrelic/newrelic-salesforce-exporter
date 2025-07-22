@@ -6,6 +6,7 @@ import (
 	"encoding/csv"
 	"io"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/newrelic/newrelic-labs-sdk/v2/pkg/integration"
@@ -38,9 +39,11 @@ func (s *SalesforceEventsReceiver) PollEvents(context context.Context, writer ch
 		return err
 	}
 
-	//TODO: get actual time range from the config
-	since := time.Now().Add(-time.Minute * 150)
+	since := s.getTimeRange()
 	until := time.Now()
+	s.setLastRunIntoCache(until)
+
+	log.Debugf("Request logs since: %v", since)
 	
 	var response query.EventLogfileResponse
 
@@ -120,6 +123,52 @@ func (s *SalesforceEventsReceiver) deleteTokenFromCache() {
 
 func (s *SalesforceEventsReceiver) tokenCacheKey() string {
 	return s.instanceConfig.Name + "_access_token"
+}
+
+func (s *SalesforceEventsReceiver) getTimeRange() time.Time {
+	if s.lastRunExistsInCache() {
+		return s.getLastRunFromCache()
+	} else {
+		return time.Now().Add(-time.Minute * 60)
+	}
+}
+
+func (s *SalesforceEventsReceiver) lastRunExistsInCache() bool {
+	val, err := s.db.GetCacheVal(s.lastRunCacheKey())
+	if err != nil {
+		return false
+	}
+	_, ok := val.(string)
+	return ok
+}
+
+func (s *SalesforceEventsReceiver) getLastRunFromCache() time.Time {
+	val, err := s.db.GetCacheVal(s.lastRunCacheKey())
+	if err != nil {
+		log.Errorf("Error getting 'last_run_ts' from cache: %s", err.Error())
+	}
+	valStr, ok := val.(string)
+	if !ok {
+		return time.UnixMilli(0)
+	}
+	tsInt, err := strconv.ParseInt(valStr, 10, 64)
+	if err != nil {
+		return time.UnixMilli(0)
+	}
+	tsTime := time.UnixMilli(tsInt)
+	return tsTime
+}
+
+func (s *SalesforceEventsReceiver) setLastRunIntoCache(ts time.Time) {
+	tsStr := strconv.FormatInt(ts.UnixMilli(), 10)
+	err := s.db.SetCacheVal(s.lastRunCacheKey(), tsStr)
+	if err != nil {
+		log.Errorf("Error setting 'last_run_ts' into cache: %s", err.Error())
+	}
+}
+
+func (s *SalesforceEventsReceiver) lastRunCacheKey() string {
+	return s.instanceConfig.Name + "_last_run_ts"
 }
 
 func (s *SalesforceEventsReceiver) processLogFilesResponse(response *query.EventLogfileResponse, accessToken string, writer chan <- model.Event) {
