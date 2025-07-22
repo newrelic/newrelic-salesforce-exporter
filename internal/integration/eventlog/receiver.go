@@ -1,7 +1,11 @@
 package eventlog
 
 import (
+	"bufio"
 	"context"
+	"encoding/csv"
+	"io"
+	"os"
 	"time"
 
 	"github.com/newrelic/newrelic-labs-sdk/v2/pkg/integration"
@@ -13,6 +17,8 @@ import (
 	"github.com/newrelic/newrelic-salesforce-exporter/internal/integration/eventlog/query"
 	"github.com/newrelic/newrelic-salesforce-exporter/internal/oauth"
 )
+
+const MaxLinesToRead = 100
 
 type SalesforceEventsReceiver struct {
 	i *integration.LabsIntegration
@@ -33,7 +39,7 @@ func (s *SalesforceEventsReceiver) PollEvents(context context.Context, writer ch
 	}
 
 	//TODO: get actual time range from the config
-	since := time.Now().Add(-time.Hour * 4)
+	since := time.Now().Add(-time.Minute * 150)
 	until := time.Now()
 	
 	var response query.EventLogfileResponse
@@ -59,9 +65,9 @@ func (s *SalesforceEventsReceiver) PollEvents(context context.Context, writer ch
 		}
 	}
 
-	log.Debugf("-----> Response = '%#+v'", response)
+	log.Debugf("Read %d records", len(response.Records))
 
-	s.processLogFilesResponse(&response, accessToken)
+	s.processLogFilesResponse(&response, accessToken, writer)
 
 	log.Debugf("-----> END PollEvents for instance '%s'", s.instanceConfig.Name)
 
@@ -110,20 +116,130 @@ func (s *SalesforceEventsReceiver) tokenCacheKey() string {
 	return s.instanceConfig.Name + "_access_token"
 }
 
-func (s *SalesforceEventsReceiver) processLogFilesResponse(response *query.EventLogfileResponse, accessToken string) {
+func (s *SalesforceEventsReceiver) processLogFilesResponse(response *query.EventLogfileResponse, accessToken string, writer chan <- model.Event) {
+	totalEventsSent := 0
+
 	// Download CSV files
+	filePaths := s.downloadCsvFiles(response, accessToken)
+
+	// Parse CSV and generate events
+	for _, filePath := range filePaths {
+		log.Debugf("Parrse a CSV file: %s", filePath)
+		csvContext, err := parseCsvFile(filePath)
+		if err != nil {
+			break
+		}
+		for {
+			csvContext, err = readCsvData(csvContext)
+			if err != nil {
+				break
+			}
+			
+			totalEventsSent += len(csvContext.Lines)
+
+			sendEvents(csvContext, writer)
+
+			if csvContext.DidFinish {
+				break
+			}
+		}
+	}
+
+	log.Debugf("Total events sent = %d", totalEventsSent)
+
+	//TODO: remove all temp CSV file
+}
+
+func (s *SalesforceEventsReceiver) downloadCsvFiles(response *query.EventLogfileResponse, accessToken string) []string {
+	// Download CSV files
+	filePaths := []string{}
 	for _, record := range response.Records {
 		filePath, err := query.DownloadCsvFile(s.instanceConfig.Auth.TokenUrl, &record, accessToken)
 		if err != nil {
 			log.Errorf("Error downloading CSV: %s", err.Error())
+		} else {
+			log.Debugf("Downloaded file at '%s'", filePath)
+			filePaths = append(filePaths, filePath)
 		}
-		log.Debugf("Downloaded file at '%s'", filePath)
 	}
+	return filePaths
+}
+
+func parseCsvFile(filePath string) (*CsvContext, error) {
+	file, err := os.Open(filePath)
+	if err != nil {
+		log.Errorf("Error reading file: %s", err.Error())
+	}
+
+	csvReader := csv.NewReader(bufio.NewReader(file))
+
+	labels, err := csvReader.Read()
+	if err != nil  {
+		return &CsvContext{}, err
+	}
+
+	csvContext := NewCsvContext()
+	csvContext.Labels = labels
+	csvContext.Reader = csvReader
 	
-	//TODO: generate events from each log line
-	//TODO: de-duplicate using cache
-	//TODO: send events through the "write" channel
-	//TODO: remove all temporal CSV file
+	return &csvContext, nil
+}
+
+func readCsvData(csvContext *CsvContext) (*CsvContext, error) {
+	log.Debugf("Reading a batch of CSV lines...")
+	for range MaxLinesToRead {
+		record, err := csvContext.Reader.Read()
+		if err == io.EOF {
+			csvContext.DidFinish = true
+			break
+		}
+		if err != nil {
+			log.Errorf("Error parsing CSV: %s", err.Error())
+			return csvContext, err
+		}
+
+		//log.Debugf("-> CSV Record: %v", record)
+
+		csvContext.Lines = append(csvContext.Lines, record)
+	}
+	log.Debugf("Read %d lines. Finished? %t", len(csvContext.Lines), csvContext.DidFinish)
+	return csvContext, nil
+}
+
+func sendEvents(csvContext *CsvContext, writer chan <- model.Event) {
+	log.Debugf("Sending %d events...", len(csvContext.Lines))
+	for _, line := range csvContext.Lines {
+		//TODO: de-duplicate logs using cache
+		event := buildEventFromCsvLine(csvContext.Labels, line)
+		writer <- event
+		log.Debugf("NEW EVENT -> %#v", event)
+	}
+	// Clear lines
+	csvContext.Lines = [][]string{}
+	log.Debugf("Finished sending events")
+}
+
+func buildEventFromCsvLine(fields []string, line []string) model.Event {
+	eventType := "SFDCLogFileEvent"
+	timestamp := time.Now()
+	attr := map[string]any{}
+	for index, label := range fields {
+		switch label {
+		case "EVENT_TYPE":
+			eventType = "SFDC" + line[index]
+		case "TIMESTAMP":
+			layout := "20060102150405.999999"
+			ts, err := time.Parse(layout, line[index])
+			if err == nil {
+				timestamp = ts
+			} else {
+				log.Errorf("TIMESTAMP parsing failed, using 'now'")
+			}
+		default:
+			attr[label] = line[index]
+		}
+	}
+	return model.NewEvent(eventType, attr, timestamp)
 }
 
 func NewSalesforceEventsReceiver(i *integration.LabsIntegration, instanceConfig *config.EventLogInstance, db cache.Cache) (pipeline.EventsReceiver, error) {
@@ -134,6 +250,21 @@ func NewSalesforceEventsReceiver(i *integration.LabsIntegration, instanceConfig 
 	}, nil
 }
 
+type CsvContext struct {
+	Labels []string
+	Lines [][]string
+	DidFinish bool
+	Reader *csv.Reader
+}
+
+func NewCsvContext() CsvContext {
+	return CsvContext {
+		Labels: []string{},
+		Lines: [][]string{},
+		DidFinish: false,
+		Reader: nil,
+	}
+}
 
 /* API interactions:
 - Authenticate (UserPass, JWT, and maybe also Client Credentials)

@@ -36,7 +36,7 @@ func RequestLogFiles(conf *config.EventLogInstance, token string, since time.Tim
 
 	url := conf.Auth.TokenUrl + "/services/data/v" + conf.ApiVer + "/query?q=" + soql
 
-	resp, err := request(url, token)
+	resp, err := Request(url, token)
 	if err != nil {
 		return EventLogfileResponse{}, err
 	}
@@ -64,7 +64,7 @@ func RequestLogFiles(conf *config.EventLogInstance, token string, since time.Tim
 }
 
 func DownloadCsvFile(baseUrl string, record *EventLogfileRecord, token string) (string, error) {
-	resp, err := request(baseUrl + record.LogFile, token)
+	resp, err := Request(baseUrl + record.LogFile, token)
 	if err != nil {
 		return "", err
 	}
@@ -82,11 +82,7 @@ func DownloadCsvFile(baseUrl string, record *EventLogfileRecord, token string) (
 	return filePath, err
 }
 
-func csvFilePath(record *EventLogfileRecord) string {
-	return "/tmp/" + record.Id + ".csv"
-}
-
-func request(url string, token string) (*http.Response, error) {
+func Request(url string, token string) (*http.Response, error) {
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, err
@@ -107,4 +103,8 @@ func getUserAgent() string {
 		runtime.GOOS,
 		runtime.GOARCH,
 	)
+}
+
+func csvFilePath(record *EventLogfileRecord) string {
+	return "/tmp/" + record.Id + ".csv"
 }
