@@ -168,7 +168,7 @@ func (s *SalesforceEventsReceiver) downloadCsvFiles(response *query.EventLogfile
 func parseCsvFile(filePath string) (*CsvContext, error) {
 	file, err := os.Open(filePath)
 	if err != nil {
-		log.Errorf("Error reading file: %s", err.Error())
+		return &CsvContext{}, err
 	}
 
 	csvReader := csv.NewReader(bufio.NewReader(file))
