@@ -74,6 +74,12 @@ func (s *SalesforceEventsReceiver) PollEvents(context context.Context, writer ch
 	return nil	
 }
 
+// TODO: Support auth flows:
+// (alreadys upported) Username-Password: https://help.salesforce.com/s/articleView?id=xcloud.remoteaccess_oauth_username_password_flow.htm&type=5
+// JWT: https://help.salesforce.com/s/articleView?id=xcloud.remoteaccess_oauth_jwt_flow.htm&type=5
+// Client credentials: https://help.salesforce.com/s/articleView?id=xcloud.remoteaccess_oauth_client_credentials_flow.htm&type=5
+// Only JWT supports token refresh
+
 func (s *SalesforceEventsReceiver) auth() (string, error) {
 	accessToken, ok := s.getTokenFromCache().(string)
 	if ok {
@@ -147,7 +153,13 @@ func (s *SalesforceEventsReceiver) processLogFilesResponse(response *query.Event
 
 	log.Debugf("Total events sent = %d", totalEventsSent)
 
-	//TODO: remove all temp CSV file
+	// Delete all temp CSV files
+	for _, filePath := range filePaths {
+		err := os.Remove(filePath)
+    	if err != nil {
+        	log.Errorf("Error deleting CSV file: %s", err.Error())
+		}
+	}
 }
 
 func (s *SalesforceEventsReceiver) downloadCsvFiles(response *query.EventLogfileResponse, accessToken string) []string {
@@ -264,27 +276,3 @@ func NewCsvContext(labels []string, reader *csv.Reader) CsvContext {
 		Reader: reader,
 	}
 }
-
-/* API interactions:
-- Authenticate (UserPass, JWT, and maybe also Client Credentials)
-- Get hourly event logs (JSON, list of log files)
-- Download log files in CSV
-- Run SOQL request
-*/
-// SOQL request example (EventLogFile):
-/*
-	curl "https://newrelic-neworg--staging.sandbox.my.salesforce.com/services/data/v64.0/query?q=SELECT+Id+,+EventType+,+Interval+,+LogDate+,+LogFile+FROM+EventLogFile+WHERE+EventType+=+'URI'+AND+Interval+=+'Hourly'+AND+LogDate+>+2025-07-14T23:00:00Z"
-	-H "Authorization: Bearer MY_TOKEN_HERE"
-*/
-// Download log file example:
-/*
-	curl "https://newrelic-neworg--staging.sandbox.my.salesforce.com/services/data/v64.0/sobjects/EventLogFile/0ATO3000008PuoYOAS/LogFile"
-	-H "Authorization: Bearer MY_TOKEN_HERE"
-*/
-
-//Auth flows:
-// Username-Password: https://help.salesforce.com/s/articleView?id=xcloud.remoteaccess_oauth_username_password_flow.htm&type=5
-// JWT: https://help.salesforce.com/s/articleView?id=xcloud.remoteaccess_oauth_jwt_flow.htm&type=5
-// Client credentials: https://help.salesforce.com/s/articleView?id=xcloud.remoteaccess_oauth_client_credentials_flow.htm&type=5
-
-// Only JWT supports token refresh
