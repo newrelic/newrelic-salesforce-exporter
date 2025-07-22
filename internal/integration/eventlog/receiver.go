@@ -173,14 +173,13 @@ func parseCsvFile(filePath string) (*CsvContext, error) {
 
 	csvReader := csv.NewReader(bufio.NewReader(file))
 
+	// Only read the first line, which contains the column names
 	labels, err := csvReader.Read()
 	if err != nil  {
 		return &CsvContext{}, err
 	}
 
-	csvContext := NewCsvContext()
-	csvContext.Labels = labels
-	csvContext.Reader = csvReader
+	csvContext := NewCsvContext(labels, csvReader)
 	
 	return &csvContext, nil
 }
@@ -220,7 +219,7 @@ func sendEvents(csvContext *CsvContext, writer chan <- model.Event) {
 }
 
 func buildEventFromCsvLine(fields []string, line []string) model.Event {
-	eventType := "SFDCLogFileEvent"
+	eventType := "SFDCUndefinedEvent"
 	timestamp := time.Now()
 	attr := map[string]any{}
 	for index, label := range fields {
@@ -257,12 +256,12 @@ type CsvContext struct {
 	Reader *csv.Reader
 }
 
-func NewCsvContext() CsvContext {
+func NewCsvContext(labels []string, reader *csv.Reader) CsvContext {
 	return CsvContext {
-		Labels: []string{},
+		Labels: labels,
 		Lines: [][]string{},
 		DidFinish: false,
-		Reader: nil,
+		Reader: reader,
 	}
 }
 
