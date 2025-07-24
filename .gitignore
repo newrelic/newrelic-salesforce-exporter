@@ -79,3 +79,9 @@ config.yml
 #local files
 *.local.*
 .DS_Store
+
+# Binaries
+cmd/nr-salesforce-eventlog/nr-salesforce-eventlog
+cmd/nr-salesforce-stream/nr-salesforce-stream
+./nr-salesforce-eventlog
+./nr-salesforce-stream

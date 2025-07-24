@@ -1,0 +1,232 @@
+# New Relic Salesforce Event Stream Integration
+
+## Introduction
+
+The Event Stream integration reads a stream of events from Salesforce and injects
+them into New Relic.
+It uses the [Pub/Sub API](https://developer.salesforce.com/docs/platform/pub-sub-api/overview)
+to subscribe to [topics](https://developer.salesforce.com/docs/platform/pub-sub-api/references/methods/gettopic-rpc.html)
+(event types) and listen to the stream of data comming from a gRPC connection.
+
+> NOTE: If for some reason you can't use the newer Pub/Sub API, and instead you
+have to use the [Streaming API](https://developer.salesforce.com/docs/atlas.en-us.api_streaming.meta/api_streaming/intro_stream.htm),
+consider using the [legacy event streaming integration](https://github.com/newrelic/nr-salesforce-event-streaming),
+which is outdated and unmaintained, but should work.
+
+## Build
+
+First [install Go](https://go.dev/doc/install), if you don't have it already.
+The minimum required version is `1.23.2`.
+
+To build, from the folder `cmd/nr-salesforce-stream/`, run:
+
+```bash
+go build nr-salesforce-stream.go
+```
+
+It will generate a binary `nr-salesforce-stream` in the same folder.
+
+## Setup
+
+The event stream integration obtains the configuration from a YAML file. There is
+a [sample config file](../../config_sample_eventstream.yml) you can use as a
+template to create your own.
+
+The following is a list of the required keys and a description for each.
+
+### Version
+
+The version key is mandatory and must contain the value `2.0`:
+
+```yaml
+version: "2.0"
+```
+
+### Event Stream
+
+The `eventStream` key contains the following structure:
+
+```yaml
+eventStream:
+  integrationName: "MY INTEGRATION NAME"
+  auth:
+    # Auth section, described later
+  cache:
+    # Cache section, described later
+  topics:
+    # Topics section, described later
+```
+
+The `integrationName` must contain a descriptive name for the integration,
+something like `com.newrelic.labs.sfdc.eventstream` is recommended.
+
+Any value within the `eventStream` section can be specified with an environment
+variable. To do that, just set `$ENV_VAR_NAME` as the value. Example:
+
+```yaml
+eventStream:
+  integrationName: $INTEGRATION
+```
+
+Now, you must set an environment variable named `INTEGRATION` with the value of
+`integragtionName`.
+
+#### Auth
+
+Within the event stream section, we have the `auth` key:
+
+```yaml
+  auth:
+    tokenUrl: "<TOKEN URL HERE>"
+    userPass:
+      clientId: "<CLIENT ID HERE>"
+      clientSecret: "<CLIENT SECRET HERE>"
+      username: "<USER NAME HERE>"
+      password: "<PASSWORD HERE>"
+```
+
+It described the credentials to connect to the Salesforce API.
+
+- `tokenUrl`: base url to access the Slaesforce API. Use to be something like
+`https://my-company--staging.sandbox.my.salesforce.com`.
+- `clientId`: Client ID for the OAuth User-Password flow.
+- `clientSecret`: Client Secret for the OAuth User-Password flow.
+- `username`: Username for the OAuth User-Password flow.
+- `Password`: Password for the OAuth User-Password flow.
+
+Any value within the `auth` section can be specified with an environment variable.
+To do that, just set `$ENV_VAR_NAME` as the value. Example:
+
+```yaml
+  auth:
+    tokenUrl: "https://my-company--staging.sandbox.my.salesforce.com"
+    userPass:
+      clientId: $AUTH_CLIENT_ID
+      clientSecret: $AUTH_CLIENT_SECRET
+      username: $AUTH_USERNAME
+      password: $AUTH_PASSWORD
+```
+
+#### Cache
+
+Setting up the cache is optional but **strongly recommended**. The cache is used
+for various essential features.
+
+Currently we support Redis DB only. Other databases will be supported in the
+future.
+
+```yaml
+  cache:
+    redis:
+      host: "<REDIS SERVER HOST HERE>"
+      port: 6379
+      dbNumber: 0
+      password: "<PASSWORD HERE or empty if no password>"
+      expireDays: 1
+```
+
+- `host`: Rdis server address.
+- `port`: Redis server port. Usually `6379`.
+- `dbNumber`: Redis database number. Usually `0`.
+- `password`: Redis password. Or `""` if no password.
+- `expireDays`: Expiration time for keys in days. `0` means no expiration time.
+
+Any value within the `cache` section can be specified with an environment variable.
+To do that, just set `$ENV_VAR_NAME` as the value. Example:
+
+```yaml
+  cache:
+    redis:
+      host: "my.redis.server.com"
+      port: 6379
+      dbNumber: 0
+      password: $REDIS_PASSWORD
+      expireDays: 1
+```
+
+#### Topics
+
+A list of the event types we want to capture. Example:
+
+```yaml
+  topics:
+    - "/event/LoginEventStream"
+    - "/event/LogoutEventStream"
+    - "/event/ReportEventStream"
+    - "/event/ApiEventStream"
+    - "/event/FileEvent"
+    - "/event/UriEventStream"
+    - "/event/LightningUriEventStream"
+```
+
+### New Relic credentials
+
+Credentials to inject data to New Relic.
+
+```yaml
+licenseKey: "<LICENSE KEY HERE>"
+accountId: "<ACCOUNT ID HERE>"
+region: "<REGION HERE>"
+format: "<FORMAT HERE>"
+```
+
+- `licenseKey`: A New Relic license key with permissions to inject data. It can
+also be specified using the `NR_LICENSE_KEY` environment variable.
+- `accountId`: The account ID where the license key was created. It can also be
+specified using the `NR_ACCOUNT_ID` environment variable.
+- `region`: The region of your account ID: Either `US` or `EU`.
+- `format`: The data format we want to inject to New Relic: Either `events` or
+`logs`.
+
+## Run
+
+Once the config file is set, we can run the integration:
+
+```bash
+./nr-salesforce-stream --config_path path/to/config.yml
+```
+
+Run the integration with `--help` for a complete list of arguments:
+
+```bash
+./nr-salesforce-stream --help
+```
+
+## Data
+
+This integration can generate New Relic `events` or `logs`, depending on the value
+of the key `format` in the config file.
+
+### Events
+
+The integration will generate a new `eventType` for each topic, with the format
+`SFDC{topic name}`. For example, the topic `/event/LoginEventStream` will generate
+`SFDCLoginEventStream` events.
+
+To view the data, you can run the following NRQL:
+
+```sql
+FROM SFDCLoginEventStream SELECT *
+```
+
+### Logs
+
+The integration will generate a new log with the `message` in the format `SFDC{topic name}`.
+ For example, the topic `/event/LoginEventStream` will generate
+`SFDCLoginEventStream` log message.
+
+To view the data, you can run the following NRQL:
+
+```sql
+FROM Log SELECT * WHERE message = 'SFDCLoginEventStream'
+```
+
+## Debugging
+
+To capture the complete sequence of console logs, add the following to your config
+file:
+
+```yaml
+log:
+  level: trace
+```

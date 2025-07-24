@@ -129,6 +129,7 @@ func (s *SalesforceEventsReceiver) getTimeRange() time.Time {
 	if s.lastRunExistsInCache() {
 		return s.getLastRunFromCache()
 	} else {
+		// If last_run_ts not set, use 1 hour ago as default value
 		return time.Now().Add(-time.Minute * 60)
 	}
 }
