@@ -15,10 +15,10 @@ which is outdated and unmaintained, but should work.
 
 ## Build
 
-First [install Go](https://go.dev/doc/install), if you don't have it already.
-The minimum required version is `1.23.2`.
+Install [Go](https://go.dev/doc/install) first. The minimum required version is
+`1.23.2`.
 
-To build, from the folder `cmd/nr-salesforce-stream/`, run:
+From the folder `cmd/nr-salesforce-stream/`, run:
 
 ```bash
 go build nr-salesforce-stream.go
@@ -73,7 +73,7 @@ Now, you must set an environment variable named `INTEGRATION` with the value of
 
 #### Auth
 
-Within the event stream section, we have the `auth` key:
+Within the `eventStream` section, we have the `auth` key:
 
 ```yaml
   auth:
