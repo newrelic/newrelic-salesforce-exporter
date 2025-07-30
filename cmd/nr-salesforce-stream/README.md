@@ -110,10 +110,12 @@ To do that, just set `$ENV_VAR_NAME` as the value. Example:
 #### Cache
 
 Setting up the cache is optional but **strongly recommended**. The cache is used
-for various essential features.
+to keep track of the latest event ID received. In case there is an interruption
+in the integration, when it comes back only again it will start requesting events
+from the ID stored in the cache. If the cache is not set, all the events generated
+during the offline period will be lost.
 
-Currently we support Redis DB only. Other databases will be supported in the
-future.
+Currently we support Redis DB:
 
 ```yaml
   cache:
@@ -125,7 +127,7 @@ future.
       expireDays: 1
 ```
 
-- `host`: Rdis server address.
+- `host`: Redis server address.
 - `port`: Redis server port. Usually `6379`.
 - `dbNumber`: Redis database number. Usually `0`.
 - `password`: Redis password. Or `""` if no password.
@@ -137,7 +139,7 @@ To do that, just set `$ENV_VAR_NAME` as the value. Example:
 ```yaml
   cache:
     redis:
-      host: "my.redis.server.com"
+      host: "my-redis-server"
       port: 6379
       dbNumber: 0
       password: $REDIS_PASSWORD
