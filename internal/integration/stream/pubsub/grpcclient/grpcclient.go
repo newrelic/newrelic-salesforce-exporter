@@ -565,19 +565,23 @@ func transformEvent(ev map[string]any) map[string]any {
 	nrEv := map[string]any{}
 
 	for evName, evValue := range ev {
-		attrType := "other"
-		if val, ok := evValue.(map[string]any); ok {
-			if _, is_string := val["string"]; is_string {
-				attrType = "string"
-			} else if _, is_long := val["long"]; is_long {
-				attrType = "long"
-			} else if _, is_int := val["int"]; is_int {
-				attrType = "int"
-			} else if _, is_double := val["double"]; is_double {
-				attrType = "double"
-			}
+		if evName == "CreatedDate" || evName == "CreatedById" {
+			nrEv[evName] = evValue
+		} else {
+			attrType := "other"
+			if val, ok := evValue.(map[string]any); ok {
+				if _, is_string := val["string"]; is_string {
+					attrType = "string"
+				} else if _, is_long := val["long"]; is_long {
+					attrType = "long"
+				} else if _, is_int := val["int"]; is_int {
+					attrType = "int"
+				} else if _, is_double := val["double"]; is_double {
+					attrType = "double"
+				}
 
-			nrEv[evName] = val[attrType]
+				nrEv[evName] = val[attrType]
+			}
 		}
 	}
 

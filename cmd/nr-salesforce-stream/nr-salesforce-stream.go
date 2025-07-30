@@ -85,8 +85,6 @@ func subscribeToTopic(topicName string, ch chan<- map[string]any) {
 	}
 	defer client.Close()
 
-	//TODO: handle token refresh and re-authentication
-
 	log.Debugf("Populating auth token...")
 	err = client.Authenticate()
 	if err != nil {
