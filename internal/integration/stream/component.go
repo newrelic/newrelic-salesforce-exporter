@@ -89,6 +89,7 @@ func (c *StreamComponent) ExecuteSync(ctx context.Context) error {
 				timestamp = time.UnixMilli(ev["EventDate"].(int64))
 				delete(ev, "EventDate")
 			} else {
+				log.Warnf("Event '%s' has no 'EventDate'. Using current time.", eventType)
 				timestamp = time.Now()
 			}
 
