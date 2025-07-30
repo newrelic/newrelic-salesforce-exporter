@@ -111,7 +111,7 @@ To do that, just set `$ENV_VAR_NAME` as the value. Example:
 
 Setting up the cache is optional but **strongly recommended**. The cache is used
 to keep track of the latest event ID received. In case there is an interruption
-in the integration, when it comes back only again it will start requesting events
+in the integration, when it comes back online again it will start requesting events
 from the ID stored in the cache. If the cache is not set, all the events generated
 during the offline period will be lost.
 
