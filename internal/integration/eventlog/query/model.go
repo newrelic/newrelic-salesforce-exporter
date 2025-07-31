@@ -37,6 +37,22 @@ func (s *SoqlQuery) OrWhere(where string) {
 	}
 }
 
+func (s *SoqlQuery) AndOrWhere(where ...string) {
+	resultWhere := "(+"
+	for index, w := range where {
+		if index == len(where)-1 {
+			resultWhere += w + "+)"
+		} else {
+			resultWhere += w + "+OR+"
+		}
+	}
+	if s.where == "" {
+		s.where = resultWhere
+	} else {
+		s.where += "+AND+" + resultWhere
+	}
+}
+
 func (s *SoqlQuery) Build() string {
 	soql := "SELECT+" + strings.Join(s.selectAttrs, ",") + "+FROM+" + s.fromTable
 	if s.where != "" {

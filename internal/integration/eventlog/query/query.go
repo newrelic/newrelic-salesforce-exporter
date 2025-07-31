@@ -9,6 +9,7 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/newrelic/newrelic-labs-sdk/v2/pkg/integration/log"
 	"github.com/newrelic/newrelic-salesforce-exporter/internal/config"
 )
 
@@ -32,8 +33,18 @@ func RequestLogFiles(conf *config.EventLogInstance, token string, since time.Tim
 	soqlModel.AndWhere("Interval = 'Hourly'")
 	soqlModel.AndWhere("LogDate >= " + since.UTC().Format(time.RFC3339))
 	soqlModel.AndWhere("LogDate <= " + until.UTC().Format(time.RFC3339))
+	// Apply EventType filter
+	if len(conf.EventTypes) > 0 {
+		eventTypeFilter := make([]string, 0)
+		for _, eventType := range conf.EventTypes {
+			eventTypeFilter = append(eventTypeFilter, "EventType" + " = " + "'" + eventType + "'")
+		}
+		soqlModel.AndOrWhere(eventTypeFilter...)
+	}
 	soql := soqlModel.Build()
-
+	
+	log.Debugf("Run SOQL query: %s", soql)
+	
 	url := conf.Auth.TokenUrl + "/services/data/v" + conf.ApiVer + "/query?q=" + soql
 
 	resp, err := Request(url, token)
