@@ -48,11 +48,17 @@ type EventStreamConfig struct {
 }
 
 type EventLogInstance struct {
-	Name       string       `mapstructure:"name"`
-	ApiVer     string       `mapstructure:"apiVer"`
-	Auth       AuthConfig   `mapstructure:"auth"`
-	Cache      *CacheConfig `mapstructure:"cache"`
-	EventTypes []string     `mapstructure:"eventTypes"`
+	Name                string             `mapstructure:"name"`
+	ApiVer              string             `mapstructure:"apiVer"`
+	Auth                AuthConfig         `mapstructure:"auth"`
+	Cache               *CacheConfig       `mapstructure:"cache"`
+	EventTypes          []string           `mapstructure:"eventTypes"`
+	InitialTimeInterval TimeIntervalConfig `mapstructure:"initialTimeInterval"`
+}
+
+type TimeIntervalConfig struct {
+	Hours   uint `mapstructure:"hours"`
+	Minutes uint `mapstructure:"minutes"`
 }
 
 type EventLogConfig struct {

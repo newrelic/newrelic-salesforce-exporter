@@ -47,6 +47,8 @@ func (s *SalesforceEventsReceiver) PollEvents(context context.Context, writer ch
 	
 	var response query.EventLogfileResponse
 
+	//TODO: query any kind of event (custom SOQL). Specify the name of the timestamp attribute (defeault "CreatedAt").
+
 	response, err = query.RequestLogFiles(s.instanceConfig, accessToken, since, until)
 	if err != nil {
 		// Is 401 error, relogin and retry request
@@ -129,8 +131,18 @@ func (s *SalesforceEventsReceiver) getTimeRange() time.Time {
 	if s.lastRunExistsInCache() {
 		return s.getLastRunFromCache()
 	} else {
-		// If last_run_ts not set, use 1 hour ago as default value
-		return time.Now().Add(-time.Minute * 60)
+		// If last_run_ts not set, use a fixed interval
+		timeInterval := s.instanceConfig.InitialTimeInterval
+		if timeInterval.Hours == 0 && timeInterval.Minutes == 0 {
+			// If not defined, use 1 hour ago as default value
+			return time.Now().Add(-time.Minute * 60)
+		} else {
+			return time.Now().Add(
+					-time.Minute * time.Duration(timeInterval.Minutes),
+				).Add(
+					-time.Hour * time.Duration(timeInterval.Hours),
+				)
+		}
 	}
 }
 
