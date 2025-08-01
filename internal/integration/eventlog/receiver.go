@@ -193,19 +193,19 @@ func (s *SalesforceEventsReceiver) processLogFilesResponse(response *query.Event
 	// Parse CSV and generate events
 	for _, filePath := range filePaths {
 		log.Debugf("Parrse a CSV file: %s", filePath)
-		csvContext, err := parseCsvFile(filePath)
+		csvContext, err := s.parseCsvFile(filePath)
 		if err != nil {
 			break
 		}
 		for {
-			csvContext, err = readCsvData(csvContext)
+			csvContext, err = s.readCsvData(csvContext)
 			if err != nil {
 				break
 			}
 			
 			totalEventsSent += len(csvContext.Lines)
 
-			sendEvents(csvContext, writer)
+			s.sendEvents(csvContext, writer)
 
 			if csvContext.DidFinish {
 				break
@@ -228,18 +228,40 @@ func (s *SalesforceEventsReceiver) downloadCsvFiles(response *query.EventLogfile
 	// Download CSV files
 	filePaths := []string{}
 	for _, record := range response.Records {
-		filePath, err := query.DownloadCsvFile(s.instanceConfig.Auth.TokenUrl, &record, accessToken)
-		if err != nil {
-			log.Errorf("Error downloading CSV: %s", err.Error())
+		if s.logsNotCached(record.Id) {
+			filePath, err := query.DownloadCsvFile(s.instanceConfig.Auth.TokenUrl, &record, accessToken)
+			if err != nil {
+				log.Errorf("Error downloading CSV: %s", err.Error())
+			} else {
+				log.Debugf("Downloaded file at '%s'", filePath)
+				filePaths = append(filePaths, filePath)
+				s.cachedLog(record.Id)
+			}
 		} else {
-			log.Debugf("Downloaded file at '%s'", filePath)
-			filePaths = append(filePaths, filePath)
+			log.Debugf("Logs already processed, ignoring (Id = %s)", record.Id)
 		}
 	}
 	return filePaths
 }
 
-func parseCsvFile(filePath string) (*CsvContext, error) {
+// Check if log ID is present in the cache (was already sent)
+func (s *SalesforceEventsReceiver) logsNotCached(id string) bool {
+	val, err := s.db.GetCacheVal(id)
+	if err != nil {
+		log.Warnf("Error accessing the cache: %s", err.Error())
+		return true
+	}
+	return val == nil
+}
+
+func (s *SalesforceEventsReceiver) cachedLog(id string) {
+	err := s.db.SetCacheVal(id, 1)
+	if err != nil {
+		log.Warnf("Error setting log Id in the cache: %s", err.Error())
+	}
+}
+
+func (s *SalesforceEventsReceiver) parseCsvFile(filePath string) (*CsvContext, error) {
 	file, err := os.Open(filePath)
 	if err != nil {
 		return &CsvContext{}, err
@@ -258,7 +280,7 @@ func parseCsvFile(filePath string) (*CsvContext, error) {
 	return &csvContext, nil
 }
 
-func readCsvData(csvContext *CsvContext) (*CsvContext, error) {
+func (s *SalesforceEventsReceiver) readCsvData(csvContext *CsvContext) (*CsvContext, error) {
 	log.Debugf("Reading a batch of CSV lines...")
 	for range MaxLinesToRead {
 		record, err := csvContext.Reader.Read()
@@ -279,11 +301,10 @@ func readCsvData(csvContext *CsvContext) (*CsvContext, error) {
 	return csvContext, nil
 }
 
-func sendEvents(csvContext *CsvContext, writer chan <- model.Event) {
+func (s *SalesforceEventsReceiver) sendEvents(csvContext *CsvContext, writer chan <- model.Event) {
 	log.Debugf("Sending %d events...", len(csvContext.Lines))
 	for _, line := range csvContext.Lines {
-		//TODO: de-duplicate logs using cache
-		event := buildEventFromCsvLine(csvContext.Labels, line)
+		event := s.buildEventFromCsvLine(csvContext.Labels, line)
 		writer <- event
 		log.Debugf("NEW EVENT -> %#v", event)
 	}
@@ -292,7 +313,7 @@ func sendEvents(csvContext *CsvContext, writer chan <- model.Event) {
 	log.Debugf("Finished sending events")
 }
 
-func buildEventFromCsvLine(fields []string, line []string) model.Event {
+func (s *SalesforceEventsReceiver) buildEventFromCsvLine(fields []string, line []string) model.Event {
 	eventType := "SFDCUndefinedEvent"
 	timestamp := time.Now()
 	attr := map[string]any{}
