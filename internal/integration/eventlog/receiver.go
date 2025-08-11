@@ -16,10 +16,11 @@ import (
 	"github.com/newrelic/newrelic-salesforce-exporter/internal/cache"
 	"github.com/newrelic/newrelic-salesforce-exporter/internal/config"
 	"github.com/newrelic/newrelic-salesforce-exporter/internal/integration/eventlog/query"
-	"github.com/newrelic/newrelic-salesforce-exporter/internal/oauth"
 )
 
 const MaxLinesToRead = 100
+
+//TODO: implement LogsReceiver to generate logs when config format = "logs"
 
 type SalesforceEventsReceiver struct {
 	i *integration.LabsIntegration
@@ -34,11 +35,6 @@ func (s *SalesforceEventsReceiver) GetId() string {
 func (s *SalesforceEventsReceiver) PollEvents(context context.Context, writer chan <- model.Event) error {
 	log.Debugf("-----> PollEvents for instance '%s'", s.instanceConfig.Name)
 
-	accessToken, err := s.auth()
-	if err != nil {
-		return err
-	}
-
 	since := s.getTimeRange()
 	until := time.Now()
 	s.setLastRunIntoCache(until)
@@ -47,84 +43,23 @@ func (s *SalesforceEventsReceiver) PollEvents(context context.Context, writer ch
 	
 	var response query.EventLogfileResponse
 
-	//TODO: query any kind of event (custom SOQL). Specify the name of the timestamp attribute (defeault "CreatedAt").
-
-	response, err = query.RequestLogFiles(s.instanceConfig, accessToken, since, until)
+	response, err := query.RequestLogFiles(s.instanceConfig, s.db, since, until)
 	if err != nil {
-		// Is 401 error, relogin and retry request
-		if query.IsReloginError(err) {
-			log.Debugf("Wrong credentials error (401). Try relogin...")
-
-			s.deleteTokenFromCache()
-			accessToken, err = s.auth()
-			if err != nil {
-				return err
-			}
-
-			response, err = query.RequestLogFiles(s.instanceConfig, accessToken, since, until)
-			if err != nil {
-				return err
-			}
-		} else {
-			return err
-		}
+		return err
 	}
 
 	log.Debugf("Read %d records", len(response.Records))
 
-	s.processLogFilesResponse(&response, accessToken, writer)
+	s.processLogFilesResponse(&response, writer)
+
+	//TODO: request custom queries
+	for _, customQuery := range s.instanceConfig.CustomQueries {
+		log.Debugf("Custom query = %+v", customQuery)
+	}
 
 	log.Debugf("-----> END PollEvents for instance '%s'", s.instanceConfig.Name)
 
 	return nil	
-}
-
-// TODO: Support auth flows:
-// (alreadys upported) Username-Password: https://help.salesforce.com/s/articleView?id=xcloud.remoteaccess_oauth_username_password_flow.htm&type=5
-// JWT: https://help.salesforce.com/s/articleView?id=xcloud.remoteaccess_oauth_jwt_flow.htm&type=5
-// Client credentials: https://help.salesforce.com/s/articleView?id=xcloud.remoteaccess_oauth_client_credentials_flow.htm&type=5
-// Only JWT supports token refresh
-
-func (s *SalesforceEventsReceiver) auth() (string, error) {
-	accessToken, ok := s.getTokenFromCache().(string)
-	if ok {
-		log.Debugf("Got token from cache, skip login")
-		return accessToken, nil
-	} else {
-		log.Debugf("No token in cache, login")
-		login, err := oauth.Login(s.instanceConfig.Auth)
-		if err != nil {
-			return "", err
-		}
-		s.setTokenIntoCache(login.AccessToken)
-		return login.AccessToken, nil
-	}
-}
-
-func (s *SalesforceEventsReceiver) getTokenFromCache() any {
-	val, err := s.db.GetCacheVal(s.tokenCacheKey())
-	if err != nil {
-		log.Errorf("Error getting token from cache: %s", err.Error())
-	}
-	return val
-}
-
-func (s *SalesforceEventsReceiver) setTokenIntoCache(accessToken string) {
-	err := s.db.SetCacheVal(s.tokenCacheKey(), accessToken)
-	if err != nil {
-		log.Errorf("Error setting token into cache: %s", err.Error())
-	}
-}
-
-func (s *SalesforceEventsReceiver) deleteTokenFromCache() {
-	err := s.db.DelCacheVal(s.tokenCacheKey())
-	if err != nil {
-		log.Errorf("Error deleting token from cache: %s", err.Error())
-	}
-}
-
-func (s *SalesforceEventsReceiver) tokenCacheKey() string {
-	return s.instanceConfig.Name + "_access_token"
 }
 
 func (s *SalesforceEventsReceiver) getTimeRange() time.Time {
@@ -184,11 +119,11 @@ func (s *SalesforceEventsReceiver) lastRunCacheKey() string {
 	return s.instanceConfig.Name + "_last_run_ts"
 }
 
-func (s *SalesforceEventsReceiver) processLogFilesResponse(response *query.EventLogfileResponse, accessToken string, writer chan <- model.Event) {
+func (s *SalesforceEventsReceiver) processLogFilesResponse(response *query.EventLogfileResponse, writer chan <- model.Event) {
 	totalEventsSent := 0
 
 	// Download CSV files
-	filePaths := s.downloadCsvFiles(response, accessToken)
+	filePaths := s.downloadCsvFiles(response)
 
 	// Parse CSV and generate events
 	for _, filePath := range filePaths {
@@ -224,12 +159,13 @@ func (s *SalesforceEventsReceiver) processLogFilesResponse(response *query.Event
 	}
 }
 
-func (s *SalesforceEventsReceiver) downloadCsvFiles(response *query.EventLogfileResponse, accessToken string) []string {
+func (s *SalesforceEventsReceiver) downloadCsvFiles(response *query.EventLogfileResponse) []string {
 	// Download CSV files
 	filePaths := []string{}
 	for _, record := range response.Records {
 		if s.logsNotCached(record.Id) {
-			filePath, err := query.DownloadCsvFile(s.instanceConfig.Auth.TokenUrl, &record, accessToken)
+			filePath, err := query.DownloadCsvFile(s.instanceConfig, s.db, &record)
+			//TODO: check if error in credentials and relogin if needed
 			if err != nil {
 				log.Errorf("Error downloading CSV: %s", err.Error())
 			} else {

@@ -48,12 +48,25 @@ type EventStreamConfig struct {
 }
 
 type EventLogInstance struct {
-	Name                string             `mapstructure:"name"`
-	ApiVer              string             `mapstructure:"apiVer"`
-	Auth                AuthConfig         `mapstructure:"auth"`
-	Cache               *CacheConfig       `mapstructure:"cache"`
-	EventTypes          []string           `mapstructure:"eventTypes"`
-	InitialTimeInterval TimeIntervalConfig `mapstructure:"initialTimeInterval"`
+	Name                string              `mapstructure:"name"`
+	ApiVer              string              `mapstructure:"apiVer"`
+	Auth                AuthConfig          `mapstructure:"auth"`
+	Cache               *CacheConfig        `mapstructure:"cache"`
+	EventTypes          []string            `mapstructure:"eventTypes"`
+	InitialTimeInterval TimeIntervalConfig  `mapstructure:"initialTimeInterval"`
+	CustomQueries       []CustomQueryConfig `mapstructure:"customQueries"`
+}
+
+type CustomQueryConfig struct {
+	Soql      SoqlConfig `mapstructure:"soql"`
+	ApiVer    string     `mapstructure:"apiVer"`
+	Timestamp string     `mapstructure:"timestamp"`
+}
+
+type SoqlConfig struct {
+	Select string `mapstructure:"select"`
+	From   string `mapstructure:"from"`
+	Where  string `mapstructure:"where"`
 }
 
 type TimeIntervalConfig struct {
