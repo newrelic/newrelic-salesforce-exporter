@@ -28,10 +28,10 @@ const (
 func auth(conf *config.EventLogInstance, db cache.Cache) (string, error) {
 	accessToken, ok := getTokenFromCache(conf, db).(string)
 	if ok {
-		log.Debugf("Got token from cache, skip login")
+		log.Debugf("Got token from cache")
 		return accessToken, nil
 	} else {
-		log.Debugf("No token in cache, login")
+		log.Debugf("No token in cache, send login request")
 		login, err := oauth.Login(conf.Auth)
 		if err != nil {
 			return "", err
@@ -95,7 +95,7 @@ func RequestLogFiles(conf *config.EventLogInstance, db cache.Cache, since time.T
 	
 	url := conf.Auth.TokenUrl + "/services/data/v" + conf.ApiVer + "/query?q=" + soql
 
-	resp, err := Request(conf, db, url, false)
+	resp, err := request(conf, db, url, false)
 	if err != nil {
 		return EventLogfileResponse{}, err
 	}
@@ -115,30 +115,34 @@ func RequestLogFiles(conf *config.EventLogInstance, db cache.Cache, since time.T
 
 		return response, nil
 	} else {
-		return EventLogfileResponse{}, err
+		return EventLogfileResponse{}, fmt.Errorf("Unexpected status code %d", resp.StatusCode)
 	}
 }
 
 func DownloadCsvFile(conf *config.EventLogInstance, db cache.Cache, record *EventLogfileRecord) (string, error) {
-	resp, err := Request(conf, db, conf.Auth.TokenUrl + record.LogFile, false)
+	resp, err := request(conf, db, conf.Auth.TokenUrl + record.LogFile, false)
 	if err != nil {
 		return "", err
 	}
 	defer resp.Body.Close()
 
-	filePath := csvFilePath(record)
-	outFile, err := os.Create(filePath)
-	if err != nil {
-		return "", err
+	if resp.StatusCode == 200 {
+		filePath := csvFilePath(record)
+		outFile, err := os.Create(filePath)
+		if err != nil {
+			return "", err
+		}
+		defer outFile.Close()
+
+		_, err = io.Copy(outFile, resp.Body)
+
+		return filePath, err
+	} else {
+		return "", fmt.Errorf("Unexpected status code %d", resp.StatusCode)
 	}
-	defer outFile.Close()
-
-	_, err = io.Copy(outFile, resp.Body)
-
-	return filePath, err
 }
 
-func Request(conf *config.EventLogInstance, db cache.Cache, url string, isRetry bool) (*http.Response, error) {
+func request(conf *config.EventLogInstance, db cache.Cache, url string, isRetry bool) (*http.Response, error) {
 	accessToken, err := auth(conf, db)
 	if err != nil {
 		return nil, err
@@ -157,16 +161,20 @@ func Request(conf *config.EventLogInstance, db cache.Cache, url string, isRetry 
 
 	resp, err := client.Do(req)
 
-	if resp.StatusCode == 401 && !isRetry {
-		log.Warnf("Wrong credentials error (401). Try relogging...")
-		err := relogin(conf, db)
-		if err != nil {
-			return nil, err
+	if err == nil {
+		if resp.StatusCode == 401 && !isRetry {
+			log.Warnf("Wrong credentials error (401). Try relogging...")
+			err := relogin(conf, db)
+			if err != nil {
+				return nil, err
+			}
+			// Retry request after relogin
+			return request(conf, db, url, true)
+		} else {
+			return resp, nil
 		}
-		// Retry request after relogin
-		return Request(conf, db, url, true)
 	} else {
-		return resp, err
+		return nil, err
 	}
 }
 

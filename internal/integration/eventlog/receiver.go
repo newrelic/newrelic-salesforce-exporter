@@ -165,7 +165,6 @@ func (s *SalesforceEventsReceiver) downloadCsvFiles(response *query.EventLogfile
 	for _, record := range response.Records {
 		if s.logsNotCached(record.Id) {
 			filePath, err := query.DownloadCsvFile(s.instanceConfig, s.db, &record)
-			//TODO: check if error in credentials and relogin if needed
 			if err != nil {
 				log.Errorf("Error downloading CSV: %s", err.Error())
 			} else {
