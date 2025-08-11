@@ -27,7 +27,6 @@ func IntegrityCheck(conf config.Config) error {
 		if err := config.CheckAuth(instance.Auth) ; err != nil {
 			return err
 		}
-		//TODO: check JWT credentials
 		if err := config.CheckUserPassCredentials(instance.Auth.UserPass) ; err != nil {
 			return err
 		}
@@ -38,6 +37,8 @@ func IntegrityCheck(conf config.Config) error {
 			log.Warnf("Config 'apiVer' not defined, using default: '55.0'")
 			instance.ApiVer = "55.0"
 		}
+		//TODO: check eventTypes (no spaces or '+' in strings)
+		//TODO: check customQueries integrity (if ApiVer undefined, use instance.ApiVer)
 	}
 
 	return nil

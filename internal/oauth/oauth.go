@@ -35,8 +35,6 @@ type UserInfoResponse struct {
 func Login(auth config.AuthConfig) (*LoginResponse, error) {
 	body := url.Values{}
 
-	//TODO: JWT auth
-
 	body.Set("grant_type", "password")
 	body.Set("client_id", auth.UserPass.ClientId)
 	body.Set("client_secret", auth.UserPass.ClientSecret)

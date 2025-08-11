@@ -18,7 +18,6 @@ import (
 type AuthConfig struct {
 	TokenUrl string        `mapstructure:"tokenUrl"`
 	UserPass *UserPassAuth `mapstructure:"userPass"`
-	//TODO: add JWT auth
 }
 
 type UserPassAuth struct {
@@ -64,7 +63,7 @@ type CustomQueryConfig struct {
 }
 
 type SoqlConfig struct {
-	Select string `mapstructure:"select"`
+	Select []string `mapstructure:"select"`
 	From   string `mapstructure:"from"`
 	Where  string `mapstructure:"where"`
 }

@@ -44,6 +44,7 @@ func (s *SalesforceEventsReceiver) PollEvents(context context.Context, writer ch
 	var response query.EventLogfileResponse
 
 	response, err := query.RequestLogFiles(s.instanceConfig, s.db, since, until)
+	//TODO: should we abort or continue?
 	if err != nil {
 		return err
 	}
@@ -52,9 +53,18 @@ func (s *SalesforceEventsReceiver) PollEvents(context context.Context, writer ch
 
 	s.processLogFilesResponse(&response, writer)
 
-	//TODO: request custom queries
 	for _, customQuery := range s.instanceConfig.CustomQueries {
 		log.Debugf("Custom query = %+v", customQuery)
+
+		result, err := query.RequestCustomQuery(&customQuery, s.instanceConfig, s.db, since, until)
+		//TODO: should we abort or continue?
+		if err != nil {
+			return err
+		}
+
+		log.Debugf("Query result = %+v", result)
+
+		//TODO: record event
 	}
 
 	log.Debugf("-----> END PollEvents for instance '%s'", s.instanceConfig.Name)

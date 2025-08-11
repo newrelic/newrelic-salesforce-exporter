@@ -91,7 +91,7 @@ func RequestLogFiles(conf *config.EventLogInstance, db cache.Cache, since time.T
 	}
 	soql := soqlModel.Build()
 	
-	log.Debugf("Run SOQL query: %s", soql)
+	log.Debugf("Run EventLogFile SOQL query: %s", soql)
 	
 	url := conf.Auth.TokenUrl + "/services/data/v" + conf.ApiVer + "/query?q=" + soql
 
@@ -139,6 +139,41 @@ func DownloadCsvFile(conf *config.EventLogInstance, db cache.Cache, record *Even
 		return filePath, err
 	} else {
 		return "", fmt.Errorf("Unexpected status code %d", resp.StatusCode)
+	}
+}
+
+func RequestCustomQuery(customQuery *config.CustomQueryConfig, conf *config.EventLogInstance, db cache.Cache, since time.Time, until time.Time) (map[string]any, error) {
+	soqlModel := MakeSoqlQuery(customQuery.Soql.From, customQuery.Soql.Select...)
+	soqlModel.AndWhere(customQuery.Soql.Where)
+	soqlModel.AndWhere(customQuery.Timestamp + " >= " + since.UTC().Format(time.RFC3339))
+	soqlModel.AndWhere(customQuery.Timestamp + " <= " + until.UTC().Format(time.RFC3339))
+	soql := soqlModel.Build()
+
+	log.Debugf("Run custom SOQL query: %s", soql)
+
+	url := conf.Auth.TokenUrl + "/services/data/v" + customQuery.ApiVer + "/query?q=" + soql
+
+	resp, err := request(conf, db, url, false)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == 200 {
+		respBytes, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return nil, err
+		}
+
+		var response map[string]any
+		err = json.Unmarshal(respBytes, &response)
+		if err != nil {
+			return nil, err
+		}
+
+		return response, nil
+	} else {
+		return nil,fmt.Errorf("Unexpected status code %d", resp.StatusCode)
 	}
 }
 
