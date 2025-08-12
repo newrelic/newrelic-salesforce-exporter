@@ -42,7 +42,7 @@ func IntegrityCheck(conf *config.Config) error {
 		for eventTypeIndex := range instance.EventTypes {
 			eventType := &instance.EventTypes[eventTypeIndex]
 			if strings.Contains(*eventType, " ") || strings.Contains(*eventType, "+") {
-				return fmt.Errorf("Instance '%s' contains an invalid event type: '%s'.", instance.Name, eventType)
+				return fmt.Errorf("Instance '%s' contains an invalid event type: '%s'.", instance.Name, *eventType)
 			}
 		}
 		for customQueryIndex := range instance.CustomQueries {
