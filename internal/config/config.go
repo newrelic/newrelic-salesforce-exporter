@@ -136,7 +136,7 @@ func ReadConfig() (Config, error) {
 		return Config{}, err
 	}
 
-	if err := integrityCheck(conf); err != nil {
+	if err := integrityCheck(&conf); err != nil {
 		log.Fatalf(err)
 	}
 
@@ -144,7 +144,7 @@ func ReadConfig() (Config, error) {
 }
 
 // Check config integrity, the parts that are common to both integrations
-func integrityCheck(conf Config) error {
+func integrityCheck(conf *Config) error {
 	if conf.IsTemplate {
 		return errors.New("Config file is a template")
 	}
