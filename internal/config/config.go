@@ -53,6 +53,7 @@ type EventLogInstance struct {
 	Cache               *CacheConfig        `mapstructure:"cache"`
 	EventTypes          []string            `mapstructure:"eventTypes"`
 	InitialTimeInterval TimeIntervalConfig  `mapstructure:"initialTimeInterval"`
+	SkipLogFiles		bool				`mapstructure:"skipLogFiles"`
 	CustomQueries       []CustomQueryConfig `mapstructure:"customQueries"`
 }
 

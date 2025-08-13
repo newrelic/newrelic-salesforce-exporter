@@ -2,6 +2,12 @@ package query
 
 import "strings"
 
+type GenericEventResponse struct {
+	TotalSize int              `json:"totalSize"`
+	Done      bool             `json:"done"`
+	Records   []map[string]any `json:"records"`
+}
+
 type EventLogfileResponse struct {
 	TotalSize int                  `json:"totalSize"`
 	Done      bool                 `json:"done"`

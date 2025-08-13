@@ -142,7 +142,7 @@ func DownloadCsvFile(conf *config.EventLogInstance, db cache.Cache, record *Even
 	}
 }
 
-func RequestCustomQuery(customQuery *config.CustomQueryConfig, conf *config.EventLogInstance, db cache.Cache, since time.Time, until time.Time) (map[string]any, error) {
+func RequestCustomQuery(customQuery *config.CustomQueryConfig, conf *config.EventLogInstance, db cache.Cache, since time.Time, until time.Time) (GenericEventResponse, error) {
 	soqlModel := MakeSoqlQuery(customQuery.Soql.From, customQuery.Soql.Select...)
 	soqlModel.AndWhere(customQuery.Soql.Where)
 	soqlModel.AndWhere(customQuery.Timestamp + " >= " + since.UTC().Format(time.RFC3339))
@@ -155,25 +155,28 @@ func RequestCustomQuery(customQuery *config.CustomQueryConfig, conf *config.Even
 
 	resp, err := request(conf, db, url, false)
 	if err != nil {
-		return nil, err
+		return GenericEventResponse{}, err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode == 200 {
 		respBytes, err := io.ReadAll(resp.Body)
 		if err != nil {
-			return nil, err
+			return GenericEventResponse{}, err
 		}
 
-		var response map[string]any
+		var response GenericEventResponse
 		err = json.Unmarshal(respBytes, &response)
 		if err != nil {
-			return nil, err
+			return GenericEventResponse{}, err
 		}
+
+		jresp,_ := json.MarshalIndent(response, "", "    ")
+		log.Debugf("Query result:\n%s", string(jresp))
 
 		return response, nil
 	} else {
-		return nil,fmt.Errorf("Unexpected status code %d", resp.StatusCode)
+		return GenericEventResponse{}, fmt.Errorf("Unexpected status code %d", resp.StatusCode)
 	}
 }
 

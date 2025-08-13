@@ -39,32 +39,29 @@ func (s *SalesforceEventsReceiver) PollEvents(context context.Context, writer ch
 	until := time.Now()
 	s.setLastRunIntoCache(until)
 
-	log.Debugf("Request logs since: %v", since)
-	
-	var response query.EventLogfileResponse
+	if !s.instanceConfig.SkipLogFiles {
+		log.Debugf("Request logs since: %v", since)
 
-	response, err := query.RequestLogFiles(s.instanceConfig, s.db, since, until)
-	//TODO: should we abort or continue?
-	if err != nil {
-		return err
+		response, err := query.RequestLogFiles(s.instanceConfig, s.db, since, until)
+		if err != nil {
+			log.Errorf("Error quering log files, skipping: %s", err.Error())
+		} else {
+			log.Debugf("Read %d records", len(response.Records))
+
+			s.processLogFilesResponse(&response, writer)
+		}
 	}
-
-	log.Debugf("Read %d records", len(response.Records))
-
-	s.processLogFilesResponse(&response, writer)
 
 	for _, customQuery := range s.instanceConfig.CustomQueries {
 		log.Debugf("Custom query = %+v", customQuery)
 
-		result, err := query.RequestCustomQuery(&customQuery, s.instanceConfig, s.db, since, until)
-		//TODO: should we abort or continue?
+		response, err := query.RequestCustomQuery(&customQuery, s.instanceConfig, s.db, since, until)
 		if err != nil {
-			return err
+			log.Errorf("Error in custom query: %s", err.Error())
+			continue
 		}
 
-		log.Debugf("Query result = %+v", result)
-
-		//TODO: record event
+		s.processEventResponse(&response, writer, &customQuery)
 	}
 
 	log.Debugf("-----> END PollEvents for instance '%s'", s.instanceConfig.Name)
@@ -158,7 +155,7 @@ func (s *SalesforceEventsReceiver) processLogFilesResponse(response *query.Event
 		}
 	}
 
-	log.Debugf("Total events sent = %d", totalEventsSent)
+	log.Debugf("Total logfile events sent = %d", totalEventsSent)
 
 	// Delete all temp CSV files
 	for _, filePath := range filePaths {
@@ -169,18 +166,69 @@ func (s *SalesforceEventsReceiver) processLogFilesResponse(response *query.Event
 	}
 }
 
+func (s *SalesforceEventsReceiver) processEventResponse(response *query.GenericEventResponse, writer chan <- model.Event, customQuery *config.CustomQueryConfig) {
+	totalEventsSent := 0
+
+	for _, record := range response.Records {
+		id, idPresent := record["Id"].(string)
+		if idPresent {
+			if s.notCached(id) {
+				event := s.buildCustomEventFrom(record, customQuery.Timestamp)
+				writer <- event
+				s.addToCache(id)
+				totalEventsSent += 1
+			} else {
+				log.Debugf("Event already processed, ignoring (Id = %s)", id)
+			}
+		} else {
+			log.Warnf("Event does not have an 'Id' field, ignoring")
+		}
+	}
+
+	log.Debugf("Total events sent = %d", totalEventsSent)
+}
+
+func (s *SalesforceEventsReceiver) buildCustomEventFrom(record map[string]any, timestampAttr string) model.Event {
+	eventType := "SFDCUndefinedEvent"
+	timestamp := time.Now()
+	ts, tsPresent := record[timestampAttr].(string)
+	if tsPresent {
+		layout := "2006-01-02T15:04:05.999999+0000"
+		ts, err := time.Parse(layout, ts)
+		if err == nil {
+			timestamp = ts
+			delete(record, timestampAttr);
+		} else {
+			log.Errorf("'%s' parsing failed, using 'now'", timestampAttr)
+		}
+	}
+	attributes, attrPresent := record["attributes"].(map[string]any)
+	if attrPresent {
+		attrType, attrTypePresent := attributes["type"].(string)
+		if attrTypePresent {
+			eventType = attrType
+		} else {
+			log.Warnf("Event does not have an 'attributes.type' key")
+		}
+	} else {
+		log.Warnf("Event does not have an 'attributes' key")
+	}
+	delete(record, "attributes");
+	return model.NewEvent(eventType, record, timestamp)
+}
+
 func (s *SalesforceEventsReceiver) downloadCsvFiles(response *query.EventLogfileResponse) []string {
 	// Download CSV files
 	filePaths := []string{}
 	for _, record := range response.Records {
-		if s.logsNotCached(record.Id) {
+		if s.notCached(record.Id) {
 			filePath, err := query.DownloadCsvFile(s.instanceConfig, s.db, &record)
 			if err != nil {
 				log.Errorf("Error downloading CSV: %s", err.Error())
 			} else {
 				log.Debugf("Downloaded file at '%s'", filePath)
 				filePaths = append(filePaths, filePath)
-				s.cachedLog(record.Id)
+				s.addToCache(record.Id)
 			}
 		} else {
 			log.Debugf("Logs already processed, ignoring (Id = %s)", record.Id)
@@ -190,7 +238,7 @@ func (s *SalesforceEventsReceiver) downloadCsvFiles(response *query.EventLogfile
 }
 
 // Check if log ID is present in the cache (was already sent)
-func (s *SalesforceEventsReceiver) logsNotCached(id string) bool {
+func (s *SalesforceEventsReceiver) notCached(id string) bool {
 	val, err := s.db.GetCacheVal(id)
 	if err != nil {
 		log.Warnf("Error accessing the cache: %s", err.Error())
@@ -199,7 +247,7 @@ func (s *SalesforceEventsReceiver) logsNotCached(id string) bool {
 	return val == nil
 }
 
-func (s *SalesforceEventsReceiver) cachedLog(id string) {
+func (s *SalesforceEventsReceiver) addToCache(id string) {
 	err := s.db.SetCacheVal(id, 1)
 	if err != nil {
 		log.Warnf("Error setting log Id in the cache: %s", err.Error())
