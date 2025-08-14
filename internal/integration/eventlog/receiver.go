@@ -193,7 +193,7 @@ func (s *SalesforceEventsReceiver) buildCustomEventFrom(record map[string]any, t
 	timestamp := time.Now()
 	ts, tsPresent := record[timestampAttr].(string)
 	if tsPresent {
-		layout := "2006-01-02T15:04:05.999999+0000"
+		layout := "2006-01-02T15:04:05.999999-0700"
 		ts, err := time.Parse(layout, ts)
 		if err == nil {
 			timestamp = ts
