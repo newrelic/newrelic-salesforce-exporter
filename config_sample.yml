@@ -4,10 +4,12 @@ cron_interval_minutes: 60
 service_schedule:
   hour: "*"
   minute: "0,15,30,45"
+request_timeout: 30
 instances:
   - name: sfdc-logs
     arguments:
       api_ver: "55.0"
+      request_timeout: 60
       token_url: "https://test.salesforce.com/services/oauth2/token"
       auth:
         grant_type: password

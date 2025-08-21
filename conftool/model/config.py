@@ -13,6 +13,7 @@ class ConfigModel(BaseModel):
     run_as_service: bool
     cron_interval_minutes: int
     service_schedule: ServiceScheduleModel
+    request_timeout: int
     instances: list[InstanceModel]
     queries: list[QueryModel]
     newrelic: NewrelicModel
@@ -29,6 +30,6 @@ class ConfigModel(BaseModel):
         if self.newrelic is None:
             raise ConfigException("`newrelic` must be defined")
         super().check()
-    
+
     def to_yaml(self) -> str:
         return yaml.dump(to_dict(self), sort_keys=False)

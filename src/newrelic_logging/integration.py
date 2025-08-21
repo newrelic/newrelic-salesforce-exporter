@@ -16,9 +16,11 @@ class Integration:
         self,
         telemetry: Telemetry,
         instances: list[instance.Instance],
+        request_timeout: int = None,
     ):
         self.telemetry = telemetry
         self.instances = instances
+        self.request_timeout = request_timeout
 
     def process_telemetry(self, session: Session):
         if self.telemetry.is_empty():
@@ -29,7 +31,7 @@ class Integration:
         self.telemetry.flush(session)
 
     def run(self):
-        session = new_retry_session()
+        session = new_retry_session(timeout=self.request_timeout)
 
         try:
             for instance in self.instances:

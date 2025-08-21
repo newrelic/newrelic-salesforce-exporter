@@ -10,16 +10,16 @@ from . import \
 
 
 class TestApi(unittest.TestCase):
-    def test_get_calls_session_get_with_url_access_token_and_default_stream_flag_and_invokes_cb_and_returns_result_on_200(self):
+    def test_get_calls_session_get_with_url_access_token_and_defaults_and_invokes_cb_and_returns_result_on_200(self):
         '''
-        get() makes a request with the given URL, access token, and default stream flag and invokes the callback with response and returns the result on a 200 status code
+        get() makes a request with the given URL, access token, and the default stream flag and timeout and invokes the callback with response and returns the result on a 200 status code
         given: an authenticator
         and given: a session
         and given: a url
         and given: a service URL
         and given: a callback
         when: get() is called
-        then: session.get() is called with full URL, access token, and default stream flag
+        then: session.get() is called with full URL, access token, and the default stream flag and timeout
         and when: response status code is 200
         then: invokes callback with response and returns result
         '''
@@ -44,6 +44,7 @@ class TestApi(unittest.TestCase):
         self.assertTrue('Authorization' in session.headers)
         self.assertEqual(session.headers['Authorization'], 'Bearer 123456')
         self.assertFalse(session.stream)
+        self.assertIsNone(session.timeout)
         self.assertIsNotNone(val)
         self.assertEqual(val, 'OK')
 
@@ -80,6 +81,44 @@ class TestApi(unittest.TestCase):
         self.assertTrue('Authorization' in session.headers)
         self.assertEqual(session.headers['Authorization'], 'Bearer 123456')
         self.assertTrue(session.stream)
+        self.assertIsNone(session.timeout)
+        self.assertIsNotNone(val)
+        self.assertEqual(val, 'OK')
+
+    def test_get_calls_session_get_with_url_access_token_and_given_timeout_and_invokes_cb_and_returns_result_on_200(self):
+        '''
+        get() makes a request with the given URL, access token, default stream flag, and given timeout and invokes the callback with response and returns the result on a 200 status code
+        given: an authenticator
+        and given: a session
+        and given: a url
+        and given: a callback
+        when: get() is called
+        then: session.get() is called with full URL, access token, default stream flag, and given timeout
+        and when: response status code is 200
+        then: invokes callback with response and returns result
+        '''
+
+        # setup
+        auth = AuthenticatorStub(
+            instance_url='https://my.salesforce.test',
+            access_token='123456',
+        )
+        response = ResponseStub(200, 'OK', 'OK', [])
+        session = SessionStub()
+        session.response = response
+
+        def cb(response):
+            return response.text
+
+        # execute
+        val = api.get(auth, session, '/foo', cb, timeout=500)
+
+        # verify
+        self.assertEqual(session.url, 'https://my.salesforce.test/foo')
+        self.assertTrue('Authorization' in session.headers)
+        self.assertEqual(session.headers['Authorization'], 'Bearer 123456')
+        self.assertFalse(session.stream)
+        self.assertEqual(session.timeout, 500)
         self.assertIsNotNone(val)
         self.assertEqual(val, 'OK')
 
@@ -602,6 +641,7 @@ class TestApi(unittest.TestCase):
         when: query() is called
         then: session.get() is called with correct URL and access token
         and: stream is set to False
+        and: timeout is None
         and when: session.get() response status code is 200
         then: calls callback with response and returns a JSON response
         '''
@@ -630,6 +670,7 @@ class TestApi(unittest.TestCase):
         self.assertTrue('Authorization' in session.headers)
         self.assertEqual(session.headers['Authorization'], 'Bearer 123456')
         self.assertFalse(session.stream)
+        self.assertIsNone(session.timeout)
         self.assertIsNotNone(resp)
         self.assertTrue(type(resp) is dict)
         self.assertTrue('foo' in resp)
@@ -646,6 +687,7 @@ class TestApi(unittest.TestCase):
         and when: the api version parameter is specified
         then: session.get() is called with correct URL and access token
         and: stream is set to False
+        and: timeout is set to None
         and when: response status code is 200
         then: calls callback with response and returns a JSON response
         '''
@@ -675,6 +717,7 @@ class TestApi(unittest.TestCase):
         self.assertTrue('Authorization' in session.headers)
         self.assertEqual(session.headers['Authorization'], 'Bearer 123456')
         self.assertFalse(session.stream)
+        self.assertIsNone(session.timeout)
         self.assertIsNotNone(resp)
         self.assertTrue(type(resp) is dict)
         self.assertTrue('foo' in resp)
@@ -691,6 +734,7 @@ class TestApi(unittest.TestCase):
         and when: the api name parameter is specified
         then: session.get() is called with correct URL and access token
         and: stream is set to False
+        and: timeout is set to None
         and when: response status code is 200
         then: calls callback with response and returns a JSON response
         '''
@@ -721,6 +765,53 @@ class TestApi(unittest.TestCase):
         self.assertTrue('Authorization' in session.headers)
         self.assertEqual(session.headers['Authorization'], 'Bearer 123456')
         self.assertFalse(session.stream)
+        self.assertIsNone(session.timeout)
+        self.assertIsNotNone(resp)
+        self.assertTrue(type(resp) is dict)
+        self.assertTrue('foo' in resp)
+        self.assertEqual(resp['foo'], 'bar')
+
+    def test_query_requests_correct_url_with_access_token_and_passes_timeout_given_timeout_and_returns_json_response_on_success(self):
+        '''
+        query() calls the correct query API url with the access token, passes the given timeout, and returns a JSON response when no errors occur
+        given: an authenticator
+        and given: an api version
+        and given: a session
+        and given: a query
+        and given: a timeout
+        when: query() is called
+        then: session.get() is called with correct URL and access token
+        and: stream is set to False
+        and: timeout is set to given timeout
+        and when: session.get() response status code is 200
+        then: calls callback with response and returns a JSON response
+        '''
+
+        # setup
+        auth = AuthenticatorStub(
+            instance_url='https://my.salesforce.test',
+            access_token='123456',
+        )
+        session = SessionStub()
+        session.response = ResponseStub(200, 'OK', '{"foo": "bar"}', [])
+
+        # execute
+        sf_api = api.Api(auth, '55.0', 500)
+        resp = sf_api.query(
+            session,
+            'SELECT+LogFile+FROM+EventLogFile',
+        )
+
+        # verify
+
+        self.assertEqual(
+            session.url,
+            f'https://my.salesforce.test/services/data/v55.0/query?q=SELECT+LogFile+FROM+EventLogFile',
+        )
+        self.assertTrue('Authorization' in session.headers)
+        self.assertEqual(session.headers['Authorization'], 'Bearer 123456')
+        self.assertFalse(session.stream)
+        self.assertEqual(session.timeout, 500)
         self.assertIsNotNone(resp)
         self.assertTrue(type(resp) is dict)
         self.assertTrue('foo' in resp)
@@ -767,6 +858,7 @@ class TestApi(unittest.TestCase):
         when: query() is called
         then: session.get() is called with correct URL and access token
         and: stream is set to False
+        and: timeout is set to None
         and when: session.get() raises a LoginException
         then: query() raises a LoginException
         '''
@@ -795,6 +887,7 @@ class TestApi(unittest.TestCase):
         self.assertTrue('Authorization' in session.headers)
         self.assertEqual(session.headers['Authorization'], 'Bearer 123456')
         self.assertFalse(session.stream)
+        self.assertIsNone(session.timeout)
 
     def test_query_raises_salesforce_exception_if_get_does(self):
         '''
@@ -806,6 +899,7 @@ class TestApi(unittest.TestCase):
         when: query() is called
         then: session.get() is called with correct URL and access token
         and: stream is set to False
+        and: timeout is set to None
         and when: session.get() raises a SalesforceApiException
         then: query() raises a SalesforceApiException
         '''
@@ -833,6 +927,7 @@ class TestApi(unittest.TestCase):
         self.assertTrue('Authorization' in session.headers)
         self.assertEqual(session.headers['Authorization'], 'Bearer 123456')
         self.assertFalse(session.stream)
+        self.assertIsNone(session.timeout)
 
     def test_query_more_requests_correct_url_with_access_token_and_returns_json_response_on_success(self):
         '''
@@ -844,6 +939,7 @@ class TestApi(unittest.TestCase):
         when: query_more() is called
         then: session.get() is called with correct URL and access token
         and: stream is set to False
+        and: timeout is set to None
         and when: session.get() response status code is 200
         then: returns the JSON response
         '''
@@ -872,6 +968,53 @@ class TestApi(unittest.TestCase):
         self.assertTrue('Authorization' in session.headers)
         self.assertEqual(session.headers['Authorization'], 'Bearer 123456')
         self.assertFalse(session.stream)
+        self.assertIsNone(session.timeout)
+        self.assertIsNotNone(resp)
+        self.assertTrue(type(resp) is dict)
+        self.assertTrue('foo' in resp)
+        self.assertEqual(resp['foo'], 'bar')
+
+    def test_query_more_requests_correct_url_with_access_token_and_passes_timeout_given_timeout_and_returns_json_response_on_success(self):
+        '''
+        query_more() calls the correct next records URL with the access token, passes the given timeout, and returns a JSON response when no errors occur
+        given: an authenticator
+        and given: an api version
+        and given: a session
+        and given: a next records URL
+        and given: a timeout
+        when: query_more() is called
+        then: session.get() is called with correct URL and access token
+        and: stream is set to False
+        and: timeout is set to given timeout
+        and when: session.get() response status code is 200
+        then: returns the JSON response
+        '''
+
+        # setup
+        auth = AuthenticatorStub(
+            instance_url='https://my.salesforce.test',
+            access_token='123456',
+        )
+        session = SessionStub()
+        session.response = ResponseStub(200, 'OK', '{"foo": "bar"}', [])
+
+        # execute
+        sf_api = api.Api(auth, '55.0', 500)
+        resp = sf_api.query_more(
+            session,
+            '/services/data/v55.0/query/01gRO0000016PIAYA2-500'
+        )
+
+        # verify
+
+        self.assertEqual(
+            session.url,
+            f'https://my.salesforce.test/services/data/v55.0/query/01gRO0000016PIAYA2-500',
+        )
+        self.assertTrue('Authorization' in session.headers)
+        self.assertEqual(session.headers['Authorization'], 'Bearer 123456')
+        self.assertFalse(session.stream)
+        self.assertEqual(session.timeout, 500)
         self.assertIsNotNone(resp)
         self.assertTrue(type(resp) is dict)
         self.assertTrue('foo' in resp)
@@ -887,6 +1030,7 @@ class TestApi(unittest.TestCase):
         when: query_more() is called
         then: session.get() is called with correct URL and access token
         and: stream is set to False
+        and: timeout is set to None
         and when: session.get() response status code is 401
         and when: authenticator raises a LoginException
         then: query_more() raises a LoginException
@@ -916,8 +1060,9 @@ class TestApi(unittest.TestCase):
         self.assertTrue('Authorization' in session.headers)
         self.assertEqual(session.headers['Authorization'], 'Bearer 123456')
         self.assertFalse(session.stream)
+        self.assertIsNone(session.timeout)
 
-    def test_query_raises_salesforce_exception_if_get_does(self):
+    def test_query_more_raises_salesforce_exception_if_get_does(self):
         '''
         query_more() calls the correct next records URL with the access token and raises SalesforceApiException if get does
         given: an authenticator
@@ -927,6 +1072,7 @@ class TestApi(unittest.TestCase):
         when: query_more() is called
         then: session.get() is called with correct URL and access token
         and: stream is set to False
+        and: timeout is set to None
         and when: session.get() response status code is not 200 or 401
         and when: get() raises a SalesforceApiException
         then: query_more() raises a SalesforceApiException
@@ -955,6 +1101,7 @@ class TestApi(unittest.TestCase):
         self.assertTrue('Authorization' in session.headers)
         self.assertEqual(session.headers['Authorization'], 'Bearer 123456')
         self.assertFalse(session.stream)
+        self.assertIsNone(session.timeout)
 
     def test_get_log_file_requests_correct_url_with_access_token_and_returns_generator_on_success(self):
         '''
@@ -967,6 +1114,7 @@ class TestApi(unittest.TestCase):
         when: get_log_file() is called
         then: session.get() is called with correct URL and access token
         and: stream is set to True
+        and: timeout is set to None
         and when: response status code is 200
         and when: get() returns a response
         then: calls callback with response
@@ -1003,6 +1151,70 @@ class TestApi(unittest.TestCase):
         self.assertTrue('Authorization' in session.headers)
         self.assertEqual(session.headers['Authorization'], 'Bearer 123456')
         self.assertTrue(session.stream)
+        self.assertIsNone(session.timeout)
+        self.assertIsNotNone(resp)
+        line = next(resp)
+        self.assertEqual('COL1,COL2,COL3', line)
+        line = next(resp)
+        self.assertEqual('foo,bar,baz', line)
+        line = next(resp, None)
+        self.assertIsNone(line)
+        # NOTE: this has to be done _after_ the generator iterator is called at
+        # least once since the generator function is not run until the first
+        # call to next()
+        self.assertTrue(session.response.iter_lines_called)
+        self.assertEqual(session.response.chunk_size, 8192)
+
+    def test_get_log_file_requests_correct_url_with_access_token_and_passes_timeout_given_timeout_and_returns_generator_on_success(self):
+        '''
+        get_log_file() calls the correct url with the access token, passes the given timeout, and returns a generator iterator
+        given: an authenticator
+        and given: an api version
+        and given: a session
+        and given: a log file path
+        and given: a chunk size
+        and given: a timeout
+        when: get_log_file() is called
+        then: session.get() is called with correct URL and access token
+        and: stream is set to True
+        and: timeout is set to the given timeout
+        and when: response status code is 200
+        and when: get() returns a response
+        then: calls callback with response
+        and: iter_lines is called with the correct chunk size
+        and: returns a generator iterator
+        '''
+
+        # setup
+        auth = AuthenticatorStub(
+            instance_url='https://my.salesforce.test',
+            access_token='123456',
+        )
+        session = SessionStub()
+        session.response = ResponseStub(
+            200,
+            'OK',
+            '',
+            [ 'COL1,COL2,COL3', 'foo,bar,baz' ],
+        )
+
+        # execute
+        sf_api = api.Api(auth, '55.0', 500)
+        resp = sf_api.get_log_file(
+            session,
+            '/services/data/v52.0/sobjects/EventLogFile/00001111AAAABBBB/LogFile',
+            chunk_size=8192,
+        )
+
+        # verify
+        self.assertEqual(
+            session.url,
+            f'https://my.salesforce.test/services/data/v52.0/sobjects/EventLogFile/00001111AAAABBBB/LogFile',
+        )
+        self.assertTrue('Authorization' in session.headers)
+        self.assertEqual(session.headers['Authorization'], 'Bearer 123456')
+        self.assertTrue(session.stream)
+        self.assertEqual(session.timeout, 500)
         self.assertIsNotNone(resp)
         line = next(resp)
         self.assertEqual('COL1,COL2,COL3', line)
@@ -1027,6 +1239,7 @@ class TestApi(unittest.TestCase):
         when: get_log_file() is called
         then: session.get() is called with correct URL and access token
         and: stream is set to True
+        and: timeout is set to None
         and when: get() raises a LoginException
         then: get_log_file() raises a LoginException
         '''
@@ -1061,6 +1274,7 @@ class TestApi(unittest.TestCase):
         self.assertTrue('Authorization' in session.headers)
         self.assertEqual(session.headers['Authorization'], 'Bearer 123456')
         self.assertTrue(session.stream)
+        self.assertIsNone(session.timeout)
 
     def test_get_log_file_raises_salesforce_exception_if_get_does(self):
         '''
@@ -1073,6 +1287,7 @@ class TestApi(unittest.TestCase):
         when: get_log_file() is called
         then: session.get() is called with correct URL and access token
         and: stream is set to True
+        and: timeout is set to None
         and when: get() raises a SalesforceApiException
         then: get_log_file() raises a SalesforceApiException
         '''
@@ -1106,17 +1321,18 @@ class TestApi(unittest.TestCase):
         self.assertTrue('Authorization' in session.headers)
         self.assertEqual(session.headers['Authorization'], 'Bearer 123456')
         self.assertTrue(session.stream)
+        self.assertIsNone(session.timeout)
 
     def test_list_limits_requests_correct_url_with_access_token_and_returns_json_response_on_success(self):
         '''
-        list_limits() calls the correct query API url with the access token and returns a JSON response when no errors occur
+        list_limits() calls the correct limits API url with the access token and returns a JSON response when no errors occur
         given: an authenticator
         and given: an api version
         and given: a session
-        and given: a query
         when: list_limits() is called
         then: session.get() is called with correct URL and access token
         and: stream is set to False
+        and: timeout is set to None
         and when: session.get() response status code is 200
         then: calls callback with response and returns a JSON response
         '''
@@ -1142,6 +1358,7 @@ class TestApi(unittest.TestCase):
         self.assertTrue('Authorization' in session.headers)
         self.assertEqual(session.headers['Authorization'], 'Bearer 123456')
         self.assertFalse(session.stream)
+        self.assertIsNone(session.timeout)
         self.assertIsNotNone(resp)
         self.assertTrue(type(resp) is dict)
         self.assertTrue('foo' in resp)
@@ -1149,15 +1366,15 @@ class TestApi(unittest.TestCase):
 
     def test_list_limits_requests_correct_url_with_access_token_given_api_version_and_returns_json_response_on_success(self):
         '''
-        list_limits() calls the correct query API url with the access token when a specific api version is given and returns a JSON response
+        list_limits() calls the correct limits API url with the access token when a specific api version is given and returns a JSON response
         given: an authenticator
         and given: an api version
         and given: a session
-        and given: a query
         when: list_limits() is called
         and when: the api version parameter is specified
         then: session.get() is called with correct URL and access token
         and: stream is set to False
+        and: timeout is set to None
         and when: response status code is 200
         then: calls callback with response and returns a JSON response
         '''
@@ -1186,6 +1403,49 @@ class TestApi(unittest.TestCase):
         self.assertTrue('Authorization' in session.headers)
         self.assertEqual(session.headers['Authorization'], 'Bearer 123456')
         self.assertFalse(session.stream)
+        self.assertIsNone(session.timeout)
+        self.assertIsNotNone(resp)
+        self.assertTrue(type(resp) is dict)
+        self.assertTrue('foo' in resp)
+        self.assertEqual(resp['foo'], 'bar')
+
+    def test_list_limits_requests_correct_url_with_access_token_and_passes_timeout_given_timeout_and_returns_json_response_on_success(self):
+        '''
+        list_limits() calls the correct limits API url with the access token, passes the given timeout, and returns a JSON response when no errors occur
+        given: an authenticator
+        and given: an api version
+        and given: a session
+        and given: a timeout
+        when: list_limits() is called
+        then: session.get() is called with correct URL and access token
+        and: stream is set to False
+        and: timeout is set to the given timeout
+        and when: session.get() response status code is 200
+        then: calls callback with response and returns a JSON response
+        '''
+
+        # setup
+        auth = AuthenticatorStub(
+            instance_url='https://my.salesforce.test',
+            access_token='123456',
+        )
+        session = SessionStub()
+        session.response = ResponseStub(200, 'OK', '{"foo": "bar"}', [] )
+
+        # execute
+        sf_api = api.Api(auth, '55.0', 500)
+        resp = sf_api.list_limits(session)
+
+        # verify
+
+        self.assertEqual(
+            session.url,
+            f'https://my.salesforce.test/services/data/v55.0/limits/',
+        )
+        self.assertTrue('Authorization' in session.headers)
+        self.assertEqual(session.headers['Authorization'], 'Bearer 123456')
+        self.assertFalse(session.stream)
+        self.assertEqual(session.timeout, 500)
         self.assertIsNotNone(resp)
         self.assertTrue(type(resp) is dict)
         self.assertTrue('foo' in resp)
@@ -1193,7 +1453,7 @@ class TestApi(unittest.TestCase):
 
     def test_list_limits_raises_login_exception_if_get_does(self):
         '''
-        list_limits() calls the correct query API url with the access token and raises LoginException if get does
+        list_limits() calls the correct limits API url with the access token and raises LoginException if get does
         given: an authenticator
         and given: an api version
         and given: a session
@@ -1201,6 +1461,7 @@ class TestApi(unittest.TestCase):
         when: list_limits() is called
         then: session.get() is called with correct URL and access token
         and: stream is set to False
+        and: timeout is set to None
         and when: session.get() raises a LoginException
         then: list_limits() raises a LoginException
         '''
@@ -1226,10 +1487,11 @@ class TestApi(unittest.TestCase):
         self.assertTrue('Authorization' in session.headers)
         self.assertEqual(session.headers['Authorization'], 'Bearer 123456')
         self.assertFalse(session.stream)
+        self.assertIsNone(session.timeout)
 
     def test_list_limits_raises_salesforce_exception_if_get_does(self):
         '''
-        list_limits() calls the correct query API url with the access token and raises SalesforceApiException if get does
+        list_limits() calls the correct limits API url with the access token and raises SalesforceApiException if get does
         given: an authenticator
         and given: an api version
         and given: a session
@@ -1237,6 +1499,7 @@ class TestApi(unittest.TestCase):
         when: list_limits() is called
         then: session.get() is called with correct URL and access token
         and: stream is set to False
+        and: timeout is set to None
         and when: session.get() raises a SalesforceApiException
         then: list_limits() raises a SalesforceApiException
         '''
@@ -1261,3 +1524,4 @@ class TestApi(unittest.TestCase):
         self.assertTrue('Authorization' in session.headers)
         self.assertEqual(session.headers['Authorization'], 'Bearer 123456')
         self.assertFalse(session.stream)
+        self.assertIsNone(session.timeout)

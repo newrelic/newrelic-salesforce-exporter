@@ -28,6 +28,7 @@ class ApiStub:
         self,
         authenticator: Authenticator = None,
         api_ver: str = None,
+        request_timeout: int = None,
         query_result: dict = None,
         lines: list[str] = None,
         limits_result: dict = None,
@@ -36,6 +37,7 @@ class ApiStub:
     ):
         self.authenticator = authenticator
         self.api_ver = api_ver
+        self.request_timeout = request_timeout
         self.query_result = query_result
         self.lines = lines
         self.limits_result = limits_result
@@ -610,12 +612,15 @@ class SessionStub:
         self.headers = None
         self.url = None
         self.stream = None
+        self.timeout = None
 
     def get(self, *args, **kwargs):
         self.url = args[0]
         self.headers = kwargs['headers']
         if 'stream' in kwargs:
             self.stream = kwargs['stream']
+        if 'timeout' in kwargs:
+            self.timeout = kwargs['timeout']
 
         if self.raise_connection_error:
             raise ConnectionError('raise_connection_error set')
@@ -709,11 +714,16 @@ class FactoryStub:
 
         return AuthenticatorStub(instance_config, data_cache)
 
-    def new_api(self, authenticator: Authenticator, api_ver: str):
+    def new_api(
+        self,
+        authenticator: Authenticator,
+        api_ver: str,
+        request_timeout: int,
+    ):
         if self.api:
             return self.api
 
-        return ApiStub(authenticator, api_ver)
+        return ApiStub(authenticator, api_ver, request_timeout)
 
     def new_pipeline(
         self,
@@ -844,11 +854,16 @@ class DelegatingFactoryStub:
 
         return self.f.new_authenticator(instance_config, data_cache)
 
-    def new_api(self, authenticator: Authenticator, api_ver: str):
+    def new_api(
+        self,
+        authenticator: Authenticator,
+        api_ver: str,
+        request_timeout: int,
+    ):
         if self.api:
             return self.api
 
-        return self.f.new_api(authenticator, api_ver)
+        return self.f.new_api(authenticator, api_ver, request_timeout)
 
     def new_pipeline(
         self,

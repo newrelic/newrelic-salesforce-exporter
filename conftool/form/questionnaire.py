@@ -45,7 +45,13 @@ def run() -> ConfigModel:
             text=t_cron_interval,
             required=False),
             i_cron_interval_min, i_cron_interval_max)
-        
+
+    conf.request_timeout = \
+    ask_int(Question(
+        text=t_request_timeout,
+        required=False),
+        i_request_timeout_min, i_request_timeout_max)
+
     # Queries
     conf.queries = queries_questions(required=True, text=t_num_queries)
 
@@ -82,7 +88,7 @@ def instance_questions(run_as_service: bool, num: int) -> InstanceModel:
         id_check, id_check)
     if run_as_service == True:
         i.service_schedule = service_schedule_questions()
-    
+
     i.arguments = arguments_questions()
 
     pop_level()
@@ -402,14 +408,14 @@ def token_url_check(text: str) -> bool:
         return True
     else:
         return False
-    
+
 def api_ver_check(text: str) -> bool:
     try:
         ApiVerModel(text).check()
         return True
     except ConfigException:
         return False
-    
+
 def host_check(text: str) -> bool:
     # NOTE: these methods return either True or a custom error object.
     if validators.domain(text) != True and \
@@ -418,7 +424,7 @@ def host_check(text: str) -> bool:
         return False
     else:
         return True
-    
+
 def numeric_check(text: str) -> bool:
     return text.isnumeric()
 

@@ -28,11 +28,13 @@ class Authenticator:
         self,
         token_url: str,
         auth_data: dict,
-        data_cache: DataCache
+        data_cache: DataCache,
+        request_timeout: int = None,
     ):
         self.token_url = token_url
         self.auth_data = auth_data
         self.data_cache = data_cache
+        self.request_timeout = request_timeout
         self.access_token = None
         self.instance_url = None
 
@@ -143,8 +145,12 @@ class Authenticator:
 
         try:
             print_info(f'retrieving salesforce token at {self.token_url}')
-            resp = session.post(self.token_url, params=params,
-                                headers=headers)
+            resp = session.post(
+                self.token_url,
+                params=params,
+                headers=headers,
+                timeout=self.request_timeout,
+            )
             if resp.status_code != 200:
                 raise LoginException(f'sfdc token request failed. http-status-code:{resp.status_code}, reason: {resp.text}')
 
@@ -175,8 +181,12 @@ class Authenticator:
 
         try:
             print_info(f'retrieving salesforce token at {self.token_url}')
-            resp = session.post(self.token_url, params=params,
-                                headers=headers)
+            resp = session.post(
+                self.token_url,
+                params=params,
+                headers=headers,
+                timeout=self.request_timeout,
+            )
             if resp.status_code != 200:
                 raise LoginException(f'salesforce token request failed. status-code:{resp.status_code}, reason: {resp.reason}')
 

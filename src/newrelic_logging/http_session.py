@@ -5,10 +5,9 @@ DEFAULT_TIMEOUT = 5  # seconds
 
 
 class TimeoutHTTPAdapter(HTTPAdapter):
-    def __init__(self, *args, **kwargs):
-        self.timeout = DEFAULT_TIMEOUT
+    def __init__(self, timeout=None, *args, **kwargs):
+        self.timeout = timeout if timeout is not None else DEFAULT_TIMEOUT
         if "timeout" in kwargs:
-            self.timeout = kwargs["timeout"]
             del kwargs["timeout"]
         super().__init__(*args, **kwargs)
 
@@ -23,6 +22,7 @@ def new_retry_session(retries=3,
                       backoff_factor=3,
                       status_forcelist=(500, 502, 504),
                       session=None,
+                      timeout=None
                       ):
     session = session or requests.Session()
     max_retries = Retry(
@@ -32,7 +32,10 @@ def new_retry_session(retries=3,
         backoff_factor=backoff_factor,
         status_forcelist=status_forcelist,
     )
-    adapter = TimeoutHTTPAdapter(max_retries=max_retries)
+    adapter = TimeoutHTTPAdapter(
+        max_retries=max_retries,
+        timeout=timeout,
+    )
     session.mount('http://', adapter)
     session.mount('https://', adapter)
     return session
