@@ -188,6 +188,7 @@ class TestFactory(unittest.TestCase):
         # verify
         self.assertEqual(authenticator.token_url, 'https://my.salesforce.test')
         self.assertIsNone(authenticator.data_cache)
+        self.assertIsNone(authenticator.request_timeout)
 
         auth_data = authenticator.auth_data
 
@@ -232,6 +233,7 @@ class TestFactory(unittest.TestCase):
         # verify
         self.assertEqual(authenticator.token_url, 'https://my.salesforce.test')
         self.assertIsNone(authenticator.data_cache)
+        self.assertIsNone(authenticator.request_timeout)
 
         auth_data = authenticator.auth_data
 
@@ -277,29 +279,81 @@ class TestFactory(unittest.TestCase):
         # verify
         self.assertEqual(authenticator.data_cache, data_cache)
 
-    def test_new_api_returns_api_with_given_authenticator_and_api_version(self):
+    def test_new_authenticator_returns_new_authenticator_from_config_with_request_timeout(self):
         '''
-        new_api() returns an Api instance with the given authenticator instance and api version
+        new_authenticator() returns a new Authenticator configured from the instance config when the 'auth' property exists and with the given request timeout
+        given: an instance configuration
+        and given: a data cache
+        when: new_authenticator() is called
+        and when: the data cache is None
+        and when: the 'auth' property exists in the instance configuration
+        and when: a request timeout is set in the instance configuration
+        then: return a new Authenticator configured from the 'auth' property
+        and: the request timeout is set in the Authenticator
+        '''
+
+        # setup
+        config = mod_config.Config({
+            'token_url': 'https://my.salesforce.test',
+            'request_timeout': 500,
+            'auth': {
+                'grant_type': 'password',
+                'client_id': '12345',
+                'client_secret': '56789',
+                'username': 'foo',
+                'password': 'beepboop'
+            }
+        })
+
+        # execute
+        f = factory.Factory()
+        authenticator = f.new_authenticator(config, None)
+
+        # verify
+        self.assertEqual(authenticator.token_url, 'https://my.salesforce.test')
+        self.assertIsNone(authenticator.data_cache)
+        self.assertEqual(authenticator.request_timeout, 500)
+
+        auth_data = authenticator.auth_data
+
+        self.assertIsNotNone(auth_data)
+        self.assertTrue('grant_type' in auth_data)
+        self.assertEqual(auth_data['grant_type'], 'password')
+        self.assertTrue('client_id' in auth_data)
+        self.assertEqual(auth_data['client_id'], '12345')
+        self.assertTrue('client_secret' in auth_data)
+        self.assertEqual(auth_data['client_secret'], '56789')
+        self.assertTrue('username' in auth_data)
+        self.assertEqual(auth_data['username'], 'foo')
+        self.assertTrue('password' in auth_data)
+        self.assertEqual(auth_data['password'], 'beepboop')
+
+    def test_new_api_returns_api_with_given_authenticator_api_version_and_request_timeout(self):
+        '''
+        new_api() returns an Api instance with the given authenticator instance, api version, and request timeout
         given: an authenticator
         and given: an api version
+        and given: a request timeout
         when: new_api() is called
-        then: return an Api instance with the given authenticator instance
-            and api version
+        then: return an Api instance with the given authenticator instance,
+            api version, and request timeout
         '''
 
         # setup
         authenticator = AuthenticatorStub()
         api_ver = '55.0'
+        request_timeout = 500
 
         # execute
         f = factory.Factory()
-        api = f.new_api(authenticator, api_ver)
+        api = f.new_api(authenticator, api_ver, request_timeout)
 
         # verify
         self.assertIsNotNone(api)
         self.assertEqual(type(api), mod_api.Api)
         self.assertEqual(api.authenticator, authenticator)
         self.assertEqual(api.api_ver, api_ver)
+        self.assertEqual(api.request_timeout, request_timeout)
 
     def test_new_pipeline_returns_pipeline_with_given_values(self):
         '''
@@ -448,6 +502,332 @@ class TestFactory(unittest.TestCase):
         self.assertEqual(r.instance_config, instance_config)
         self.assertEqual(r.data_cache, data_cache)
         self.assertEqual(r.api, api)
+
+    def test_new_instance_returns_instance_with_api_instance_with_default_api_ver(self):
+        '''
+        new_instance() returns a new Instance with the given values and an Api instance with the default api version
+        given: a factory
+        and given: an instance name
+        and given: an instance config
+        and given: a data format
+        and given: a NewRelic instance
+        and given: a list of receiver creation functions
+        and given: a dict of labels
+        and given: a numeric fields set
+        and given: the instance config has no api version specified
+        when: new_instance() is called
+        then: return an Instance with an instance name and a properly configured
+            Pipeline instance and an Api instance with the default api version
+        '''
+
+        # setup
+        receiver_1 = None
+        receiver_1_called = False
+        receiver_2 = None
+        receiver_2_called = False
+
+        def new_receiver_1(
+            instance_config: mod_config.Config,
+            data_cache: cache.DataCache,
+            api: mod_api.Api,
+        ):
+            nonlocal receiver_1_called
+            nonlocal receiver_1
+            receiver_1_called = True
+            receiver_1 = ReceiverStub(
+                instance_config=instance_config,
+                data_cache=data_cache,
+                api=api,
+            )
+            return receiver_1
+
+        def new_receiver_2(
+            instance_config: mod_config.Config,
+            data_cache: cache.DataCache,
+            api: mod_api.Api,
+        ):
+            nonlocal receiver_2_called
+            nonlocal receiver_2
+            receiver_2_called = True
+            receiver_2 = ReceiverStub(
+                instance_config=instance_config,
+                data_cache=data_cache,
+                api=api,
+            )
+            return receiver_2
+
+        instance_config = mod_config.Config({
+            'cache_enabled': True,
+        })
+        data_cache = DataCacheStub()
+        backend_factory = BackendFactoryStub()
+        authenticator = AuthenticatorStub()
+        p = PipelineStub()
+        new_relic = NewRelicStub()
+
+        # execute
+        f = factory.Factory()
+        fs = FactoryStub(
+            data_cache=data_cache,
+            backend_factory=backend_factory,
+            authenticator=authenticator,
+            pipeline=p,
+            new_relic=new_relic
+        )
+
+        instance = f.new_instance(
+            fs,
+            'test-inst-1',
+            instance_config,
+            DataFormat.LOGS,
+            new_relic,
+            [new_receiver_1, new_receiver_2],
+            { 'foo': 'bar' },
+            set(),
+        )
+
+        # verify
+        self.assertIsNotNone(instance)
+        self.assertEqual(type(instance), mod_inst.Instance)
+        self.assertTrue(hasattr(instance, 'name'))
+        self.assertEqual(instance.name, 'test-inst-1')
+        self.assertTrue(hasattr(instance, 'api'))
+        self.assertEqual(instance.api.authenticator, authenticator)
+        self.assertEqual(instance.api.api_ver, '55.0')
+        self.assertIsNone(instance.api.request_timeout)
+        self.assertTrue(hasattr(instance, 'pipeline'))
+        self.assertEqual(instance.pipeline, p)
+        self.assertTrue(receiver_1_called)
+        self.assertTrue(receiver_2_called)
+        self.assertEqual(len(instance.pipeline.receivers), 2)
+        r = instance.pipeline.receivers[0]
+        self.assertEqual(r, receiver_1)
+        self.assertEqual(r.instance_config, instance_config)
+        self.assertEqual(r.data_cache, data_cache)
+        self.assertEqual(r.api, instance.api)
+        r = instance.pipeline.receivers[1]
+        self.assertEqual(r, receiver_2)
+        self.assertEqual(r.instance_config, instance_config)
+        self.assertEqual(r.data_cache, data_cache)
+        self.assertEqual(r.api, instance.api)
+
+    def test_new_instance_returns_instance_with_api_instance_with_given_api_ver(self):
+        '''
+        new_instance() returns a new Instance with the given values and an API instance with the given api version
+        given: a factory
+        and given: an instance name
+        and given: an instance config
+        and given: a data format
+        and given: a NewRelic instance
+        and given: a list of receiver creation functions
+        and given: a dict of labels
+        and given: a numeric fields set
+        and given: the instance config has an api version specified
+        when: new_instance() is called
+        then: return an Instance with an instance name and a properly configured
+            Pipeline instance and an Api instance with the given api version
+        '''
+
+        # setup
+        receiver_1 = None
+        receiver_1_called = False
+        receiver_2 = None
+        receiver_2_called = False
+
+        def new_receiver_1(
+            instance_config: mod_config.Config,
+            data_cache: cache.DataCache,
+            api: mod_api.Api,
+        ):
+            nonlocal receiver_1_called
+            nonlocal receiver_1
+            receiver_1_called = True
+            receiver_1 = ReceiverStub(
+                instance_config=instance_config,
+                data_cache=data_cache,
+                api=api,
+            )
+            return receiver_1
+
+        def new_receiver_2(
+            instance_config: mod_config.Config,
+            data_cache: cache.DataCache,
+            api: mod_api.Api,
+        ):
+            nonlocal receiver_2_called
+            nonlocal receiver_2
+            receiver_2_called = True
+            receiver_2 = ReceiverStub(
+                instance_config=instance_config,
+                data_cache=data_cache,
+                api=api,
+            )
+            return receiver_2
+
+        instance_config = mod_config.Config({
+            'cache_enabled': True,
+            'api_ver': '60.0',
+        })
+        data_cache = DataCacheStub()
+        backend_factory = BackendFactoryStub()
+        authenticator = AuthenticatorStub()
+        p = PipelineStub()
+        new_relic = NewRelicStub()
+
+        # execute
+        f = factory.Factory()
+        fs = FactoryStub(
+            data_cache=data_cache,
+            backend_factory=backend_factory,
+            authenticator=authenticator,
+            pipeline=p,
+            new_relic=new_relic
+        )
+
+        instance = f.new_instance(
+            fs,
+            'test-inst-1',
+            instance_config,
+            DataFormat.LOGS,
+            new_relic,
+            [new_receiver_1, new_receiver_2],
+            { 'foo': 'bar' },
+            set(),
+        )
+
+        # verify
+        self.assertIsNotNone(instance)
+        self.assertEqual(type(instance), mod_inst.Instance)
+        self.assertTrue(hasattr(instance, 'name'))
+        self.assertEqual(instance.name, 'test-inst-1')
+        self.assertTrue(hasattr(instance, 'api'))
+        self.assertEqual(instance.api.authenticator, authenticator)
+        self.assertEqual(instance.api.api_ver, '60.0')
+        self.assertIsNone(instance.api.request_timeout)
+        self.assertTrue(hasattr(instance, 'pipeline'))
+        self.assertEqual(instance.pipeline, p)
+        self.assertTrue(receiver_1_called)
+        self.assertTrue(receiver_2_called)
+        self.assertEqual(len(instance.pipeline.receivers), 2)
+        r = instance.pipeline.receivers[0]
+        self.assertEqual(r, receiver_1)
+        self.assertEqual(r.instance_config, instance_config)
+        self.assertEqual(r.data_cache, data_cache)
+        self.assertEqual(r.api, instance.api)
+        r = instance.pipeline.receivers[1]
+        self.assertEqual(r, receiver_2)
+        self.assertEqual(r.instance_config, instance_config)
+        self.assertEqual(r.data_cache, data_cache)
+        self.assertEqual(r.api, instance.api)
+
+    def test_new_instance_returns_instance_with_api_instance_with_given_request_timeout(self):
+        '''
+        new_instance() returns a new Instance with the given values and an API instance with the given request timeout
+        given: a factory
+        and given: an instance name
+        and given: an instance config
+        and given: a data format
+        and given: a NewRelic instance
+        and given: a list of receiver creation functions
+        and given: a dict of labels
+        and given: a numeric fields set
+        and given: the instance config has a request timeout specified
+        when: new_instance() is called
+        then: return an Instance with an instance name and a properly configured
+            Pipeline instance and an Api instance with the given request timeout
+        '''
+
+        # setup
+        receiver_1 = None
+        receiver_1_called = False
+        receiver_2 = None
+        receiver_2_called = False
+
+        def new_receiver_1(
+            instance_config: mod_config.Config,
+            data_cache: cache.DataCache,
+            api: mod_api.Api,
+        ):
+            nonlocal receiver_1_called
+            nonlocal receiver_1
+            receiver_1_called = True
+            receiver_1 = ReceiverStub(
+                instance_config=instance_config,
+                data_cache=data_cache,
+                api=api,
+            )
+            return receiver_1
+
+        def new_receiver_2(
+            instance_config: mod_config.Config,
+            data_cache: cache.DataCache,
+            api: mod_api.Api,
+        ):
+            nonlocal receiver_2_called
+            nonlocal receiver_2
+            receiver_2_called = True
+            receiver_2 = ReceiverStub(
+                instance_config=instance_config,
+                data_cache=data_cache,
+                api=api,
+            )
+            return receiver_2
+
+        instance_config = mod_config.Config({
+            'cache_enabled': True,
+            'request_timeout': '60',
+        })
+        data_cache = DataCacheStub()
+        backend_factory = BackendFactoryStub()
+        authenticator = AuthenticatorStub()
+        p = PipelineStub()
+        new_relic = NewRelicStub()
+
+        # execute
+        f = factory.Factory()
+        fs = FactoryStub(
+            data_cache=data_cache,
+            backend_factory=backend_factory,
+            authenticator=authenticator,
+            pipeline=p,
+            new_relic=new_relic
+        )
+
+        instance = f.new_instance(
+            fs,
+            'test-inst-1',
+            instance_config,
+            DataFormat.LOGS,
+            new_relic,
+            [new_receiver_1, new_receiver_2],
+            { 'foo': 'bar' },
+            set(),
+        )
+
+        # verify
+        self.assertIsNotNone(instance)
+        self.assertEqual(type(instance), mod_inst.Instance)
+        self.assertTrue(hasattr(instance, 'name'))
+        self.assertEqual(instance.name, 'test-inst-1')
+        self.assertTrue(hasattr(instance, 'api'))
+        self.assertEqual(instance.api.authenticator, authenticator)
+        self.assertEqual(instance.api.api_ver, '55.0')
+        self.assertEqual(instance.api.request_timeout, 60)
+        self.assertTrue(hasattr(instance, 'pipeline'))
+        self.assertEqual(instance.pipeline, p)
+        self.assertTrue(receiver_1_called)
+        self.assertTrue(receiver_2_called)
+        self.assertEqual(len(instance.pipeline.receivers), 2)
+        r = instance.pipeline.receivers[0]
+        self.assertEqual(r, receiver_1)
+        self.assertEqual(r.instance_config, instance_config)
+        self.assertEqual(r.data_cache, data_cache)
+        self.assertEqual(r.api, instance.api)
+        r = instance.pipeline.receivers[1]
+        self.assertEqual(r, receiver_2)
+        self.assertEqual(r.instance_config, instance_config)
+        self.assertEqual(r.data_cache, data_cache)
+        self.assertEqual(r.api, instance.api)
 
     def test_new_integration_raises_config_exception_given_missing_instances(self):
         '''
@@ -604,6 +984,7 @@ class TestFactory(unittest.TestCase):
         self.assertIsNotNone(i)
         self.assertEqual(type(i), integration.Integration)
         self.assertEqual(i.telemetry, telemetry)
+        self.assertIsNone(i.request_timeout)
         self.assertEqual(len(i.instances), 1)
         instance = i.instances[0]
         self.assertEqual(type(instance), InstanceStub)
@@ -675,6 +1056,7 @@ class TestFactory(unittest.TestCase):
         self.assertIsNotNone(i)
         self.assertEqual(type(i), integration.Integration)
         self.assertEqual(i.telemetry, telemetry)
+        self.assertIsNone(i.request_timeout)
         self.assertEqual(len(i.instances), 1)
         instance = i.instances[0]
         self.assertEqual(type(instance), InstanceStub)
@@ -748,6 +1130,7 @@ class TestFactory(unittest.TestCase):
         self.assertIsNotNone(i)
         self.assertEqual(type(i), integration.Integration)
         self.assertEqual(i.telemetry, telemetry)
+        self.assertIsNone(i.request_timeout)
         self.assertEqual(len(i.instances), 1)
         instance = i.instances[0]
         self.assertEqual(type(instance), InstanceStub)
@@ -781,7 +1164,7 @@ class TestFactory(unittest.TestCase):
             instance with the given instance configuration, including the given
             labels
         '''
-        
+
         # setup
         def new_receiver_func(
             instance_config: mod_config.Config,
@@ -817,6 +1200,75 @@ class TestFactory(unittest.TestCase):
         self.assertIsNotNone(i)
         self.assertEqual(type(i), integration.Integration)
         self.assertEqual(i.telemetry, telemetry)
+        self.assertIsNone(i.request_timeout)
+        self.assertEqual(len(i.instances), 1)
+        instance = i.instances[0]
+        self.assertEqual(type(instance), InstanceStub)
+        self.assertEqual(instance.name, 'test-inst-1')
+        self.assertEqual(instance.instance_config.prefix, '')
+        self.assertEqual(
+            instance.instance_config.config,
+            config['instances'][0]['arguments'],
+        )
+        self.assertEqual(instance.data_format, DataFormat.LOGS)
+        self.assertEqual(instance.new_relic, new_relic)
+        self.assertEqual(len(instance.receivers), 1)
+        self.assertEqual(instance.receivers[0], new_receiver_func)
+        self.assertEqual(instance.labels, { 'nr-labs': 'data' })
+        self.assertEqual(instance.numeric_fields_list, set())
+
+    def test_new_integration_returns_integration_given_default_data_format_and_timeout_and_single_instance_with_no_labels_or_prefix(self):
+        '''
+        new_integration() returns an integration instance with the default data format, the given timeout, and a single instance with the given instance configuration
+        and given: an integration configuration
+        and given: a list of receiver creation functions
+        and given: a numeric fields set
+        when: new_instance() is called
+        and when: the integration configuration contains a single valid instance
+            configuration
+        and when: no data format is specified
+        and when: a timeout is specified in the integration configuration
+        then: return an integration with the default data format and the given
+            timeout and a single instance with the given instance configuration
+        '''
+
+        # setup
+        def new_receiver_func(
+            instance_config: mod_config.Config,
+            data_cache: cache.DataCache,
+            api: mod_api.Api,
+        ):
+            return ReceiverStub()
+
+        config = mod_config.Config({
+            'request_timeout': 500,
+            'instances': [
+                {
+                    'name': 'test-inst-1',
+                    'arguments': {
+                        'api_ver': '60.0',
+                        'token_url': 'https://my.salesforce.test',
+                    }
+                },
+            ],
+        })
+        new_relic = NewRelicStub()
+        telemetry = TelemetryStub()
+
+        # execute
+        f = factory.Factory()
+        fs = FactoryStub(
+            new_relic=new_relic,
+            telemetry=telemetry
+        )
+
+        i = f.new_integration(fs, config, [new_receiver_func], set())
+
+        # verify
+        self.assertIsNotNone(i)
+        self.assertEqual(type(i), integration.Integration)
+        self.assertEqual(i.telemetry, telemetry)
+        self.assertEqual(i.request_timeout, 500)
         self.assertEqual(len(i.instances), 1)
         instance = i.instances[0]
         self.assertEqual(type(instance), InstanceStub)

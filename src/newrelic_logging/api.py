@@ -15,6 +15,7 @@ def get(
     serviceUrl: str,
     cb,
     stream: bool = False,
+    timeout: int = None,
 ) -> Any:
     url = f'{auth.get_instance_url()}{serviceUrl}'
 
@@ -23,7 +24,12 @@ def get(
             'Authorization': f'Bearer {auth.get_access_token()}'
         }
 
-        response = session.get(url, headers=headers, stream=stream)
+        response = session.get(
+            url,
+            headers=headers,
+            stream=stream,
+            timeout=timeout,
+        )
 
         status_code = response.status_code
 
@@ -40,7 +46,12 @@ def get(
                 'Authorization': f'Bearer {auth.get_access_token()}'
             }
 
-            response = session.get(url, headers=new_headers, stream=stream)
+            response = session.get(
+                url,
+                headers=new_headers,
+                stream=stream,
+                timeout=timeout,
+            )
             if response.status_code == 200:
                 return cb(response)
 
@@ -92,9 +103,15 @@ def get_query_api_path(api_ver: str, api_name: str) -> str:
 
 
 class Api:
-    def __init__(self, authenticator: Authenticator, api_ver: str):
+    def __init__(
+        self,
+        authenticator: Authenticator,
+        api_ver: str,
+        request_timeout: int = None,
+    ):
         self.authenticator = authenticator
         self.api_ver = api_ver
+        self.request_timeout = request_timeout
 
     def authenticate(self, session: Session) -> None:
         self.authenticator.authenticate(session)
@@ -120,7 +137,8 @@ class Api:
             self.authenticator,
             session,
             f'{url}?q={soql}',
-            lambda response : response.json()
+            lambda response : response.json(),
+            timeout=self.request_timeout,
         )
 
     def query_more(
@@ -132,7 +150,8 @@ class Api:
             self.authenticator,
             session,
             next_records_url,
-            lambda response : response.json()
+            lambda response : response.json(),
+            timeout=self.request_timeout,
         )
 
     def get_log_file(
@@ -147,6 +166,7 @@ class Api:
             log_file_path,
             lambda response : stream_lines(response, chunk_size),
             stream=True,
+            timeout=self.request_timeout,
         )
 
     def list_limits(self, session: Session, api_ver: str = None) -> dict:
@@ -159,4 +179,5 @@ class Api:
             session,
             f'/services/data/v{ver}/limits/',
             lambda response : response.json(),
+            timeout=self.request_timeout,
         )

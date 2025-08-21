@@ -36,6 +36,13 @@ t_service_scheduler_mins = Text(
     prompt = "Minutes?"
 )
 
+i_request_timeout_min = 1
+i_request_timeout_max = 600
+t_request_timeout = Text(
+    desc = "The maximum time (in seconds) to wait for an authentication or API request to complete.",
+    prompt = f"Request timeout ({i_request_timeout_min}-{i_request_timeout_max})?"
+)
+
 i_num_instances_min = 1
 i_num_instances_max = 10
 t_num_instances = Text(

@@ -4,6 +4,7 @@ cron_interval_minutes: 60
 service_schedule:
   hour: "*"
   minute: "0,15,30,45"
+request_timeout: 30
 instances:
   - name: sfdc-logs
     arguments:

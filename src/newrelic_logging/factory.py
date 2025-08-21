@@ -60,16 +60,23 @@ class Factory:
                 token_url,
                 make_auth_from_config(instance_config.sub('auth')),
                 data_cache,
+                instance_config.get_int('request_timeout'),
             )
 
         return Authenticator(
             token_url,
             make_auth_from_env(instance_config),
-            data_cache
+            data_cache,
+            instance_config.get_int('request_timeout'),
         )
 
-    def new_api(self, authenticator: Authenticator, api_ver: str):
-        return Api(authenticator, api_ver)
+    def new_api(
+        self,
+        authenticator: Authenticator,
+        api_ver: str,
+        request_timeout: int,
+    ):
+        return Api(authenticator, api_ver, request_timeout)
 
     def new_pipeline(
         self,
@@ -108,6 +115,7 @@ class Factory:
         api = factory.new_api(
             factory.new_authenticator(instance_config, data_cache),
             instance_config.get('api_ver', '55.0'),
+            instance_config.get_int('request_timeout'),
         )
 
         p = factory.new_pipeline(
@@ -178,7 +186,7 @@ class Factory:
                 labels,
                 numeric_fields_list,
             ))
-        
+
         # Either create an integration with all instance or a single instance.
         if instance_index is None:
             for index, i in enumerate(config['instances']):
@@ -187,7 +195,11 @@ class Factory:
             i = config['instances'][instance_index]
             append_instance(i, instance_index)
 
-        return Integration(telemetry, instances)
+        return Integration(
+            telemetry,
+            instances,
+            config.get_int('request_timeout'),
+        )
 
     def new_new_relic(self, config: Config, data_format: DataFormat):
         license_key = config.get(
