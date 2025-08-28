@@ -7,7 +7,7 @@ from .config import Config
 from .http_session import new_retry_session
 from .newrelic import NewRelic
 from .telemetry import print_info
-from .util import maybe_convert_str_to_num
+from .util import maybe_convert_str_to_num, maybe_truncate_str
 
 
 DEFAULT_MAX_ROWS = 1000
@@ -70,11 +70,11 @@ def pack_log_into_event(
 
         if key in numeric_fields_list:
             log_event[key] = \
-                maybe_convert_str_to_num(value) if value \
+                maybe_truncate_str(maybe_convert_str_to_num(value)) if value \
                 else 0
             continue
 
-        log_event[key] = value
+        log_event[key] = maybe_truncate_str(value)
 
     log_event.update(labels)
     log_event['eventType'] = log_event.get('EVENT_TYPE', "UnknownSFEvent")

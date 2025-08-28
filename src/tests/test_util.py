@@ -206,6 +206,81 @@ class TestUtilities(unittest.TestCase):
         self.assertTrue(type(val) is str)
         self.assertEqual(val, 'not a number')
 
+    def test_maybe_truncate_str_non_string(self):
+        '''
+        maybe_truncate_str() returns input value given input value is not a string
+        given: an input value
+        when: maybe_truncate_str() is called
+        and when: the input value is not a string
+        then: returns the input value
+        '''
+
+        # execute
+        val = util.maybe_truncate_str(17)
+
+        # verify
+        self.assertIsInstance(val, int)
+        self.assertEqual(val, 17)
+
+    def test_maybe_truncate_str_string_length_less_than_4096(self):
+        '''
+        maybe_truncate_str() returns input value given input value is a string of less than 4096 characters in length
+        given: an input value
+        when: maybe_truncate_str() is called
+        and when: the input value is a string
+        and when: the length of the string is less than 4096 characters
+        then: returns the string
+        '''
+
+        # execute
+        val = util.maybe_truncate_str('this is not a long string')
+
+        # verify
+        self.assertIsInstance(val, str)
+        self.assertEqual(val, 'this is not a long string')
+
+    def test_maybe_truncate_str_string_length_equal_to_4096(self):
+        '''
+        maybe_truncate_str() returns input value given input value is a string of exactly 4096 characters in length
+        given: an input value
+        when: maybe_truncate_str() is called
+        and when: the input value is a string
+        and when: the length of the string is equal to 4096 characters
+        then: returns the string
+        '''
+
+        # setup
+        s = ''.join(['0' for _ in range(4096)])
+
+        # execute
+        val = util.maybe_truncate_str(s)
+
+        # verify
+        self.assertIsInstance(val, str)
+        self.assertEqual(val, s)
+
+    def test_maybe_truncate_str_string_length_greater_than_4096(self):
+        '''
+        maybe_truncate_str() returns input value truncated to 4096 characters in length given input value is a string greater than 4096 characters in length
+        given: an input value
+        when: maybe_truncate_str() is called
+        and when: the input value is a string
+        and when: the length of the string is greater than 4096 characters
+        then: returns the string truncated to 4096 characters in length
+        '''
+
+        # setup
+        s = ''.join(['0' for _ in range(5000)])
+        s1 = s[0:4096]
+
+        # execute
+        val = util.maybe_truncate_str(s)
+
+        # verify
+        self.assertIsInstance(val, str)
+        self.assertEqual(len(val), 4096)
+        self.assertEqual(val, s1)
+
     def test_get_iso_date_with_offset(self):
         _now = datetime.utcnow()
 

@@ -228,29 +228,88 @@ class TestPipeline(unittest.TestCase):
             in the 'attributes' field of the log
         and: an 'eventType' property set to the value of the `EVENT_TYPE`
             property of the log entry
-        and: attribute values for fields specified in the numeric fields set
-            are converted to numeric values
+        and: numeric string values for fields specified in the numeric fields
+            set are converted to numeric values
+        and: non-numeric string values for fields specified in the numeric
+            fields set are not converted to numeric values and are properly
+            truncated
         '''
 
         # setup
+        log_line = copy.deepcopy(self.log_lines[0])
+
+        # set one of the fields to a numeric floating point string value
+        log_line['REQUEST_SIZE'] = '8192.5'
+
+        # generate long strings to test that non-numeric string values for
+        # fields specified in the numeric fields set are properly truncated at
+        # 4096 characters - one that is exactly 4096 characters and one that is
+        # greater than 4096 characters
+        s = ''.join(['a' for _ in range(4096)])
+        t = ''.join(['b' for _ in range(5000)])
+
+        # manually generate the truncated value for `t` to test that the value
+        # is properly truncated when returned in the event
+        t1 = t[0:4096]
+
+        # replace two of the existing string fields with the generated long
+        # string values
+        log_line['SESSION_KEY'] = s
+        log_line['LOGIN_KEY'] = t
+
         log = {
             'message': 'Foo and Bar',
-            'attributes': self.log_lines[0]
+            'attributes': log_line,
         }
 
         # execute
         event = pipeline.pack_log_into_event(
             log,
             { 'foo': 'bar' },
-            set(['RUN_TIME', 'CPU_TIME', 'SUCCESS', 'URI']),
+            set([
+                'RUN_TIME',
+                'CPU_TIME',
+                'SUCCESS',
+                'REQUEST_SIZE',
+                'URI',
+                'SESSION_KEY',
+                'LOGIN_KEY',
+            ]),
         )
 
         # verify
-        self.assertEqual(len(event), len(self.log_lines[0]) + 2)
+        self.assertEqual(len(event), len(log_line) + 2)
+        self.assertTrue('eventType' in event)
+        self.assertEqual(event['eventType'], 'ApexCallout')
+        self.assertTrue('foo' in event)
+        self.assertEqual(event['foo'], 'bar')
+        self.assertTrue('RUN_TIME' in event)
         self.assertTrue(type(event['RUN_TIME']) == int)
+        self.assertEqual(event['RUN_TIME'], 2112)
+        self.assertTrue('CPU_TIME' in event)
         self.assertTrue(type(event['CPU_TIME']) == int)
+        self.assertEqual(event['CPU_TIME'], 10)
+        self.assertTrue('SUCCESS' in event)
         self.assertTrue(type(event['SUCCESS']) == int)
+        self.assertEqual(event['SUCCESS'], 1)
+        self.assertTrue('REQUEST_SIZE' in event)
+        self.assertTrue(type(event['REQUEST_SIZE']) == float)
+        self.assertEqual(event['REQUEST_SIZE'], 8192.5)
+        # non-numeric string value < 4096
+        self.assertTrue('URI' in event)
         self.assertTrue(type(event['URI']) == str)
+        self.assertEqual(len(event['URI']), len(log_line['URI']))
+        self.assertEqual(event['URI'], 'TEST-LOG-1')
+        # non-numeric string value == 4096
+        self.assertTrue('SESSION_KEY' in event)
+        self.assertTrue(type(event['SESSION_KEY']) == str)
+        self.assertEqual(len(event['SESSION_KEY']), 4096)
+        self.assertEqual(event['SESSION_KEY'], s)
+        # non-numeric string value > 4096
+        self.assertTrue('LOGIN_KEY' in event)
+        self.assertTrue(type(event['LOGIN_KEY']) == str)
+        self.assertEqual(len(event['LOGIN_KEY']), 4096)
+        self.assertEqual(event['LOGIN_KEY'], t1)
 
     def test_pack_log_into_event_returns_event_with_default_event_type_given_log_labels_and_empty_numeric_fields_set(self):
         '''
@@ -287,6 +346,53 @@ class TestPipeline(unittest.TestCase):
         self.assertEqual(len(event), len(log_lines[0]) + 2)
         self.assertTrue('eventType' in event)
         self.assertEqual(event['eventType'], 'UnknownSFEvent')
+
+    def test_pack_log_into_event_returns_event_with_default_event_type_and_truncates_strings_given_log_labels_and_empty_numeric_fields_set(self):
+        '''
+        pack_log_into_event() returns an event with properties for each attribute in the given log entry and the default event type where no attributes are converted to numeric values and strings are truncated to 4096 characters
+        given: a single log entry
+        and given: a dict of key:value pairs to use as labels
+        and given: a set of numeric field names
+        when: pack_log_into_event() is called
+        and when: the set of numeric field names is the empty set
+        and when: the log entry does not contain an 'EVENT_TYPE' property
+        and when: the log entry contains strings with length greater than 4096 characters
+        then: return a single event with a property for each attribute specified
+            in the 'attributes' field of the log
+        and: an 'eventType' property set to the default event type
+        and: the strings are truncated to 4096 characters
+        '''
+
+        # setup
+        s = ''.join(['0' for _ in range(5000)])
+        s1 = s[0:4096]
+        t = ''.join(['1' for _ in range(6000)])
+        t1 = t[0:4096]
+
+        log = {
+            'message': 'Foo and Bar',
+            'attributes': {'s': s, 't': t}
+        }
+
+        # execute
+        event = pipeline.pack_log_into_event(
+            log,
+            { 'foo': 'bar' },
+            set(),
+        )
+
+        # verify
+        self.assertEqual(len(event), 4)
+        self.assertTrue('eventType' in event)
+        self.assertEqual(event['eventType'], 'UnknownSFEvent')
+        self.assertTrue('foo' in event)
+        self.assertEqual(event['foo'], 'bar')
+        self.assertTrue('s' in event)
+        self.assertEqual(len(event['s']), 4096)
+        self.assertEqual(event['s'], s1)
+        self.assertTrue('t' in event)
+        self.assertEqual(len(event['t']), 4096)
+        self.assertEqual(event['t'], t1)
 
     def test_load_as_events_sends_one_request_when_log_entries_less_than_max_rows(self):
         '''

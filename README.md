@@ -1249,6 +1249,10 @@ Salesforce event log file data is mapped to New Relic data as follows.
        types from the [numeric fields mapping file](#numeric-fields-mapping-file),
        is converted to a numeric value. If the conversion fails, the value
        remains as a string.
+    1. String attributes (including non-numeric strings for fields specified in
+       the [numeric fields mapping file](#numeric-fields-mapping-file)) that
+       have a length greater than 4096 characters are automatically truncated to
+       4096 characters.
     1. The `eventType` of the event is set to the `EVENT_TYPE` attribute.
 
 Below is an example of an `EventLogFile` record, a single log message, and the
@@ -1666,6 +1670,11 @@ Query records are mapped to New Relic data as follows.
        `timestamp`, the `timestamp` for the New Relic log entry is set to the
        calculated timestamp value. Otherwise, the time of ingestion will be used
        as the timestamp of the log entry.
+1. If the target New Relic data type is an event, the calculated log entry is
+   converted to an event as described in the [event log file data mapping](#event-log-file-data-mapping),
+   with the exception that the `eventType` of the event is set to the value
+   `UnknownSFEvent` if the `EVENT_TYPE` attribute is not set in the `attributes`
+   of the calculated log entry.
 
 Below is an example of an SOQL query, a query result record, and the New Relic
 log entry or New Relic event that would result from the above transformation.
@@ -1835,6 +1844,14 @@ Limits data is mapped to New Relic data as follows.
        limit being processed.
     1. The `timestamp` for the New Relic log entry is set to the current time in
        milliseconds since the epoch.
+
+1. If the target New Relic data type is an event, the calculated log entry is
+   converted to an event as described in the [event log file data mapping](#event-log-file-data-mapping).
+
+   **NOTE:** While numeric field mapping conversion is applied to events
+   generated from the calculated log entries for limits data, there are no
+   attributes with non-numeric string values in log entries for limits data so
+   no conversion will be performed.
 
 Below is an example of an abridged result returned from the
 the [limits API](https://developer.salesforce.com/docs/atlas.en-us.api_rest.meta/api_rest/resources_limits.htm).
