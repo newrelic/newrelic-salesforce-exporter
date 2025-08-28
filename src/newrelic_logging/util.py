@@ -49,6 +49,14 @@ def maybe_convert_str_to_num(val: str) -> Union[int, str, float]:
             return val
 
 
+def maybe_truncate_str(val: Any) -> Any:
+    if isinstance(val, str):
+        if len(val) > 4096:
+            return val[0:4096]
+
+    return val
+
+
 def is_primitive(val: Any) -> bool:
     vt = type(val)
 
