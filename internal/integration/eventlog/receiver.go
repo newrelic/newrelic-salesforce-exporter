@@ -44,12 +44,7 @@ func (s *SalesforceLogsReceiver) GetId() string {
 }
 
 func (s *SalesforceLogsReceiver) PollLogs(context context.Context, writer chan<- model.Log) error {
-	log.Debugf("-----> PollLogs for instance '%s'", s.instanceConfig.Name)
-
-	poll(s, &LogsSender{writer})
-
-	log.Debugf("-----> END PollLogs for instance '%s'", s.instanceConfig.Name)
-	return nil
+	return poll(s, &LogsSender{writer})
 }
 
 /// Logs sender implementation of SalesforceReceiverInterface
@@ -100,12 +95,7 @@ func (s *SalesforceEventsReceiver) GetId() string {
 }
 
 func (s *SalesforceEventsReceiver) PollEvents(context context.Context, writer chan<- model.Event) error {
-	log.Debugf("-----> PollEvents for instance '%s'", s.instanceConfig.Name)
-
-	poll(s, &EventsSender{writer})
-
-	log.Debugf("-----> END PollEvents for instance '%s'", s.instanceConfig.Name)
-	return nil
+	return poll(s, &EventsSender{writer})
 }
 
 /// Events sender implementation of SalesforceReceiverInterface

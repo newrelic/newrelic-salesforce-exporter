@@ -64,8 +64,10 @@ func main() {
 
 	switch integrationConf.Format {
 	case "events":
+		log.Debugf("Output data format: Events")
 		createEventsPipeline(i, newRelicExporter)
 	case "logs":
+		log.Debugf("Output data format: Logs")
 		createLogsPipeline(i, newRelicExporter)
 	default:
 		log.Errorf("Format must be either 'events' or 'logs'")
