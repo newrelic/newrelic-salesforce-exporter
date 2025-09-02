@@ -167,5 +167,8 @@ func integrityCheck(conf *Config) error {
 	if minor != 0 {
 		log.Warnf("Conf file minor version is '%d', expected '0'", minor)
 	}
+	if conf.Format != "logs" && conf.Format != "events" {
+		return fmt.Errorf("Conf format must be either 'logs' or 'events'")
+	}
 	return nil
 }

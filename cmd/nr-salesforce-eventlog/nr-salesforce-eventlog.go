@@ -62,6 +62,28 @@ func main() {
 		i.DryRun,
 	)
 
+	switch integrationConf.Format {
+	case "events":
+		createEventsPipeline(i, newRelicExporter)
+	case "logs":
+		createLogsPipeline(i, newRelicExporter)
+	default:
+		log.Errorf("Format must be either 'events' or 'logs'")
+		os.Exit(1)
+	}
+
+	// Run the integration
+	defer i.Shutdown(ctx)
+ 	err = i.Run(ctx)
+	if err != nil {
+		log.Errorf("Error running Salesforce intergation = %s", err)
+		os.Exit(1)
+	}
+
+	log.Debugf("Finish integration")
+}
+
+func createEventsPipeline(i *integration.LabsIntegration, newRelicExporter *exporters.NewRelicExporter) {
 	ep := pipeline.NewEventsPipeline("sfdc-events-pipeline")
 	ep.AddExporter(newRelicExporter)
 
@@ -77,14 +99,22 @@ func main() {
 	}
 
 	i.AddComponent(ep)
+}
 
-	// Run the integration
-	defer i.Shutdown(ctx)
- 	err = i.Run(ctx)
-	if err != nil {
-		log.Errorf("Error running Salesforce intergation = %s", err)
-		os.Exit(1)
+func createLogsPipeline(i *integration.LabsIntegration, newRelicExporter *exporters.NewRelicExporter) {
+	ep := pipeline.NewLogsPipeline("sfdc-logs-pipeline")
+	ep.AddExporter(newRelicExporter)
+
+	// Add one Salesforce Logs Receiver component per instance
+	for _, instanceConfig  := range integrationConf.EventLog.Instances {
+		db := cache.BuildCache(instanceConfig.Cache)
+		sfdcReceiver, err := eventlog.NewSalesforceLogsReceiver(i, &instanceConfig, db)
+		if err != nil {
+			log.Errorf("Error creating Salesforce log receiver = %s", err)
+			os.Exit(1)
+		}
+		ep.AddReceiver(sfdcReceiver)
 	}
 
-	log.Debugf("Finish integration")
+	i.AddComponent(ep)
 }
