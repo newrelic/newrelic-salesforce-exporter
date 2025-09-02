@@ -36,8 +36,7 @@ type DataSenderInterface interface {
 type SalesforceLogsReceiver struct {
 	i              *integration.LabsIntegration
 	instanceConfig *config.EventLogInstance
-	//TODO: use a ref
-	db cache.Cache
+	db             cache.Cache
 }
 
 func (s *SalesforceLogsReceiver) GetId() string {
@@ -93,8 +92,7 @@ func (s *LogsSender) send(data any) {
 type SalesforceEventsReceiver struct {
 	i              *integration.LabsIntegration
 	instanceConfig *config.EventLogInstance
-	//TODO: use a ref
-	db cache.Cache
+	db             cache.Cache
 }
 
 func (s *SalesforceEventsReceiver) GetId() string {
@@ -141,7 +139,7 @@ func (s *EventsSender) send(data any) {
 	if ok {
 		s.writer <- event
 	} else {
-		log.Errorf("Event sender received a data object that is not an model.Event: %v", data)
+		log.Errorf("Event sender received a data object that is not a model.Event: %v", data)
 	}
 }
 
