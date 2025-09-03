@@ -116,11 +116,13 @@ type EventsSender struct {
 
 func (s *EventsSender) buildCsvLine(fields []string, line []string) any {
 	data := buildCsvLineData(fields, line)
+	truncLongStrings(&data)
 	return data.buildEvent()
 }
 
 func (s *EventsSender) buildCustom(record map[string]any, timestampAttr string) any {
 	data := buildCustomData(record, timestampAttr)
+	truncLongStrings(&data)
 	return data.buildEvent()
 }
 
@@ -136,17 +138,17 @@ func (s *EventsSender) send(data any) {
 /// Generic data builder
 
 type GenericSample struct {
-	message    string
+	text       string
 	attributes map[string]any
 	timestamp  time.Time
 }
 
 func (s *GenericSample) buildEvent() model.Event {
-	return model.NewEvent(s.message, s.attributes, s.timestamp)
+	return model.NewEvent(s.text, s.attributes, s.timestamp)
 }
 
 func (s *GenericSample) buildLog() model.Log {
-	return model.NewLog(s.message, s.attributes, s.timestamp)
+	return model.NewLog(s.text, s.attributes, s.timestamp)
 }
 
 func buildCsvLineData(fields []string, line []string) GenericSample {
@@ -201,6 +203,22 @@ func buildCustomData(record map[string]any, timestampAttr string) GenericSample 
 	return GenericSample{eventType, record, timestamp}
 }
 
+func truncLongStrings(sample *GenericSample) {
+	if len(sample.text) > 4096 {
+		sample.text = sample.text[:4096]
+		log.Debugf("Truncate sample 'text' that exceeds the 4096 limit")
+	}
+	for k := range sample.attributes {
+		v, ok := sample.attributes[k].(string)
+		if ok {
+			if len(v) > 4096 {
+				sample.attributes[k] = v[:4096]
+				log.Debugf("Truncate attribute '%s' string that exceeds the 4096 limit", k)
+			}
+		}
+	}
+}
+
 // Generic poll function, to be used in both receivers (events and logs)
 func poll(s SalesforceReceiverInterface, sender DataSenderInterface) error {
 	log.Debugf("-----> Poll for instance '%s'", s.getConfig().Name)
@@ -226,7 +244,6 @@ func poll(s SalesforceReceiverInterface, sender DataSenderInterface) error {
 		log.Debugf("Custom query = %+v", customQuery)
 
 		response, err := query.RequestCustomQuery(&customQuery, s.getConfig(), s.getDB(), since, until)
-		log.Debugf("%v", response)
 		if err != nil {
 			log.Errorf("Error in custom query: %s", err.Error())
 			continue
