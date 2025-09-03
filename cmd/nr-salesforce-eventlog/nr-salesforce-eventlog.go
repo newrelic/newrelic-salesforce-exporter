@@ -92,11 +92,7 @@ func createEventsPipeline(i *integration.LabsIntegration, newRelicExporter *expo
 	// Add one Salesforce Events Receiver component per instance
 	for _, instanceConfig  := range integrationConf.EventLog.Instances {
 		db := cache.BuildCache(instanceConfig.Cache)
-		sfdcReceiver, err := eventlog.NewSalesforceEventsReceiver(i, &instanceConfig, db)
-		if err != nil {
-			log.Errorf("Error creating Salesforce event receiver = %s", err)
-			os.Exit(1)
-		}
+		sfdcReceiver := eventlog.NewSalesforceEventsReceiver(i, &instanceConfig, db)
 		ep.AddReceiver(sfdcReceiver)
 	}
 
@@ -110,11 +106,7 @@ func createLogsPipeline(i *integration.LabsIntegration, newRelicExporter *export
 	// Add one Salesforce Logs Receiver component per instance
 	for _, instanceConfig  := range integrationConf.EventLog.Instances {
 		db := cache.BuildCache(instanceConfig.Cache)
-		sfdcReceiver, err := eventlog.NewSalesforceLogsReceiver(i, &instanceConfig, db)
-		if err != nil {
-			log.Errorf("Error creating Salesforce log receiver = %s", err)
-			os.Exit(1)
-		}
+		sfdcReceiver := eventlog.NewSalesforceLogsReceiver(i, &instanceConfig, db)
 		ep.AddReceiver(sfdcReceiver)
 	}
 

@@ -448,20 +448,20 @@ func processEventResponse(s SalesforceReceiverInterface, response *query.Generic
 	log.Debugf("Total events sent = %d", totalEventsSent)
 }
 
-func NewSalesforceEventsReceiver(i *integration.LabsIntegration, instanceConfig *config.EventLogInstance, db cache.Cache) (pipeline.EventsReceiver, error) {
+func NewSalesforceEventsReceiver(i *integration.LabsIntegration, instanceConfig *config.EventLogInstance, db cache.Cache) pipeline.EventsReceiver {
 	return &SalesforceEventsReceiver{
 		i:              i,
 		instanceConfig: instanceConfig,
 		db:             db,
-	}, nil
+	}
 }
 
-func NewSalesforceLogsReceiver(i *integration.LabsIntegration, instanceConfig *config.EventLogInstance, db cache.Cache) (pipeline.LogsReceiver, error) {
+func NewSalesforceLogsReceiver(i *integration.LabsIntegration, instanceConfig *config.EventLogInstance, db cache.Cache) pipeline.LogsReceiver {
 	return &SalesforceLogsReceiver{
 		i:              i,
 		instanceConfig: instanceConfig,
 		db:             db,
-	}, nil
+	}
 }
 
 type CsvContext struct {
