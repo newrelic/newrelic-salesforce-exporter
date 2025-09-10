@@ -38,7 +38,13 @@ func main() {
 		os.Exit(1)
 	}
 
-	common.FillCredentials(integrationConf.EventStream.Auth)
+	common.SetCredentials(integrationConf.EventStream.Auth)
+	
+	if integrationConf.EventStream.Appetite > 0 {
+		common.SetAppetite(integrationConf.EventStream.Appetite)
+	} else {
+		common.SetAppetite(10)
+	}
 
 	exporter := stream.NewExporter(i)
 

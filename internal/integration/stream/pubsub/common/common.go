@@ -7,9 +7,6 @@ import (
 )
 
 const (
-	// Number of events to ask for
-	Appetite int32 = 10
-
 	// gRPC server constants
 	GRPCEndpoint    = "api.pubsub.salesforce.com:7443"
 	GRPCDialTimeout = 5 * time.Second
@@ -17,10 +14,17 @@ const (
 )
 
 var (
+	// Number of events to ask for. Read from the config file or 10 if not specified
+	Appetite int32 = 0
+
 	// OAuth credentials
-	Auth          config.AuthConfig
+	Auth config.AuthConfig
 )
 
-func FillCredentials(auth config.AuthConfig) {
+func SetCredentials(auth config.AuthConfig) {
 	Auth = auth
+}
+
+func SetAppetite(appetite int32) {
+	Appetite = appetite
 }

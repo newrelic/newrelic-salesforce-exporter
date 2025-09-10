@@ -53,12 +53,16 @@ eventStream:
     # Auth section, described later
   cache:
     # Cache section, described later
+  appetite: 10
   topics:
     # Topics section, described later
 ```
 
 The `integrationName` must contain a descriptive name for the integration,
 something like `com.newrelic.labs.sfdc.eventstream` is recommended.
+
+The `appetite` must contain an integer with the maximum number of events to read
+per call. If unspecified, the default value is `10`.
 
 Any value within the `eventStream` section can be specified with an environment
 variable. To do that, just set `$ENV_VAR_NAME` as the value. Example:

@@ -43,6 +43,7 @@ type EventStreamConfig struct {
 	IntegrationName string       `mapstructure:"integrationName"`
 	Auth            AuthConfig   `mapstructure:"auth"`
 	Cache           *CacheConfig `mapstructure:"cache"`
+	Appetite        int32        `mapstructure:"appetite"`
 	Topics          []string     `mapstructure:"topics"`
 }
 
@@ -53,7 +54,7 @@ type EventLogInstance struct {
 	Cache               *CacheConfig        `mapstructure:"cache"`
 	EventTypes          []string            `mapstructure:"eventTypes"`
 	InitialTimeInterval TimeIntervalConfig  `mapstructure:"initialTimeInterval"`
-	SkipLogFiles		bool				`mapstructure:"skipLogFiles"`
+	SkipLogFiles        bool                `mapstructure:"skipLogFiles"`
 	CustomQueries       []CustomQueryConfig `mapstructure:"customQueries"`
 }
 
@@ -65,8 +66,8 @@ type CustomQueryConfig struct {
 
 type SoqlConfig struct {
 	Select []string `mapstructure:"select"`
-	From   string `mapstructure:"from"`
-	Where  string `mapstructure:"where"`
+	From   string   `mapstructure:"from"`
+	Where  string   `mapstructure:"where"`
 }
 
 type TimeIntervalConfig struct {

@@ -19,6 +19,7 @@ eventStream:
       dbNumber: 0
       password: "<PASSWORD HERE or empty if no password>"
       expireDays: 1
+  appetite: 50 # EDIT APPETITE HERE (maximum number of events to read per call)
   topics: # EDIT TOPICS HERE (events to capture)
     - "/event/LoginEventStream"
     - "/event/LogoutEventStream"
