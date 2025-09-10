@@ -134,6 +134,17 @@ func (c *PubSubClient) Subscribe(subsOpts SubscribeOpts) ([]byte, error) {
 	ctx, cancelFn := context.WithCancel(c.getAuthContext())
 	defer cancelFn()
 
+	// 60 is the maximum, if we don't get a response from Recv after 60 seconds, the connection is dead.
+	// After 60 seconds, if the connection is alive, Recv will receive an empty response if there are no events in the queue.
+	// Doc reference:
+	// https://developer.salesforce.com/docs/platform/pub-sub-api/guide/flow-control.html#keeping-the-subscription-stream-alive-from-the-client
+	timeoutDuration := 62*time.Second
+	timeoutTimer := time.AfterFunc(timeoutDuration, func() {
+		log.Warnf("Connection is dead, cancel it")
+		cancelFn()
+	})
+	defer timeoutTimer.Stop()
+
 	subscribeClient, err := c.pubSubClient.Subscribe(ctx)
 	if err != nil {
 		return subsOpts.ReplayId, err
@@ -171,10 +182,13 @@ func (c *PubSubClient) Subscribe(subsOpts SubscribeOpts) ([]byte, error) {
 	for {
 		log.Debugf("Waiting for events...")
 		resp, err := subscribeClient.Recv()
+		timeoutTimer.Reset(timeoutDuration)
 		if err == io.EOF {
+			log.Errorf("Recv IO EOF: %s", err)
 			printTrailer(subscribeClient.Trailer())
 			return curReplayId, fmt.Errorf("stream closed")
 		} else if err != nil {
+			log.Errorf("Recv error: %s", err)
 			printTrailer(subscribeClient.Trailer())
 			return curReplayId, err
 		}

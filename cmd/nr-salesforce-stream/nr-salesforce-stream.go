@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"sync"
+	"time"
 
 	"github.com/newrelic/newrelic-salesforce-exporter/internal/cache"
 	"github.com/newrelic/newrelic-salesforce-exporter/internal/config"
@@ -125,6 +126,7 @@ func subscribeToTopic(topicName string, ch chan<- map[string]any) {
 		curReplayId, err = client.Subscribe(subsOpts)
 		if err != nil {
 			log.Errorf("error occurred while subscribing to topic: %s", err)
+			time.Sleep(2*time.Second)
 		}
 	}
 }
