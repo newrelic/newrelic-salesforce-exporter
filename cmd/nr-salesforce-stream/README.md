@@ -49,11 +49,11 @@ The `eventStream` key contains the following structure:
 ```yaml
 eventStream:
   integrationName: "MY INTEGRATION NAME"
+  appetite: 10
   auth:
     # Auth section, described later
   cache:
     # Cache section, described later
-  appetite: 10
   topics:
     # Topics section, described later
 ```

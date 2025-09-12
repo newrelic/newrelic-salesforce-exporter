@@ -29,17 +29,30 @@ const (
 	tenantHeader   = "tenantid"
 )
 
+var LOGIN_LOCK = LoginLock {}
+
+type LoginLock struct {
+	Mutex    		sync.Mutex
+	lastAuthTime	time.Time
+}
+
+func (ll *LoginLock) ShouldLogin() bool {
+	// Last auth was less than 5 minutes ago?
+	return ll.lastAuthTime.Before(time.Now().Add(-5*time.Minute))
+}
+
+func (ll *LoginLock) DidLogin() {
+	ll.lastAuthTime = time.Now()
+}
+
 type PubSubClient struct {
-	accessToken string
-	instanceURL string
-
-	userID string
-	orgID  string
-
-	conn         *grpc.ClientConn
-	pubSubClient proto.PubSubClient
-
-	schemaCache map[string]*goavro.Codec
+	accessToken		string
+	instanceURL		string
+	userID 			string
+	orgID  			string
+	conn       		*grpc.ClientConn
+	pubSubClient	proto.PubSubClient
+	schemaCache		map[string]*goavro.Codec
 }
 
 // Closes the underlying connection to the gRPC server
@@ -49,7 +62,22 @@ func (c *PubSubClient) Close() {
 
 // Makes a call to the OAuth server to fetch credentials. Credentials are stored as part of the PubSubClient object so that they can be
 // referenced later in other methods
-func (c *PubSubClient) Authenticate() error {
+func (c *PubSubClient) Authenticate(db cache.Cache) error {
+	LOGIN_LOCK.Mutex.Lock()
+    defer LOGIN_LOCK.Mutex.Unlock()
+
+    if !LOGIN_LOCK.ShouldLogin() {
+		log.Debugf("Recently authenticated, try to use credentials from cache")
+		accessToken, _ := db.GetCacheVal("event_stream_access_token")
+		instanceUrl, _ := db.GetCacheVal("event_stream_instance_url")
+		if accessToken != nil && instanceUrl != nil {
+			log.Debugf("Using auth credentials from cache")
+			c.accessToken = accessToken.(string)
+			c.instanceURL = instanceUrl.(string)
+		}
+		return nil
+	}
+
 	resp, err := oauth.Login(common.Auth)
 	if err != nil {
 		return err
@@ -57,6 +85,13 @@ func (c *PubSubClient) Authenticate() error {
 
 	c.accessToken = resp.AccessToken
 	c.instanceURL = resp.InstanceURL
+
+	db.SetCacheVal("event_stream_access_token", c.accessToken)
+	db.SetCacheVal("event_stream_instance_url", c.instanceURL)
+
+	LOGIN_LOCK.DidLogin()
+
+	log.Debugf("Did login")
 
 	return nil
 }
@@ -130,7 +165,7 @@ type SubscribeOpts struct {
 // fetch data from the topic. This method will continuously consume messages unless an error occurs; if an error does occur then this method will
 // return the last successfully consumed ReplayId as well as the error message. If no messages were successfully consumed then this method will return
 // the same ReplayId that it originally received as a parameter
-func (c *PubSubClient) Subscribe(subsOpts SubscribeOpts) ([]byte, error) {
+func (c *PubSubClient) Subscribe(subsOpts SubscribeOpts, db cache.Cache) ([]byte, error) {
 	ctx, cancelFn := context.WithCancel(c.getAuthContext())
 	defer cancelFn()
 
@@ -189,7 +224,17 @@ func (c *PubSubClient) Subscribe(subsOpts SubscribeOpts) ([]byte, error) {
 			return curReplayId, fmt.Errorf("stream closed")
 		} else if err != nil {
 			log.Errorf("Recv error: %s", err)
-			printTrailer(subscribeClient.Trailer())
+			metadata := subscribeClient.Trailer()
+			printTrailer(metadata)
+
+			errorCode := metadata.Get("error-code")
+			if len(errorCode) > 0 {
+				if errorCode[0] == "sfdc.platform.eventbus.grpc.service.auth.error" {
+					log.Warnf("Auth credentials outdated, relogin")
+					c.Authenticate(db)
+				}
+			}
+
 			return curReplayId, err
 		}
 

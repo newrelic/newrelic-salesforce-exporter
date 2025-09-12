@@ -39,7 +39,7 @@ func main() {
 	}
 
 	common.SetCredentials(integrationConf.EventStream.Auth)
-	
+
 	if integrationConf.EventStream.Appetite > 0 {
 		common.SetAppetite(integrationConf.EventStream.Appetite)
 	} else {
@@ -93,7 +93,7 @@ func subscribeToTopic(topicName string, ch chan<- map[string]any) {
 	defer client.Close()
 
 	log.Debugf("Populating auth token...")
-	err = client.Authenticate()
+	err = client.Authenticate(db)
 	if err != nil {
 		client.Close()
 		log.Errorf("could not authenticate: %s", err)
@@ -129,7 +129,7 @@ func subscribeToTopic(topicName string, ch chan<- map[string]any) {
 			ReplayIdKey:  replayIdKey,
 		}
 
-		curReplayId, err = client.Subscribe(subsOpts)
+		curReplayId, err = client.Subscribe(subsOpts, db)
 		if err != nil {
 			log.Errorf("error occurred while subscribing to topic: %s", err)
 			time.Sleep(2*time.Second)
