@@ -74,8 +74,9 @@ func (c *PubSubClient) Authenticate(db cache.Cache) error {
 			log.Debugf("Using auth credentials from cache")
 			c.accessToken = accessToken.(string)
 			c.instanceURL = instanceUrl.(string)
+			return nil
 		}
-		return nil
+		// Could not read credentials from cache, just relogin then.
 	}
 
 	resp, err := oauth.Login(common.Auth)
