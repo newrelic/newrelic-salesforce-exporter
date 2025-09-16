@@ -21,13 +21,24 @@ eventStream:
       expireDays: 1
   appetite: 50 # EDIT APPETITE HERE (maximum number of events to read per call)
   topics: # EDIT TOPICS HERE (events to capture)
-    - "/event/LoginEventStream"
-    - "/event/LogoutEventStream"
-    - "/event/ReportEventStream"
-    - "/event/ApiEventStream"
-    - "/event/FileEvent"
-    - "/event/UriEventStream"
-    - "/event/LightningUriEventStream"
+    - /event/ApiEventStream
+    - /event/ApiAnomalyEvent
+    - /event/BulkApiResultEvent
+    - /event/ConcurLongRunApexErrEvent
+    - /event/CredentialStuffingEvent
+    - /event/FileEvent
+    - /event/GuestUserAnomalyEvent
+    - /event/LightningUriEventStream
+    - /event/ListViewEventStream
+    - /event/LoginEventStream
+    - /event/LoginAnomalyEvent
+    - /event/LoginAsEventStream
+    - /event/LogoutEventStream
+    - /event/PermissionSetEvent
+    - /event/ReportEventStream
+    - /event/ReportAnomalyEvent
+    - /event/SessionHijackingEvent
+    - /event/UriEventStream
 
 ### Config for the New Relic client
 
