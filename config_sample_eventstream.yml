@@ -12,13 +12,13 @@ eventStream:
       clientSecret: "<CLIENT SECRET HERE>"
       username: "<USER NAME HERE>"
       password: "<PASSWORD HERE>"
-  cache:  # Cache is optional, just remove it if you don't need de-duplication
+  cache:
     redis:
       host: "<REDIS SERVER HOST HERE>"
-      port: 6379
-      dbNumber: 0
+      port: 6379 # EDIT REDIS SERVER PORT HERE
+      dbNumber: 0 # EDIT REDIS SERVER DATABASE NUMBER HERE
       password: "<PASSWORD HERE or empty if no password>"
-      expireDays: 1
+      expireDays: 1 # EDIT KEY EXPIRATION TIME HERE
   appetite: 50 # EDIT APPETITE HERE (maximum number of events to read per call)
   topics: # EDIT TOPICS HERE (events to capture)
     - /event/ApiEventStream
