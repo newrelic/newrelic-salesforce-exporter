@@ -236,3 +236,17 @@ file:
 log:
   level: trace
 ```
+
+## Testing
+
+From the project's root folder run:
+
+```bash
+go test ./...
+```
+
+Or, for a more detailed output:
+
+```bash
+go test -v ./...
+```
