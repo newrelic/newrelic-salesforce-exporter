@@ -33,10 +33,10 @@ type CacheConfig struct {
 
 type RedisConfig struct {
 	Host       string `mapstructure:"host"`
-	Port       int    `mapstructure:"port"`
-	DbNumber   int    `mapstructure:"dbNumber"`
+	Port       uint    `mapstructure:"port"`
+	DbNumber   uint    `mapstructure:"dbNumber"`
 	Password   string `mapstructure:"password"`
-	ExpireDays int    `mapstructure:"expireDays"`
+	ExpireDays uint    `mapstructure:"expireDays"`
 }
 
 type EventStreamConfig struct {

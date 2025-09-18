@@ -33,10 +33,10 @@ func BuildCache(conf *config.CacheConfig) Cache {
 			labslog.Debugf("Using Redis cache")
 			redisDb := redis.NewRedisCache(redis.RedisConfig{
 				Host: conf.Redis.Host,
-				Port: conf.Redis.Port,
-				DbNumber: conf.Redis.DbNumber,
+				Port: int(conf.Redis.Port),
+				DbNumber: int(conf.Redis.DbNumber),
 				Password: conf.Redis.Password,
-				ExpireDays: conf.Redis.ExpireDays,
+				ExpireDays: int(conf.Redis.ExpireDays),
 			})
 			db = &redisDb
 		} else {

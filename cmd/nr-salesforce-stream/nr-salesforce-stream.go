@@ -33,7 +33,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err := stream.IntegrityCheck(integrationConf); err != nil {
+	if err := stream.IntegrityCheck(&integrationConf); err != nil {
 		log.Errorf("Error checking config integrity = %s", err)
 		os.Exit(1)
 	}

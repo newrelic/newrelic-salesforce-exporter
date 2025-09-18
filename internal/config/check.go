@@ -14,7 +14,7 @@ func CheckUrl(urlStr string) bool {
 	return true
 }
 
-func CheckAuth(auth AuthConfig) error {
+func CheckAuth(auth *AuthConfig) error {
 	if auth.TokenUrl == "" {
 		return errors.New("Empty 'auth.tokenUrl'")
 	}

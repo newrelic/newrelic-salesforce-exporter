@@ -7,11 +7,14 @@ import (
 )
 
 // Config checks specific to the event stream integration
-func IntegrityCheck(conf config.Config) error {
+func IntegrityCheck(conf *config.Config) error {
 	if conf.EventStream == nil {
 		return errors.New("Config eventStream must be defined")
 	}
-	if err := config.CheckAuth(conf.EventStream.Auth) ; err != nil {
+	if conf.EventStream.IntegrationName == "" {
+		return errors.New("Config eventStream integrationName must be defined")
+	}
+	if err := config.CheckAuth(&conf.EventStream.Auth) ; err != nil {
 		return err
 	}
 	if err := config.CheckUserPassCredentials(conf.EventStream.Auth.UserPass) ; err != nil {
