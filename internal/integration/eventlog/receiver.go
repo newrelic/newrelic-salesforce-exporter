@@ -168,7 +168,14 @@ func buildCsvLineData(fields []string, line []string) GenericSample {
 				log.Errorf("TIMESTAMP parsing failed, using 'now'")
 			}
 		default:
-			attr[label] = line[index]
+			fieldValue := line[index]
+			// Check if it's a numeric field or not
+			intField, err := strconv.Atoi(fieldValue)
+			if err == nil {
+				attr[label] = intField
+			} else {
+				attr[label] = fieldValue
+			}
 		}
 	}
 	return GenericSample{eventType, attr, timestamp}
