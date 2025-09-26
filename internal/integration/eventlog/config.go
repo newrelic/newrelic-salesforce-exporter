@@ -10,7 +10,10 @@ import (
 )
 
 // Default request timeout
-const defaultTimeout = 5
+const (
+	defaultApiVer	= "55.0"
+	defaultTimeout	= 5
+)
 
 // Config checks specific to the event log integration
 func IntegrityCheck(conf *config.Config) error {
@@ -42,8 +45,8 @@ func IntegrityCheck(conf *config.Config) error {
 			return err
 		}
 		if instance.ApiVer == "" {
-			log.Warnf("Config 'apiVer' not defined, using default: '55.0'")
-			instance.ApiVer = "55.0"
+			log.Warnf("Config 'apiVer' not defined, using default: '%s'", defaultApiVer)
+			instance.ApiVer = defaultApiVer
 		}
 		if instance.RequestTimeout == 0 {
 			instance.RequestTimeout = conf.EventLog.RequestTimeout
