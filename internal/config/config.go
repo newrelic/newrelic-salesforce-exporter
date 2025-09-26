@@ -33,10 +33,10 @@ type CacheConfig struct {
 
 type RedisConfig struct {
 	Host       string `mapstructure:"host"`
-	Port       uint    `mapstructure:"port"`
-	DbNumber   uint    `mapstructure:"dbNumber"`
+	Port       uint   `mapstructure:"port"`
+	DbNumber   uint   `mapstructure:"dbNumber"`
 	Password   string `mapstructure:"password"`
-	ExpireDays uint    `mapstructure:"expireDays"`
+	ExpireDays uint   `mapstructure:"expireDays"`
 }
 
 type EventStreamConfig struct {
@@ -56,6 +56,7 @@ type EventLogInstance struct {
 	InitialTimeInterval TimeIntervalConfig  `mapstructure:"initialTimeInterval"`
 	SkipLogFiles        bool                `mapstructure:"skipLogFiles"`
 	CustomQueries       []CustomQueryConfig `mapstructure:"customQueries"`
+	RequestTimeout      uint                `mapstructure:"requestTimeout"`
 }
 
 type CustomQueryConfig struct {
@@ -78,6 +79,7 @@ type TimeIntervalConfig struct {
 type EventLogConfig struct {
 	IntegrationName string             `mapstructure:"integrationName"`
 	Instances       []EventLogInstance `mapstructure:"instances"`
+	RequestTimeout  uint               `mapstructure:"requestTimeout"`
 }
 
 type Config struct {

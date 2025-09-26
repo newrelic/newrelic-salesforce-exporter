@@ -9,6 +9,9 @@ import (
 	"github.com/newrelic/newrelic-salesforce-exporter/internal/config"
 )
 
+// Default request timeout
+const defaultTimeout = 5
+
 // Config checks specific to the event log integration
 func IntegrityCheck(conf *config.Config) error {
 	if conf.EventLog == nil {
@@ -18,6 +21,9 @@ func IntegrityCheck(conf *config.Config) error {
 		return errors.New("Config eventLog->instances must contain at least one instance")
 	}
 	instanceNames := map[string]bool{}
+	if conf.EventLog.RequestTimeout == 0 {
+		conf.EventLog.RequestTimeout = defaultTimeout
+	}
 	for instanceIndex := range conf.EventLog.Instances {
 		instance := &conf.EventLog.Instances[instanceIndex]
 		_, ok := instanceNames[instance.Name]
@@ -38,6 +44,9 @@ func IntegrityCheck(conf *config.Config) error {
 		if instance.ApiVer == "" {
 			log.Warnf("Config 'apiVer' not defined, using default: '55.0'")
 			instance.ApiVer = "55.0"
+		}
+		if instance.RequestTimeout == 0 {
+			instance.RequestTimeout = conf.EventLog.RequestTimeout
 		}
 		for eventTypeIndex := range instance.EventTypes {
 			eventType := &instance.EventTypes[eventTypeIndex]

@@ -15,10 +15,6 @@ import (
 	"github.com/newrelic/newrelic-salesforce-exporter/internal/oauth"
 )
 
-const (
-	defaultTimeout = 5 * time.Second
-)
-
 // TODO: Support other auth flows:
 // (alreadys upported) Username-Password: https://help.salesforce.com/s/articleView?id=xcloud.remoteaccess_oauth_username_password_flow.htm&type=5
 // JWT: https://help.salesforce.com/s/articleView?id=xcloud.remoteaccess_oauth_jwt_flow.htm&type=5
@@ -76,6 +72,8 @@ func tokenCacheKey(conf *config.EventLogInstance) string {
 	return conf.Name + "_access_token"
 }
 
+// Request EventLogFile object.
+// Result: List of log files. Each one being a relative path to download a CSV file.
 func RequestLogFiles(conf *config.EventLogInstance, db cache.Cache, since time.Time, until time.Time) (EventLogfileResponse, error) {
 	soqlModel := MakeSoqlQuery("EventLogFile", "Id", "EventType", "LogDate", "LogFile")
 	soqlModel.AndWhere("Interval = 'Hourly'")
@@ -119,6 +117,8 @@ func RequestLogFiles(conf *config.EventLogInstance, db cache.Cache, since time.T
 	}
 }
 
+// Download a CSV file to disk.
+// Result: Local path to downloaded file.
 func DownloadCsvFile(conf *config.EventLogInstance, db cache.Cache, record *EventLogfileRecord) (string, error) {
 	resp, err := request(conf, db, conf.Auth.TokenUrl + record.LogFile, false)
 	if err != nil {
@@ -142,6 +142,8 @@ func DownloadCsvFile(conf *config.EventLogInstance, db cache.Cache, record *Even
 	}
 }
 
+// Send a SOQL request.
+// Result: response object.
 func RequestCustomQuery(customQuery *config.CustomQueryConfig, conf *config.EventLogInstance, db cache.Cache, since time.Time, until time.Time) (GenericEventResponse, error) {
 	soqlModel := MakeSoqlQuery(customQuery.Soql.From, customQuery.Soql.Select...)
 	soqlModel.AndWhere(customQuery.Soql.Where)
@@ -180,6 +182,7 @@ func RequestCustomQuery(customQuery *config.CustomQueryConfig, conf *config.Even
 	}
 }
 
+// Perform a generic request to Salesforce API.
 func request(conf *config.EventLogInstance, db cache.Cache, url string, isRetry bool) (*http.Response, error) {
 	accessToken, err := auth(conf, db)
 	if err != nil {
@@ -195,7 +198,7 @@ func request(conf *config.EventLogInstance, db cache.Cache, url string, isRetry 
 	req.Header.Add("Authorization", "Bearer " + accessToken)
 
 	client := http.DefaultClient
-	client.Timeout = defaultTimeout
+	client.Timeout = time.Duration(conf.RequestTimeout) * time.Second
 
 	resp, err := client.Do(req)
 
