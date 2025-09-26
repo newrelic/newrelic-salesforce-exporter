@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"path/filepath"
 	"runtime"
 	"time"
 
@@ -228,5 +229,5 @@ func getUserAgent() string {
 }
 
 func csvFilePath(record *EventLogfileRecord) string {
-	return "/tmp/" + record.Id + ".csv"
+	return filepath.Join(os.TempDir(), record.Id + ".csv")
 }
