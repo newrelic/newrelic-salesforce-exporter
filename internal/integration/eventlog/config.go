@@ -9,10 +9,12 @@ import (
 	"github.com/newrelic/newrelic-salesforce-exporter/internal/config"
 )
 
-// Default request timeout
 const (
-	defaultApiVer	= "55.0"
-	defaultTimeout	= 5
+	defaultApiVer  = "55.0"
+	defaultTimeout = 5
+	apiNameRest    = "rest"
+	apiNameTooling = "tooling"
+	defaultApiName = apiNameRest
 )
 
 // Config checks specific to the event log integration
@@ -35,13 +37,13 @@ func IntegrityCheck(conf *config.Config) error {
 		} else {
 			instanceNames[instance.Name] = true
 		}
-		if err := config.CheckAuth(&instance.Auth) ; err != nil {
+		if err := config.CheckAuth(&instance.Auth); err != nil {
 			return err
 		}
-		if err := config.CheckUserPassCredentials(instance.Auth.UserPass) ; err != nil {
+		if err := config.CheckUserPassCredentials(instance.Auth.UserPass); err != nil {
 			return err
 		}
-		if err := config.CheckCache(instance.Cache) ; err != nil {
+		if err := config.CheckCache(instance.Cache); err != nil {
 			return err
 		}
 		if instance.ApiVer == "" {
@@ -64,6 +66,14 @@ func IntegrityCheck(conf *config.Config) error {
 			}
 			if customQuery.Timestamp == "" {
 				return fmt.Errorf("All custom queries must contain a 'timestamp' attribute")
+			}
+			switch customQuery.ApiName {
+			case "":
+				customQuery.ApiName = defaultApiName
+			case apiNameRest, apiNameTooling:
+				// do nothing
+			default:
+				return fmt.Errorf("The 'apiName' must be either '%s' or '%s'", apiNameRest, apiNameTooling)
 			}
 			if customQuery.Soql.From == "" {
 				return fmt.Errorf("All custom queries must contain a SOQL 'from' definition")

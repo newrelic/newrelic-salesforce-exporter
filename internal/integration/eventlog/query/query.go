@@ -154,7 +154,19 @@ func RequestCustomQuery(customQuery *config.CustomQueryConfig, conf *config.Even
 
 	log.Debugf("Run custom SOQL query: %s", soql)
 
-	url := conf.Auth.TokenUrl + "/services/data/v" + customQuery.ApiVer + "/query?q=" + soql
+	// Base URL
+	url := conf.Auth.TokenUrl + "/services/data/v" + customQuery.ApiVer
+
+	if customQuery.ApiName == "rest" {
+		// REST API
+		url += "/query"
+	} else {
+		// TOOLING API
+		url += "/tooling/query"
+	}
+
+	// Add SOQL query
+	url += "?q=" + soql
 
 	resp, err := request(conf, db, url, false)
 	if err != nil {

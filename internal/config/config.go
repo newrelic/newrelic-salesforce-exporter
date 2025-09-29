@@ -63,6 +63,7 @@ type CustomQueryConfig struct {
 	Soql      SoqlConfig `mapstructure:"soql"`
 	ApiVer    string     `mapstructure:"apiVer"`
 	Timestamp string     `mapstructure:"timestamp"`
+	ApiName   string     `mapstructure:"apiName"`
 }
 
 type SoqlConfig struct {
