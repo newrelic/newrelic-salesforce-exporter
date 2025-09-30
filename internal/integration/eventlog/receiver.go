@@ -467,7 +467,7 @@ func processEventResponse(s SalesforceReceiverInterface, response *query.Generic
 			}
 		} else {
 			if !dedupWarningWasShown {
-				log.Warnf("Events of type '%s' do not have an 'Id' field, can't de-duplicate", customQuery.Soql.From)
+				log.Warnf("Events of type '%s' do not have an 'Id' field, can't de-duplicate. Check the 'select' field for the correspondig 'soql' query in the 'customQueries' config.", customQuery.Soql.From)
 				dedupWarningWasShown = true
 			}
 
