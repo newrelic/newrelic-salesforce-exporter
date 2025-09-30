@@ -452,6 +452,7 @@ func addToCache(s SalesforceReceiverInterface, id string) {
 
 func processEventResponse(s SalesforceReceiverInterface, response *query.GenericEventResponse, sender DataSenderInterface, customQuery *config.CustomQueryConfig) {
 	totalEventsSent := 0
+	dedupWarningWasShown := false
 
 	for _, record := range response.Records {
 		id, idPresent := record["Id"].(string)
@@ -465,7 +466,14 @@ func processEventResponse(s SalesforceReceiverInterface, response *query.Generic
 				log.Debugf("Event already processed, ignoring (Id = %s)", id)
 			}
 		} else {
-			log.Warnf("Event does not have an 'Id' field, ignoring")
+			if !dedupWarningWasShown {
+				log.Warnf("Events of type '%s' do not have an 'Id' field, can't de-duplicate", customQuery.Soql.From)
+				dedupWarningWasShown = true
+			}
+
+			data := sender.buildCustom(record, customQuery.Timestamp)
+			sender.send(data)
+			totalEventsSent += 1
 		}
 	}
 
