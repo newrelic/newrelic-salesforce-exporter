@@ -62,9 +62,25 @@ func IntegrityCheck(conf *config.Config) error {
 		}
 		for customQueryIndex := range instance.CustomQueries.Queries {
 			customQuery := &instance.CustomQueries.Queries[customQueryIndex]
-			err := CheckCustomQuery(customQuery, instance.ApiVer)
-			if err != nil {
-				return nil
+			if customQuery.ApiVer == "" {
+				customQuery.ApiVer = instance.ApiVer
+			}
+			if customQuery.Timestamp == "" {
+				return fmt.Errorf("All custom queries must contain a 'timestamp' attribute")
+			}
+			switch customQuery.ApiName {
+			case "":
+				customQuery.ApiName = defaultApiName
+			case apiNameRest, apiNameTooling:
+				// do nothing
+			default:
+				return fmt.Errorf("The 'apiName' must be either '%s' or '%s'", apiNameRest, apiNameTooling)
+			}
+			if customQuery.Soql.From == "" {
+				return fmt.Errorf("All custom queries must contain a SOQL 'from' definition")
+			}
+			if len(customQuery.Soql.Select) == 0 {
+				return fmt.Errorf("All custom queries must contain at least one SOQL 'select' attribute")
 			}
 		}
 	}
@@ -72,31 +88,20 @@ func IntegrityCheck(conf *config.Config) error {
 	return nil
 }
 
-func CheckCustomQuery(customQuery *config.QueryConfig, instanceApiVer string) error {
-	if customQuery.ApiVer == "" {
-		customQuery.ApiVer = instanceApiVer
+func ParseQueryFiles(files []string, instanceApiVer string) ([]config.QueryConfig, error) {
+	queries := []config.QueryConfig{}
+	for index := range files {
+		query, err := readExternalQueryConf(files[index])
+		if err != nil {
+			return nil, fmt.Errorf("Could not read file '%s': %s", files[index], err)
+		} else {
+			queries = append(queries, query...)
+		}
 	}
-	if customQuery.Timestamp == "" {
-		return fmt.Errorf("All custom queries must contain a 'timestamp' attribute")
-	}
-	switch customQuery.ApiName {
-	case "":
-		customQuery.ApiName = defaultApiName
-	case apiNameRest, apiNameTooling:
-		// do nothing
-	default:
-		return fmt.Errorf("The 'apiName' must be either '%s' or '%s'", apiNameRest, apiNameTooling)
-	}
-	if customQuery.Soql.From == "" {
-		return fmt.Errorf("All custom queries must contain a SOQL 'from' definition")
-	}
-	if len(customQuery.Soql.Select) == 0 {
-		return fmt.Errorf("All custom queries must contain at least one SOQL 'select' attribute")
-	}
-	return nil
+	return queries, nil
 }
 
-func ReadExternalQueryConf(file string) ([]config.QueryConfig, error) {
+func readExternalQueryConf(file string) ([]config.QueryConfig, error) {
 	localViper := viper.New()
 	localViper.SetConfigFile(file)
 	err := localViper.ReadInConfig()

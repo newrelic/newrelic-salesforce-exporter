@@ -47,6 +47,17 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Read external query files and merge them into the main config
+	for index := range integrationConf.EventLog.Instances {
+		instance := &integrationConf.EventLog.Instances[index]
+		queries, err := eventlog.ParseQueryFiles(instance.CustomQueries.Files, instance.ApiVer)
+		if err != nil {
+			log.Errorf("Error parsing external query files = %s", err)
+			os.Exit(1)
+		}
+		instance.CustomQueries.Queries = append(instance.CustomQueries.Queries, queries...)
+	}
+
 	if err := eventlog.IntegrityCheck(&integrationConf); err != nil {
 		log.Errorf("Error checking config integrity = %s", err)
 		os.Exit(1)
