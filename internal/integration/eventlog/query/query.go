@@ -145,7 +145,7 @@ func DownloadCsvFile(conf *config.EventLogInstance, db cache.Cache, record *Even
 
 // Send a SOQL request.
 // Result: response object.
-func RequestCustomQuery(customQuery *config.CustomQueryConfig, conf *config.EventLogInstance, db cache.Cache, since time.Time, until time.Time) (GenericEventResponse, error) {
+func RequestCustomQuery(customQuery *config.QueryConfig, conf *config.EventLogInstance, db cache.Cache, since time.Time, until time.Time) (GenericEventResponse, error) {
 	soqlModel := MakeSoqlQuery(customQuery.Soql.From, customQuery.Soql.Select...)
 	soqlModel.AndWhere(customQuery.Soql.Where)
 	soqlModel.AndWhere(customQuery.Timestamp + " >= " + since.UTC().Format(time.RFC3339))

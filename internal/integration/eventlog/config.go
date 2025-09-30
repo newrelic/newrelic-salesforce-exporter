@@ -7,6 +7,7 @@ import (
 
 	"github.com/newrelic/newrelic-labs-sdk/v2/pkg/integration/log"
 	"github.com/newrelic/newrelic-salesforce-exporter/internal/config"
+	"github.com/spf13/viper"
 )
 
 const (
@@ -59,30 +60,52 @@ func IntegrityCheck(conf *config.Config) error {
 				return fmt.Errorf("Instance '%s' contains an invalid event type: '%s'.", instance.Name, *eventType)
 			}
 		}
-		for customQueryIndex := range instance.CustomQueries {
-			customQuery := &instance.CustomQueries[customQueryIndex]
-			if customQuery.ApiVer == "" {
-				customQuery.ApiVer = instance.ApiVer
-			}
-			if customQuery.Timestamp == "" {
-				return fmt.Errorf("All custom queries must contain a 'timestamp' attribute")
-			}
-			switch customQuery.ApiName {
-			case "":
-				customQuery.ApiName = defaultApiName
-			case apiNameRest, apiNameTooling:
-				// do nothing
-			default:
-				return fmt.Errorf("The 'apiName' must be either '%s' or '%s'", apiNameRest, apiNameTooling)
-			}
-			if customQuery.Soql.From == "" {
-				return fmt.Errorf("All custom queries must contain a SOQL 'from' definition")
-			}
-			if len(customQuery.Soql.Select) == 0 {
-				return fmt.Errorf("All custom queries must contain at least one SOQL 'select' attribute")
+		for customQueryIndex := range instance.CustomQueries.Queries {
+			customQuery := &instance.CustomQueries.Queries[customQueryIndex]
+			err := CheckCustomQuery(customQuery, instance.ApiVer)
+			if err != nil {
+				return nil
 			}
 		}
 	}
 
 	return nil
+}
+
+func CheckCustomQuery(customQuery *config.QueryConfig, instanceApiVer string) error {
+	if customQuery.ApiVer == "" {
+		customQuery.ApiVer = instanceApiVer
+	}
+	if customQuery.Timestamp == "" {
+		return fmt.Errorf("All custom queries must contain a 'timestamp' attribute")
+	}
+	switch customQuery.ApiName {
+	case "":
+		customQuery.ApiName = defaultApiName
+	case apiNameRest, apiNameTooling:
+		// do nothing
+	default:
+		return fmt.Errorf("The 'apiName' must be either '%s' or '%s'", apiNameRest, apiNameTooling)
+	}
+	if customQuery.Soql.From == "" {
+		return fmt.Errorf("All custom queries must contain a SOQL 'from' definition")
+	}
+	if len(customQuery.Soql.Select) == 0 {
+		return fmt.Errorf("All custom queries must contain at least one SOQL 'select' attribute")
+	}
+	return nil
+}
+
+func ReadExternalQueryConf(file string) ([]config.QueryConfig, error) {
+	localViper := viper.New()
+	localViper.SetConfigFile(file)
+	err := localViper.ReadInConfig()
+	if err != nil {
+		return nil, err
+	}
+	queryConf := config.ExternalQueryFileConfig{}
+	if err := localViper.Unmarshal(&queryConf); err != nil {
+		return nil, err
+	}
+	return queryConf.Queries, nil
 }

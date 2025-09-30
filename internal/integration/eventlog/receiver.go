@@ -247,7 +247,11 @@ func poll(s SalesforceReceiverInterface, sender DataSenderInterface) error {
 		}
 	}
 
-	for _, customQuery := range s.getConfig().CustomQueries {
+	customQueries := &s.getConfig().CustomQueries
+	queries := customQueries.Queries
+	queries = append(queries, parseQueryFiles(s, customQueries.Files)...)
+
+	for _, customQuery := range queries {
 		log.Debugf("Custom query = %+v", customQuery)
 
 		response, err := query.RequestCustomQuery(&customQuery, s.getConfig(), s.getDB(), since, until)
@@ -262,6 +266,30 @@ func poll(s SalesforceReceiverInterface, sender DataSenderInterface) error {
 	log.Debugf("-----> END Poll for instance '%s'", s.getConfig().Name)
 
 	return nil
+}
+
+func parseQueryFiles(s SalesforceReceiverInterface, files []string) []config.QueryConfig {
+	queries := []config.QueryConfig{}
+	for index := range files {
+		query, err := ReadExternalQueryConf(files[index])
+		if err != nil {
+			log.Warnf("Could not read external query file '%s': %s", files[index], err)
+		} else {
+			queries = append(queries, query...)
+		}
+	}
+
+	checkedQueries := []config.QueryConfig{}
+	for index := range queries {
+		err := CheckCustomQuery(&queries[index], s.getConfig().ApiVer)
+		if err == nil {
+			checkedQueries = append(checkedQueries, queries[index])
+		} else {
+			log.Warnf("Error checking external query file config: %s", err)
+		}
+	}
+	
+	return checkedQueries
 }
 
 func getTimeRange(s SalesforceReceiverInterface) time.Time {
@@ -450,7 +478,7 @@ func addToCache(s SalesforceReceiverInterface, id string) {
 	}
 }
 
-func processEventResponse(s SalesforceReceiverInterface, response *query.GenericEventResponse, sender DataSenderInterface, customQuery *config.CustomQueryConfig) {
+func processEventResponse(s SalesforceReceiverInterface, response *query.GenericEventResponse, sender DataSenderInterface, customQuery *config.QueryConfig) {
 	totalEventsSent := 0
 	dedupWarningWasShown := false
 

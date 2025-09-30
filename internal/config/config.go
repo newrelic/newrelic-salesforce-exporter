@@ -48,18 +48,27 @@ type EventStreamConfig struct {
 }
 
 type EventLogInstance struct {
-	Name                string              `mapstructure:"name"`
-	ApiVer              string              `mapstructure:"apiVer"`
-	Auth                AuthConfig          `mapstructure:"auth"`
-	Cache               *CacheConfig        `mapstructure:"cache"`
-	EventTypes          []string            `mapstructure:"eventTypes"`
-	InitialTimeInterval TimeIntervalConfig  `mapstructure:"initialTimeInterval"`
-	SkipLogFiles        bool                `mapstructure:"skipLogFiles"`
-	CustomQueries       []CustomQueryConfig `mapstructure:"customQueries"`
-	RequestTimeout      uint                `mapstructure:"requestTimeout"`
+	Name                string             `mapstructure:"name"`
+	ApiVer              string             `mapstructure:"apiVer"`
+	Auth                AuthConfig         `mapstructure:"auth"`
+	Cache               *CacheConfig       `mapstructure:"cache"`
+	EventTypes          []string           `mapstructure:"eventTypes"`
+	InitialTimeInterval TimeIntervalConfig `mapstructure:"initialTimeInterval"`
+	SkipLogFiles        bool               `mapstructure:"skipLogFiles"`
+	CustomQueries       CustomQueryConfig  `mapstructure:"customQueries"`
+	RequestTimeout      uint               `mapstructure:"requestTimeout"`
 }
 
 type CustomQueryConfig struct {
+	Queries []QueryConfig `mapstructure:"queries"`
+	Files   []string      `mapstructure:"files"`
+}
+
+type ExternalQueryFileConfig struct {
+	Queries []QueryConfig `mapstructure:"queries"`
+}
+
+type QueryConfig struct {
 	Soql      SoqlConfig `mapstructure:"soql"`
 	ApiVer    string     `mapstructure:"apiVer"`
 	Timestamp string     `mapstructure:"timestamp"`
