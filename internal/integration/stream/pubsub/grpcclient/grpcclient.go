@@ -5,6 +5,7 @@ import (
 	"crypto/x509"
 	"fmt"
 	"io"
+	"net/http"
 	"strings"
 	"sync"
 	"time"
@@ -27,6 +28,7 @@ const (
 	tokenHeader    = "accesstoken"
 	instanceHeader = "instanceurl"
 	tenantHeader   = "tenantid"
+	userInfoEndpoint = "/services/oauth2/userinfo"
 )
 
 var LOGIN_LOCK = LoginLock {}
@@ -34,6 +36,11 @@ var LOGIN_LOCK = LoginLock {}
 type LoginLock struct {
 	Mutex    		sync.Mutex
 	lastAuthTime	time.Time
+}
+
+type UserInfoResponse struct {
+	UserID         string `json:"user_id"`
+	OrganizationID string `json:"organization_id"`
 }
 
 func (ll *LoginLock) ShouldLogin() bool {
@@ -100,7 +107,7 @@ func (c *PubSubClient) Authenticate(db cache.Cache) error {
 // Makes a call to the OAuth server to fetch user info. User info is stored as part of the PubSubClient object so that it can be referenced
 // later in other methods
 func (c *PubSubClient) FetchUserInfo() error {
-	resp, err := oauth.UserInfo(common.Auth.TokenUrl, c.accessToken)
+	resp, err := UserInfo(common.Auth.TokenUrl, c.accessToken)
 	if err != nil {
 		return err
 	}
@@ -109,6 +116,37 @@ func (c *PubSubClient) FetchUserInfo() error {
 	c.orgID = resp.OrganizationID
 
 	return nil
+}
+
+func UserInfo(tokenEndpoint string, accessToken string) (*UserInfoResponse, error) {
+	ctx, cancelFn := context.WithTimeout(context.Background(), common.GRPCCallTimeout)
+	defer cancelFn()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, tokenEndpoint+userInfoEndpoint, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", accessToken))
+
+	httpResp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	defer httpResp.Body.Close()
+
+	if httpResp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("non-200 status code returned on OAuth user info call: %v", httpResp.StatusCode)
+	}
+
+	var userInfoResponse UserInfoResponse
+	err = json.NewDecoder(httpResp.Body).Decode(&userInfoResponse)
+	if err != nil {
+		return nil, err
+	}
+
+	return &userInfoResponse, nil
 }
 
 // Wrapper function around the GetTopic RPC. This will add the OAuth credentials and make a call to fetch data about a specific topic
