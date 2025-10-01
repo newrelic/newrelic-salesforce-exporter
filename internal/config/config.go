@@ -57,6 +57,12 @@ type EventLogInstance struct {
 	SkipLogFiles        bool               `mapstructure:"skipLogFiles"`
 	CustomQueries       CustomQueryConfig  `mapstructure:"customQueries"`
 	RequestTimeout      uint               `mapstructure:"requestTimeout"`
+	Limits              LimitsConfig       `mapstructure:"limits"`
+}
+
+type LimitsConfig struct {
+	ApiVer string   `mapstructure:"apiVer"`
+	Names  []string `mapstructure:"names"`
 }
 
 type CustomQueryConfig struct {

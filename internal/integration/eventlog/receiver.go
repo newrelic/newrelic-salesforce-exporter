@@ -28,6 +28,7 @@ type SalesforceReceiverInterface interface {
 type DataSenderInterface interface {
 	buildCsvLine(fields []string, line []string) any
 	buildCustom(record map[string]any, timestampAttr string) any
+	buildLimit(name string, limit query.SingleLimitResponse) any
 	send(any)
 }
 
@@ -70,6 +71,11 @@ func (s *LogsSender) buildCsvLine(fields []string, line []string) any {
 
 func (s *LogsSender) buildCustom(record map[string]any, timestampAttr string) any {
 	data := buildCustomData(record, timestampAttr)
+	return data.buildLog()
+}
+
+func (s *LogsSender) buildLimit(name string, limit query.SingleLimitResponse) any {
+	data := buildLimit(name, limit)
 	return data.buildLog()
 }
 
@@ -123,6 +129,11 @@ func (s *EventsSender) buildCsvLine(fields []string, line []string) any {
 func (s *EventsSender) buildCustom(record map[string]any, timestampAttr string) any {
 	data := buildCustomData(record, timestampAttr)
 	truncLongStrings(&data)
+	return data.buildEvent()
+}
+
+func (s *EventsSender) buildLimit(name string, limit query.SingleLimitResponse) any {
+	data := buildLimit(name, limit)
 	return data.buildEvent()
 }
 
@@ -210,6 +221,18 @@ func buildCustomData(record map[string]any, timestampAttr string) GenericSample 
 	return GenericSample{eventType, record, timestamp}
 }
 
+func buildLimit(name string, limit query.SingleLimitResponse) GenericSample {
+	data := GenericSample{
+		text: name,
+		attributes: map[string]any{
+			"limitMax": limit.Max,
+			"limitRemaining": limit.Remaining,
+		},
+		timestamp: time.Now(),
+	}
+	return data
+}
+
 func truncLongStrings(sample *GenericSample) {
 	if len(sample.text) > 4096 {
 		sample.text = sample.text[:4096]
@@ -234,6 +257,7 @@ func poll(s SalesforceReceiverInterface, sender DataSenderInterface) error {
 	until := time.Now()
 	setLastRunIntoCache(s, until)
 
+	// Collect event logs
 	if !s.getConfig().SkipLogFiles {
 		log.Debugf("Request logs since: %v", since)
 
@@ -247,6 +271,7 @@ func poll(s SalesforceReceiverInterface, sender DataSenderInterface) error {
 		}
 	}
 
+	// Collect custom queries data
 	for _, customQuery := range s.getConfig().CustomQueries.Queries {
 		log.Debugf("Custom query = %+v", customQuery)
 
@@ -257,6 +282,14 @@ func poll(s SalesforceReceiverInterface, sender DataSenderInterface) error {
 		}
 
 		processEventResponse(s, &response, sender, &customQuery)
+	}
+
+	// Collect org limits
+	limits, err := query.RequestLimits(s.getConfig(), s.getDB())
+	if err != nil {
+		log.Errorf("Error requesting org limis: %s", err.Error())
+	} else {
+		processLimitsResponse(limits, sender)
 	}
 
 	log.Debugf("-----> END Poll for instance '%s'", s.getConfig().Name)
@@ -478,6 +511,13 @@ func processEventResponse(s SalesforceReceiverInterface, response *query.Generic
 	}
 
 	log.Debugf("Total events sent = %d", totalEventsSent)
+}
+
+func processLimitsResponse(response map[string]query.SingleLimitResponse, sender DataSenderInterface) {
+	for name, limit := range response {
+		data := sender.buildLimit(name, limit)
+		sender.send(data)
+	}
 }
 
 func NewSalesforceEventsReceiver(i *integration.LabsIntegration, instanceConfig *config.EventLogInstance, db cache.Cache) pipeline.EventsReceiver {

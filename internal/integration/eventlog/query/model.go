@@ -2,6 +2,11 @@ package query
 
 import "strings"
 
+type SingleLimitResponse struct {
+	Max       int `json:"Max"`
+	Remaining int `json:"Remaining"`
+}
+
 type GenericEventResponse struct {
 	TotalSize int              `json:"totalSize"`
 	Done      bool             `json:"done"`

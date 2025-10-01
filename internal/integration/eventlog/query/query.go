@@ -195,6 +195,51 @@ func RequestCustomQuery(customQuery *config.QueryConfig, conf *config.EventLogIn
 	}
 }
 
+// Request Salesforce Org limits
+// Result: list of limits.
+func RequestLimits(conf *config.EventLogInstance, db cache.Cache) (map[string]SingleLimitResponse, error) {
+	limitsConf := &conf.Limits
+	url := conf.Auth.TokenUrl + "/services/data/v" + limitsConf.ApiVer + "/limits"
+
+	resp, err := request(conf, db, url, false)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == 200 {
+		respBytes, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return nil, err
+		}
+
+		var response map[string]SingleLimitResponse
+		err = json.Unmarshal(respBytes, &response)
+		if err != nil {
+			return nil, err
+		}
+
+		jresp,_ := json.MarshalIndent(response, "", "    ")
+		log.Debugf("Query result:\n%s", string(jresp))
+
+		if len(limitsConf.Names) == 0 {
+			return response, nil
+		} else {
+			// Filter limits
+			filteredResponse := map[string]SingleLimitResponse{}
+			for _, limitName := range limitsConf.Names {
+				limit, limitExists := response[limitName]
+				if limitExists {
+					filteredResponse[limitName] = limit
+				}
+			}
+			return filteredResponse, nil
+		}
+	} else {
+		return nil, fmt.Errorf("Unexpected status code %d", resp.StatusCode)
+	}
+}
+
 // Perform a generic request to Salesforce API.
 func request(conf *config.EventLogInstance, db cache.Cache, url string, isRetry bool) (*http.Response, error) {
 	accessToken, err := auth(conf, db)

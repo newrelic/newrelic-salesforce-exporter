@@ -83,6 +83,9 @@ func IntegrityCheck(conf *config.Config) error {
 				return fmt.Errorf("All custom queries must contain at least one SOQL 'select' attribute")
 			}
 		}
+		if instance.Limits.ApiVer == "" {
+			instance.Limits.ApiVer = instance.ApiVer
+		}
 	}
 
 	return nil
