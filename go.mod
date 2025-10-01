@@ -46,6 +46,7 @@ require (
 )
 
 require (
+	github.com/golang-jwt/jwt/v5 v5.3.0
 	github.com/golang/snappy v0.0.1 // indirect
 	github.com/newrelic/newrelic-labs-sdk/v2 v2.3.0
 	golang.org/x/net v0.38.0 // indirect
