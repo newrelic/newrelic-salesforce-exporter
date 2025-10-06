@@ -60,8 +60,8 @@ func IntegrityCheck(conf *config.Config) error {
 				return fmt.Errorf("Instance '%s' contains an invalid event type: '%s'.", instance.Name, *eventType)
 			}
 		}
-		for customQueryIndex := range instance.CustomQueries.Queries {
-			customQuery := &instance.CustomQueries.Queries[customQueryIndex]
+		for customQueryIndex := range instance.CustomQueries {
+			customQuery := &instance.CustomQueries[customQueryIndex]
 			if customQuery.ApiVer == "" {
 				customQuery.ApiVer = instance.ApiVer
 			}

@@ -57,7 +57,8 @@ type EventLogInstance struct {
 	FieldMapping        FieldMappingConfig `mapstructure:"fieldMapping"`
 	InitialTimeInterval TimeIntervalConfig `mapstructure:"initialTimeInterval"`
 	SkipLogFiles        bool               `mapstructure:"skipLogFiles"`
-	CustomQueries       CustomQueryConfig  `mapstructure:"customQueries"`
+	CustomQueryFiles    []string           `mapstructure:"customQueryFiles"`
+	CustomQueries       []QueryConfig      `mapstructure:"customQueries"`
 	RequestTimeout      uint               `mapstructure:"requestTimeout"`
 	Limits              LimitsConfig       `mapstructure:"limits"`
 }
@@ -72,11 +73,6 @@ type FieldMappingFileModel struct {
 type LimitsConfig struct {
 	ApiVer string   `mapstructure:"apiVer"`
 	Names  []string `mapstructure:"names"`
-}
-
-type CustomQueryConfig struct {
-	Queries []QueryConfig `mapstructure:"queries"`
-	Files   []string      `mapstructure:"files"`
 }
 
 type ExternalQueryFileConfig struct {

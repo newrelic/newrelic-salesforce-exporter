@@ -285,7 +285,7 @@ func poll(s SalesforceReceiverInterface, sender DataSenderInterface) error {
 	}
 
 	// Collect custom queries data
-	for _, customQuery := range s.getConfig().CustomQueries.Queries {
+	for _, customQuery := range s.getConfig().CustomQueries {
 		log.Debugf("Custom query = %+v", customQuery)
 
 		response, err := query.RequestCustomQuery(&customQuery, s.getConfig(), s.getDB(), since, until)
