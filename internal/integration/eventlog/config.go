@@ -104,6 +104,20 @@ func ParseQueryFiles(files []string, instanceApiVer string) ([]config.QueryConfi
 	return queries, nil
 }
 
+func ParseMappingFile(file string) (config.FieldMappingConfig, error) {
+	localViper := viper.New()
+	localViper.SetConfigFile(file)
+	err := localViper.ReadInConfig()
+	if err != nil {
+		return config.FieldMappingConfig{}, err
+	}
+	mappingConf := config.FieldMappingFileModel{}
+	if err := localViper.Unmarshal(&mappingConf); err != nil {
+		return config.FieldMappingConfig{}, err
+	}
+	return mappingConf.Mapping, nil
+}
+
 func readExternalQueryConf(file string) ([]config.QueryConfig, error) {
 	localViper := viper.New()
 	localViper.SetConfigFile(file)

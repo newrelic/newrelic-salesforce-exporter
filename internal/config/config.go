@@ -53,11 +53,20 @@ type EventLogInstance struct {
 	Auth                AuthConfig         `mapstructure:"auth"`
 	Cache               *CacheConfig       `mapstructure:"cache"`
 	EventTypes          []string           `mapstructure:"eventTypes"`
+	FieldMappingFile    string             `mapstructure:"fieldMappingFile"`
+	FieldMapping        FieldMappingConfig `mapstructure:"fieldMapping"`
 	InitialTimeInterval TimeIntervalConfig `mapstructure:"initialTimeInterval"`
 	SkipLogFiles        bool               `mapstructure:"skipLogFiles"`
 	CustomQueries       CustomQueryConfig  `mapstructure:"customQueries"`
 	RequestTimeout      uint               `mapstructure:"requestTimeout"`
 	Limits              LimitsConfig       `mapstructure:"limits"`
+}
+
+type FieldNames = []string
+type FieldMappingConfig = map[string]FieldNames
+
+type FieldMappingFileModel struct {
+	Mapping FieldMappingConfig `mapstructure:"mapping"`
 }
 
 type LimitsConfig struct {

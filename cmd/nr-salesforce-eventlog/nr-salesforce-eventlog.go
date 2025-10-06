@@ -47,15 +47,26 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Read external query files and merge them into the main config
 	for index := range integrationConf.EventLog.Instances {
 		instance := &integrationConf.EventLog.Instances[index]
+
+		// Read external query files and merge them into the main config
 		queries, err := eventlog.ParseQueryFiles(instance.CustomQueries.Files, instance.ApiVer)
 		if err != nil {
 			log.Errorf("Error parsing external query files = %s", err)
 			os.Exit(1)
 		}
 		instance.CustomQueries.Queries = append(instance.CustomQueries.Queries, queries...)
+
+		// Read field mapping
+		if instance.FieldMappingFile != "" {
+			mapping, err := eventlog.ParseMappingFile(instance.FieldMappingFile)
+			if err != nil {
+				log.Errorf("Error parsing field mapping files = %s", err)
+				os.Exit(1)
+			}
+			instance.FieldMapping = mapping
+		}
 	}
 
 	if err := eventlog.IntegrityCheck(&integrationConf); err != nil {

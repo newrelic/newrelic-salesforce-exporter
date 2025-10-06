@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/newrelic/newrelic-labs-sdk/v2/pkg/integration"
@@ -20,13 +21,21 @@ import (
 
 const MaxLinesToRead = 100
 
+type FieldMapping = map[string]bool
+
+type CsvFile struct {
+	FilePath     string
+	EventType    string
+	FieldMapping FieldMapping
+}
+
 type SalesforceReceiverInterface interface {
 	getConfig() *config.EventLogInstance
 	getDB() cache.Cache
 }
 
 type DataSenderInterface interface {
-	buildCsvLine(fields []string, line []string) any
+	buildCsvLine(fields []string, line []string, fieldMaping FieldMapping) any
 	buildCustom(record map[string]any, timestampAttr string) any
 	buildLimit(name string, limit query.SingleLimitResponse) any
 	send(any)
@@ -64,8 +73,8 @@ type LogsSender struct {
 	writer chan<- model.Log
 }
 
-func (s *LogsSender) buildCsvLine(fields []string, line []string) any {
-	data := buildCsvLineData(fields, line)
+func (s *LogsSender) buildCsvLine(fields []string, line []string, fieldMapping FieldMapping) any {
+	data := buildCsvLineData(fields, line, fieldMapping)
 	return data.buildLog()
 }
 
@@ -120,8 +129,8 @@ type EventsSender struct {
 	writer chan<- model.Event
 }
 
-func (s *EventsSender) buildCsvLine(fields []string, line []string) any {
-	data := buildCsvLineData(fields, line)
+func (s *EventsSender) buildCsvLine(fields []string, line []string, fieldMapping FieldMapping) any {
+	data := buildCsvLineData(fields, line, fieldMapping)
 	truncLongStrings(&data)
 	return data.buildEvent()
 }
@@ -162,7 +171,7 @@ func (s *GenericSample) buildLog() model.Log {
 	return model.NewLog(s.text, s.attributes, s.timestamp)
 }
 
-func buildCsvLineData(fields []string, line []string) GenericSample {
+func buildCsvLineData(fields []string, line []string, fieldMapping FieldMapping) GenericSample {
 	eventType := "SFDCUndefinedEvent"
 	timestamp := time.Now()
 	attr := map[string]any{}
@@ -179,6 +188,10 @@ func buildCsvLineData(fields []string, line []string) GenericSample {
 				log.Errorf("TIMESTAMP parsing failed, using 'now'")
 			}
 		default:
+			if len(fieldMapping) > 0 && !fieldMapping[label] {
+				// This field is not mapped, skip it
+				continue
+			}
 			fieldValue := line[index]
 			// Check if it's a numeric field or not
 			intField, err := strconv.Atoi(fieldValue)
@@ -354,10 +367,10 @@ func lastRunCacheKey(s SalesforceReceiverInterface) string {
 	return s.getConfig().Name + "_last_run_ts"
 }
 
-func sendCsv(csvContext *CsvContext, sender DataSenderInterface) {
+func sendCsv(csvContext *CsvContext, sender DataSenderInterface, fieldMapping FieldMapping) {
 	log.Debugf("Sending %d lines...", len(csvContext.Lines))
 	for _, line := range csvContext.Lines {
-		data := sender.buildCsvLine(csvContext.Labels, line)
+		data := sender.buildCsvLine(csvContext.Labels, line, fieldMapping)
 		sender.send(data)
 		log.Debugf("NEW SAMPLE -> %#v", data)
 	}
@@ -370,12 +383,14 @@ func processLogFilesResponse(s SalesforceReceiverInterface, response *query.Even
 	totalEventsSent := 0
 
 	// Download CSV files
-	filePaths := downloadCsvFiles(s, response)
+	csvFiles := downloadCsvFiles(s, response)
 
 	// Parse CSV and generate events
-	for _, filePath := range filePaths {
-		log.Debugf("Parrse a CSV file: %s", filePath)
-		csvContext, err := parseCsvFile(filePath)
+	for _, csvFile := range csvFiles {
+		log.Debugf("Parse a CSV file: %+v", csvFile.FilePath)
+		log.Debugf("Field mapping for current file: %+v", csvFile.FieldMapping)
+
+		csvContext, err := parseCsvFile(csvFile)
 		if err != nil {
 			break
 		}
@@ -387,7 +402,7 @@ func processLogFilesResponse(s SalesforceReceiverInterface, response *query.Even
 
 			totalEventsSent += len(csvContext.Lines)
 
-			sendCsv(csvContext, sender)
+			sendCsv(csvContext, sender, csvFile.FieldMapping)
 
 			if csvContext.DidFinish {
 				break
@@ -398,17 +413,17 @@ func processLogFilesResponse(s SalesforceReceiverInterface, response *query.Even
 	log.Debugf("Total logfile events sent = %d", totalEventsSent)
 
 	// Delete all temp CSV files
-	for _, filePath := range filePaths {
-		err := os.Remove(filePath)
+	for _, csvFile := range csvFiles {
+		err := os.Remove(csvFile.FilePath)
 		if err != nil {
 			log.Errorf("Error deleting CSV file: %s", err.Error())
 		}
 	}
 }
 
-func downloadCsvFiles(s SalesforceReceiverInterface, response *query.EventLogfileResponse) []string {
+func downloadCsvFiles(s SalesforceReceiverInterface, response *query.EventLogfileResponse) []CsvFile {
 	// Download CSV files
-	filePaths := []string{}
+	csvFiles := []CsvFile{}
 	for _, record := range response.Records {
 		if notCached(s, record.Id) {
 			filePath, err := query.DownloadCsvFile(s.getConfig(), s.getDB(), &record)
@@ -416,18 +431,35 @@ func downloadCsvFiles(s SalesforceReceiverInterface, response *query.EventLogfil
 				log.Errorf("Error downloading CSV: %s", err.Error())
 			} else {
 				log.Debugf("Downloaded file at '%s'", filePath)
-				filePaths = append(filePaths, filePath)
-				addToCache(s, record.Id)
+				csvFiles = append(csvFiles, buildCsvFile(s, filePath, &record))
 			}
 		} else {
 			log.Debugf("Logs already processed, ignoring (Id = %s)", record.Id)
 		}
 	}
-	return filePaths
+	return csvFiles
 }
 
-func parseCsvFile(filePath string) (*CsvContext, error) {
-	file, err := os.Open(filePath)
+func buildCsvFile(s SalesforceReceiverInterface, filePath string, record *query.EventLogfileRecord) CsvFile {
+	// Get field mapping for curret event type
+	// NOTE: viper's mapstructure lowercases all map keys: https://github.com/spf13/viper/issues/373
+	fields, eventFound := s.getConfig().FieldMapping[strings.ToLower(record.EventType)]
+	if !eventFound {
+		fields = []string{}
+	}
+	// Generate field mapping
+	fieldMapping := FieldMapping{}
+	for _, field := range fields {
+		fieldMapping[field] = true
+	}
+	// Add log record Id to cache
+	addToCache(s, record.Id)
+	
+	return CsvFile{filePath, record.EventType, fieldMapping}
+}
+
+func parseCsvFile(csvFile CsvFile) (*CsvContext, error) {
+	file, err := os.Open(csvFile.FilePath)
 	if err != nil {
 		return &CsvContext{}, err
 	}
