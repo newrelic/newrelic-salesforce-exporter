@@ -70,4 +70,4 @@ runAsService: false # EDIT RUN MODE HERE, OR REMOVE
 pipeline:
   harvestInterval: 120 # EDIT HARVEST INTERVAL HERE, OR REMOVE
 
-interval: 30
+interval: 30 # EDIT EXECUTION INTERVAL HERE, OR REMOVE

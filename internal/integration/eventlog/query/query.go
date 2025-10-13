@@ -16,12 +16,6 @@ import (
 	"github.com/newrelic/newrelic-salesforce-exporter/internal/oauth"
 )
 
-// TODO: Support other auth flows:
-// (alreadys upported) Username-Password: https://help.salesforce.com/s/articleView?id=xcloud.remoteaccess_oauth_username_password_flow.htm&type=5
-// JWT: https://help.salesforce.com/s/articleView?id=xcloud.remoteaccess_oauth_jwt_flow.htm&type=5
-// Client credentials: https://help.salesforce.com/s/articleView?id=xcloud.remoteaccess_oauth_client_credentials_flow.htm&type=5
-// Only JWT supports token refresh
-
 func auth(conf *config.EventLogInstance, db cache.Cache) (string, error) {
 	accessToken, ok := getTokenFromCache(conf, db).(string)
 	if ok {
