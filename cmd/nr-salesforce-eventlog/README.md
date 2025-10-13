@@ -87,7 +87,10 @@ eventLog:
 It will get the value of `integragtionName` from the environment variable named
 `INTEGRATION`.
 
-#### `integrationName`
+Each one of the config keys within `eventLog` are described in the following
+sections.
+
+#### - `integrationName`
 
 | Valid Values | Required | Default |
 | --- | --- | --- |
@@ -96,7 +99,7 @@ It will get the value of `integragtionName` from the environment variable named
 It must contain a descriptive name for the integration. Something like
 `com.newrelic.labs.sfdc.eventlog` is recommended.
 
-#### `requestTimeout`
+#### - `requestTimeout`
 
 | Valid Values | Required | Default |
 | --- | --- | --- |
@@ -104,7 +107,7 @@ It must contain a descriptive name for the integration. Something like
 
 Timeout in seconds for API requests sent to Salesforce.
 
-#### `instances`
+#### - `instances`
 
 | Valid Values | Required | Default |
 | --- | --- | --- |
@@ -114,7 +117,7 @@ Is a list of `instance` structures, each one contains the description of a singl
 Salesforce instance. It must contain at least one instance. Each instance contains
 the following keys:
 
-##### `name`
+##### - `name`
 
 | Valid Values | Required | Default |
 | --- | --- | --- |
@@ -123,7 +126,7 @@ the following keys:
 A descriptive instance name. Names can't be repeated, each instance must have a
 different name.
 
-##### `apiVer`
+##### - `apiVer`
 
 | Valid Values | Required | Default |
 | --- | --- | --- |
@@ -131,7 +134,7 @@ different name.
 
 API version numbers used to access the Salesforce APIs.
 
-##### `requestTimeout`
+##### - `requestTimeout`
 
 | Valid Values | Required | Default |
 | --- | --- | --- |
@@ -141,7 +144,7 @@ Timeout in seconds for API requests sent to Salesforce, for current instance. If
 defined, it has precedence over the `requestTimeout` defined for the entire
 integration.
 
-##### `initialTimeInterval`
+##### - `initialTimeInterval`
 
 | Valid Values | Required | Default |
 | --- | --- | --- |
@@ -162,7 +165,7 @@ of the previous request (`last_run_ts`). This `last_run_ts` is stored in the
 cache. If the cache is not present, then `initialTimeInterval` will be used for
 every request, not only the first one.
 
-##### `auth`
+##### - `auth`
 
 | Valid Values | Required | Default |
 | --- | --- | --- |
@@ -188,7 +191,7 @@ following structure:
 - `username`: Username for the OAuth User-Password flow.
 - `Password`: Password for the OAuth User-Password flow.
 
-##### `cache`
+##### - `cache`
 
 | Valid Values | Required | Default |
 | --- | --- | --- |
@@ -217,7 +220,7 @@ Currently we support Redis DB:
 - `password`: Redis password. Or `""` if no password.
 - `expireDays`: Expiration time for keys in days. `0` means no expiration time.
 
-##### `skipLogFiles`
+##### - `skipLogFiles`
 
 | Valid Values | Required | Default |
 | --- | --- | --- |
@@ -225,7 +228,7 @@ Currently we support Redis DB:
 
 If `true`, it won't request event log files.
 
-##### `eventTypes`
+##### - `eventTypes`
 
 | Valid Values | Required | Default |
 | --- | --- | --- |
@@ -244,7 +247,7 @@ It has the following structure:
 If present, the integration will request the listed [event types](https://developer.salesforce.com/docs/atlas.en-us.object_reference.meta/object_reference/sforce_api_objects_eventlogfile_supportedeventtypes.htm)
 only. If not present or empty, it will request all event types.
 
-##### `fieldMapping`
+##### - `fieldMapping`
 
 | Valid Values | Required | Default |
 | --- | --- | --- |
@@ -266,7 +269,7 @@ not all attributes are required, we can filter and only get the events we need.
 
 If not present, all attributes will be reported.
 
-##### `fieldMappingFile`
+##### - `fieldMappingFile`
 
 | Valid Values | Required | Default |
 | --- | --- | --- |
@@ -288,7 +291,7 @@ The file has the following format:
 `fieldMapping` and `fieldMappingFile` are mutually exclusive, if both are
 defined, `fieldMappingFile` takes precedence.
 
-##### `customQueries`
+##### - `customQueries`
 
 | Valid Values | Required | Default |
 | --- | --- | --- |
@@ -329,7 +332,7 @@ the API version defined in the instance, or the integration. Optional.
 - `timestamp`: Which attribute from the object represents the timestamp. Required.
 - `apiName`: Which API we want to use, `rest` or `tooling`. Default `rest`. Optional.
 
-##### `customQueryFiles`
+##### - `customQueryFiles`
 
 | Valid Values | Required | Default |
 | --- | --- | --- |
@@ -358,7 +361,7 @@ Each file has the following structure:
 Where each entry in `queries` is a query structure like the ones defined before,
 in the `customQueries` section.
 
-##### `limits`
+##### - `limits`
 
 | Valid Values | Required | Default |
 | --- | --- | --- |
@@ -384,7 +387,8 @@ If empty, all limits will be reported.
 
 ### New Relic credentials
 
-Credentials to inject data to New Relic.
+After the `eventLog` config, we have the New Relic credentials, required to 
+inject data.
 
 ```yaml
 licenseKey: "<LICENSE KEY HERE>"
@@ -393,10 +397,84 @@ region: "<REGION HERE>"
 format: "<FORMAT HERE>"
 ```
 
-- `licenseKey`: A New Relic license key with permissions to inject data. It can
+#### - `licenseKey`
+
+| Valid Values | Required | Default |
+| --- | --- | --- |
+| String | Yes | N/A |
+
+A New Relic license key with permissions to inject data. It can
 also be specified using the `NR_LICENSE_KEY` environment variable.
-- `accountId`: The account ID where the license key was created. It can also be
+
+
+#### - `accountId`
+
+| Valid Values | Required | Default |
+| --- | --- | --- |
+| Numeric string | Yes | N/A |
+
+The account ID where the license key was created. It can also be
 specified using the `NR_ACCOUNT_ID` environment variable.
-- `region`: The region of your account ID: Either `US` or `EU`.
-- `format`: The data format we want to inject to New Relic: Either `events` or
+
+#### - `region`
+
+| Valid Values | Required | Default |
+| --- | --- | --- |
+| "US" or "EU" | No | US |
+
+The region of your account ID: Either `US` or `EU`.
+
+#### - `format`
+
+| Valid Values | Required | Default |
+| --- | --- | --- |
+| "events" or "logs" | Yes | N/A |
+
+The data format we want to inject to New Relic: Either `events` or
 `logs`.
+
+### Integration lifecycle
+
+The last block of config keys contains settings for the integration lifecycles.
+
+```yaml
+runAsService: false 
+
+pipeline:
+  harvestInterval: 120
+
+interval: 30
+```
+
+#### - `runAsService`
+
+| Valid Values | Required | Default |
+| --- | --- | --- |
+| Boolean | No | false |
+
+If `true` the integration will run continuously. If `false`, it will run one
+cycle and finish. A single cycle is composed of:
+
+  1. Downloading event log files
+  1. Requesting custom queries
+  1. Getting limits
+
+For each one of the `instances` defined in the config file.
+
+#### - `harvestInterval`
+
+| Valid Values | Required | Default |
+| --- | --- | --- |
+| Number | No | 60 |
+
+Data harvest interval in seconds. If `runAsService` is true, it defines the
+periods in which the integration will send data to New Relic.
+
+#### - `interval`
+
+| Valid Values | Required | Default |
+| --- | --- | --- |
+| Number | No | 60 |
+
+Integration execution interval. If `runAsService` is true, it defines the periods
+in which the integration will run a cycle.

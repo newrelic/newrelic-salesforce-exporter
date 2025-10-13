@@ -62,3 +62,12 @@ licenseKey: "<LICENSE KEY HERE>"
 accountId: "<ACCOUNT ID HERE>"
 region: "<REGION HERE>" # either "EU" or "US"
 format: "<FORMAT HERE>" # either "events" or "logs"
+
+### Config for the integration lifecycle
+
+runAsService: false # EDIT RUN MODE HERE, OR REMOVE
+
+pipeline:
+  harvestInterval: 120 # EDIT HARVEST INTERVAL HERE, OR REMOVE
+
+interval: 30
