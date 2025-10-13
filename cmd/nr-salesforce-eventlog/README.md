@@ -134,6 +134,9 @@ different name.
 
 API version numbers used to access the Salesforce APIs.
 
+> NOTE: API version is not checked. User is responsible for providing a valid
+> [Salesforce API version](https://developer.salesforce.com/docs/atlas.en-us.api_rest.meta/api_rest/dome_versions.htm).
+
 ##### - `requestTimeout`
 
 | Valid Values | Required | Default |
