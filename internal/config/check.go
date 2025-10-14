@@ -21,6 +21,16 @@ func CheckAuth(auth *AuthConfig) error {
 	if !CheckUrl(auth.TokenUrl) {
    		return errors.New("Invalid URL 'auth.tokenUrl'")
 	}
+	definedAuthMethods := 0
+	if auth.UserPass != nil {
+		definedAuthMethods += 1
+	}
+	if auth.Jwt != nil {
+		definedAuthMethods += 1
+	}
+	if definedAuthMethods != 1 {
+		return errors.New("Exactly one auth methode must be defined")
+	}
 	if auth.UserPass != nil {
 		err := checkUserPassCredentials(auth.UserPass)
 		if err != nil {
