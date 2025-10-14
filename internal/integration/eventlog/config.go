@@ -23,6 +23,9 @@ func IntegrityCheck(conf *config.Config) error {
 	if conf.EventLog == nil {
 		return errors.New("Config eventLog must be defined")
 	}
+	if conf.EventLog.IntegrationName == "" {
+		return errors.New("Config eventLog integrationName must be defined")
+	}
 	if len(conf.EventLog.Instances) == 0 {
 		return errors.New("Config eventLog->instances must contain at least one instance")
 	}
