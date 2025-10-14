@@ -44,9 +44,6 @@ func IntegrityCheck(conf *config.Config) error {
 		if err := config.CheckAuth(&instance.Auth); err != nil {
 			return err
 		}
-		if err := config.CheckUserPassCredentials(instance.Auth.UserPass); err != nil {
-			return err
-		}
 		if err := config.CheckCache(instance.Cache); err != nil {
 			return err
 		}

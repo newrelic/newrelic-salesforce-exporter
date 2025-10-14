@@ -18,6 +18,7 @@ import (
 type AuthConfig struct {
 	TokenUrl string        `mapstructure:"tokenUrl"`
 	UserPass *UserPassAuth `mapstructure:"userPass"`
+	Jwt      *JwtAuth      `mapstructure:"jwt"`
 }
 
 type UserPassAuth struct {
@@ -25,6 +26,12 @@ type UserPassAuth struct {
 	ClientSecret string `mapstructure:"clientSecret"`
 	Username     string `mapstructure:"username"`
 	Password     string `mapstructure:"password"`
+}
+
+type JwtAuth struct {
+	ClientId     string `mapstructure:"clientId"`
+	PrivateKey   string `mapstructure:"privateKey"`
+	Username     string `mapstructure:"username"`
 }
 
 type CacheConfig struct {

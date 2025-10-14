@@ -17,9 +17,6 @@ func IntegrityCheck(conf *config.Config) error {
 	if err := config.CheckAuth(&conf.EventStream.Auth) ; err != nil {
 		return err
 	}
-	if err := config.CheckUserPassCredentials(conf.EventStream.Auth.UserPass) ; err != nil {
-		return err
-	}
 	if err := config.CheckCache(conf.EventStream.Cache) ; err != nil {
 		return err
 	}

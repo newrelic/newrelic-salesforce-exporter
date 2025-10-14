@@ -21,10 +21,22 @@ func CheckAuth(auth *AuthConfig) error {
 	if !CheckUrl(auth.TokenUrl) {
    		return errors.New("Invalid URL 'auth.tokenUrl'")
 	}
+	if auth.UserPass != nil {
+		err := checkUserPassCredentials(auth.UserPass)
+		if err != nil {
+			return err
+		}
+	}
+	if auth.Jwt != nil {
+		err := checkJwtCredentials(auth.Jwt)
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
-func CheckUserPassCredentials(userPassAuth *UserPassAuth) error {
+func checkUserPassCredentials(userPassAuth *UserPassAuth) error {
 	if userPassAuth == nil {
 		return errors.New("Undefined userPass credentials")
 	}
@@ -39,6 +51,22 @@ func CheckUserPassCredentials(userPassAuth *UserPassAuth) error {
 	}
 	if userPassAuth.Password == "" {
 		return errors.New("Empty 'userPass.password'")
+	}
+	return nil
+}
+
+func checkJwtCredentials(jwtAuth *JwtAuth) error {
+	if jwtAuth == nil {
+		return errors.New("Undefined jwt credentials")
+	}
+	if jwtAuth.ClientId == "" {
+		return errors.New("Empty 'jwt.clientId'")
+	}
+	if jwtAuth.PrivateKey == "" {
+		return errors.New("Empty 'jwt.privateKey'")
+	}
+	if jwtAuth.Username == "" {
+		return errors.New("Empty 'jwt.username'")
 	}
 	return nil
 }

@@ -17,13 +17,14 @@ type LoginResponse struct {
 	InstanceURL string `json:"instance_url"`
 	ID          string `json:"id"`
 	TokenType   string `json:"token_type"`
-	IssuedAt    string `json:"issued_at"`
-	Signature   string `json:"signature"`
+	// Other fields are flow-dependant
 }
 
 func Login(auth config.AuthConfig) (*LoginResponse, error) {
 	if auth.UserPass != nil {
 		return AuthWithUserPass(auth)
+	} else if auth.Jwt != nil {
+		return AuthWithJwt(auth)
 	} else {
 		return nil, fmt.Errorf("Auth config missing")
 	}
