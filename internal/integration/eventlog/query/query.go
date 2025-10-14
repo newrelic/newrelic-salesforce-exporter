@@ -144,6 +144,7 @@ func RequestCustomQuery(customQuery *config.QueryConfig, conf *config.EventLogIn
 	soqlModel.AndWhere(customQuery.Soql.Where)
 	soqlModel.AndWhere(customQuery.Timestamp + " >= " + since.UTC().Format(time.RFC3339))
 	soqlModel.AndWhere(customQuery.Timestamp + " <= " + until.UTC().Format(time.RFC3339))
+	soqlModel.Tail(customQuery.Soql.Tail)
 	soql := soqlModel.Build()
 
 	log.Debugf("Run custom SOQL query: %s", soql)

@@ -322,6 +322,7 @@ Each entry in the list has the following structure:
       select: [Action, CreatedDate]
       from: "SetupAuditTrail"
       where: "Action = 'changedApexClass'"
+      tail: "limit 10"
     apiVer: "64.0"
     timestamp: CreatedDate
     apiName: rest
@@ -330,6 +331,7 @@ Each entry in the list has the following structure:
 - `select`: List of attributes from the object. Required.
 - `from`: Object type. Required.
 - `where`: Conditions. Optional.
+- `tail`: Any additional [SOQL clause](https://developer.salesforce.com/docs/atlas.en-us.soql_sosl.meta/soql_sosl/sforce_api_calls_soql_select.htm). Optional.
 - `apiVer`: The API version to use for this request. If not present, it will use
 the API version defined in the instance, or the integration. Optional.
 - `timestamp`: Which attribute from the object represents the timestamp. Required.

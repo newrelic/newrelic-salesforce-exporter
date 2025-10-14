@@ -86,13 +86,11 @@ type QueryConfig struct {
 	ApiName   string     `mapstructure:"apiName"`
 }
 
-//TODO: improve the SOQL model, adding syntactic elements:
-// https://developer.salesforce.com/docs/atlas.en-us.soql_sosl.meta/soql_sosl/sforce_api_calls_soql_select.htm
-// or just add a "remaining" text field, and append to the query whatever it is in there.
 type SoqlConfig struct {
 	Select []string `mapstructure:"select"`
 	From   string   `mapstructure:"from"`
 	Where  string   `mapstructure:"where"`
+	Tail   string   `mapstructure:"tail"`
 }
 
 type TimeIntervalConfig struct {

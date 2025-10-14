@@ -30,6 +30,7 @@ type SoqlQuery struct {
 	fromTable   string
 	selectAttrs []string
 	where       string
+	tail        string
 }
 
 func (s *SoqlQuery) AndWhere(where string) {
@@ -64,12 +65,19 @@ func (s *SoqlQuery) AndOrWhere(where ...string) {
 	}
 }
 
+func (s *SoqlQuery) Tail(tail string) {
+	if tail != "" {
+		s.tail = "+" + strings.ReplaceAll(tail, " ", "+")
+	}
+}
+
 func (s *SoqlQuery) Build() string {
 	soql := "SELECT+" + strings.Join(s.selectAttrs, ",") + "+FROM+" + s.fromTable
 	if s.where != "" {
 		s.where = strings.ReplaceAll(s.where, " ", "+")
 		soql += "+WHERE+" + s.where
 	}
+	soql += s.tail
 	return soql
 }
 
