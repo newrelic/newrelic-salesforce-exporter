@@ -22,23 +22,32 @@ func CheckAuth(auth *AuthConfig) error {
    		return errors.New("Invalid URL 'auth.tokenUrl'")
 	}
 	definedAuthMethods := 0
-	if auth.UserPass != nil {
-		definedAuthMethods += 1
-	}
 	if auth.Jwt != nil {
 		definedAuthMethods += 1
 	}
-	if definedAuthMethods != 1 {
-		return errors.New("Exactly one auth methode must be defined")
+	if auth.ClientCred != nil {
+		definedAuthMethods += 1
 	}
 	if auth.UserPass != nil {
-		err := checkUserPassCredentials(auth.UserPass)
+		definedAuthMethods += 1
+	}
+	if definedAuthMethods != 1 {
+		return errors.New("Exactly one auth method must be defined")
+	}
+	if auth.Jwt != nil {
+		err := checkJwtCredentials(auth.Jwt)
 		if err != nil {
 			return err
 		}
 	}
-	if auth.Jwt != nil {
-		err := checkJwtCredentials(auth.Jwt)
+	if auth.ClientCred != nil {
+		err := checkClientCredCredentials(auth.ClientCred)
+		if err != nil {
+			return err
+		}
+	}	
+	if auth.UserPass != nil {
+		err := checkUserPassCredentials(auth.UserPass)
 		if err != nil {
 			return err
 		}
@@ -77,6 +86,19 @@ func checkJwtCredentials(jwtAuth *JwtAuth) error {
 	}
 	if jwtAuth.Username == "" {
 		return errors.New("Empty 'jwt.username'")
+	}
+	return nil
+}
+
+func checkClientCredCredentials(clientCredAuth *ClientCredAuth) error {
+	if clientCredAuth == nil {
+		return errors.New("Undefined clientCred credentials")
+	}
+	if clientCredAuth.ClientId == "" {
+		return errors.New("Empty 'clientCred.clientId'")
+	}
+	if clientCredAuth.ClientSecret == "" {
+		return errors.New("Empty 'clientCred.clientSecret'")
 	}
 	return nil
 }

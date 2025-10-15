@@ -14,7 +14,7 @@ import (
 	"github.com/newrelic/newrelic-salesforce-exporter/internal/config"
 )
 
-func AuthWithJwt(auth config.AuthConfig) (*LoginResponse, error) {
+func AuthWithJwt(auth config.AuthConfig) (*AuthResponse, error) {
 	privateKeyPath := auth.Jwt.PrivateKey
 	clientID := auth.Jwt.ClientId
 	username := auth.Jwt.Username
@@ -55,7 +55,7 @@ func AuthWithJwt(auth config.AuthConfig) (*LoginResponse, error) {
 		return nil, fmt.Errorf("Error creating JWT auth request: %s", err)
 	}
 
-	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
 	httpResp, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -65,14 +65,14 @@ func AuthWithJwt(auth config.AuthConfig) (*LoginResponse, error) {
 	defer httpResp.Body.Close()
 
 	if httpResp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("non-200 status code returned on OAuth authentication call: %v", httpResp.StatusCode)
+		return nil, fmt.Errorf("%s", authError(httpResp.Body, httpResp.StatusCode))
 	}
 
-	var loginResponse LoginResponse
-	err = json.NewDecoder(httpResp.Body).Decode(&loginResponse)
+	var authResponse AuthResponse
+	err = json.NewDecoder(httpResp.Body).Decode(&authResponse)
 	if err != nil {
 		return nil, fmt.Errorf("Error decoding response: %s", err)
 	}
 
-	return &loginResponse, nil
+	return &authResponse, nil
 }

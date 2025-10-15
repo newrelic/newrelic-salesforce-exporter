@@ -174,8 +174,51 @@ every request, not only the first one.
 | --- | --- | --- |
 | Auth structure | Yes | N/A |
 
-It describes the credentials to connect to the Salesforce API. It has the
-following structure:
+It describes the credentials to connect to the Salesforce API. It supports two
+auth flows: **JWT**, **Client Credentials**, and **Username-Password**.
+
+**JWT**:
+
+It has the following structure:
+
+```yaml
+  auth:
+    tokenUrl: "<TOKEN URL HERE>"
+    jwt:
+      clientId: "<CLIENT ID HERE>"
+      privateKey: "<PRIVATE KEY HERE>"
+      username: "<USER NAME HERE>"
+```
+
+- `tokenUrl`: base url to access the Slaesforce API. Use to be something like
+`https://my-company--staging.sandbox.my.salesforce.com`.
+- `clientId`: Client ID for the OAuth JWT flow.
+- `privateKey`: Path to the private key file for the OAuth User-Password flow.
+- `username`: Username for the OAuth JWT flow.
+
+**Client Credentials**:
+
+It has the following structure:
+
+```yaml
+  auth:
+    tokenUrl: "<TOKEN URL HERE>"
+    clientCred:
+      clientId: "<CLIENT ID HERE>"
+      clientSecret: "<CLIENT SECRET HERE>"
+```
+
+- `tokenUrl`: base url to access the Slaesforce API. Use to be something like
+`https://my-company--staging.sandbox.my.salesforce.com`.
+- `clientId`: Client ID for the OAuth Client Credentials flow.
+- `clientSecret`: Client Secret for the OAuth Client Credentials flow.
+
+**Username-Password**:
+
+> NOTE: The Username-Password flow is considered unsafe and we only include it
+> as a legacy feature. We strongly encourage using any of the other two methods.
+
+It has the following structure:
 
 ```yaml
   auth:

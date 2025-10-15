@@ -8,20 +8,15 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/newrelic/newrelic-labs-sdk/v2/pkg/integration/log"
 	"github.com/newrelic/newrelic-salesforce-exporter/internal/config"
 )
 
-func AuthWithUserPass(auth config.AuthConfig) (*AuthResponse, error) {
-	log.Warnf("Auth with the Username-Password flow is unsafe and discouraged. Better use JWT or Client Credentials.")
-
+func AuthWithClientCred(auth config.AuthConfig) (*AuthResponse, error) {
 	body := url.Values{}
 
-	body.Set("grant_type", "password")
-	body.Set("client_id", auth.UserPass.ClientId)
-	body.Set("client_secret", auth.UserPass.ClientSecret)
-	body.Set("username", auth.UserPass.Username)
-	body.Set("password", auth.UserPass.Password)
+	body.Set("grant_type", "client_credentials")
+	body.Set("client_id", auth.ClientCred.ClientId)
+	body.Set("client_secret", auth.ClientCred.ClientSecret)
 
 	ctx, cancelFn := context.WithTimeout(context.Background(), oAuthDialTimeout)
 	defer cancelFn()
