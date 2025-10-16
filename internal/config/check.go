@@ -35,19 +35,19 @@ func CheckAuth(auth *AuthConfig) error {
 		return errors.New("Exactly one auth method must be defined")
 	}
 	if auth.Jwt != nil {
-		err := checkJwtCredentials(auth.Jwt)
+		err := CheckJwtCredentials(auth.Jwt)
 		if err != nil {
 			return err
 		}
 	}
 	if auth.ClientCred != nil {
-		err := checkClientCredCredentials(auth.ClientCred)
+		err := CheckClientCredCredentials(auth.ClientCred)
 		if err != nil {
 			return err
 		}
 	}	
 	if auth.UserPass != nil {
-		err := checkUserPassCredentials(auth.UserPass)
+		err := CheckUserPassCredentials(auth.UserPass)
 		if err != nil {
 			return err
 		}
@@ -55,7 +55,7 @@ func CheckAuth(auth *AuthConfig) error {
 	return nil
 }
 
-func checkUserPassCredentials(userPassAuth *UserPassAuth) error {
+func CheckUserPassCredentials(userPassAuth *UserPassAuth) error {
 	if userPassAuth == nil {
 		return errors.New("Undefined userPass credentials")
 	}
@@ -74,7 +74,7 @@ func checkUserPassCredentials(userPassAuth *UserPassAuth) error {
 	return nil
 }
 
-func checkJwtCredentials(jwtAuth *JwtAuth) error {
+func CheckJwtCredentials(jwtAuth *JwtAuth) error {
 	if jwtAuth == nil {
 		return errors.New("Undefined jwt credentials")
 	}
@@ -90,7 +90,7 @@ func checkJwtCredentials(jwtAuth *JwtAuth) error {
 	return nil
 }
 
-func checkClientCredCredentials(clientCredAuth *ClientCredAuth) error {
+func CheckClientCredCredentials(clientCredAuth *ClientCredAuth) error {
 	if clientCredAuth == nil {
 		return errors.New("Undefined clientCred credentials")
 	}
