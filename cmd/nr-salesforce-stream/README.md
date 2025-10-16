@@ -72,12 +72,63 @@ eventStream:
   integrationName: $INTEGRATION
 ```
 
-Now, you must set an environment variable named `INTEGRATION` with the value of
-`integragtionName`.
+It will get the value of `integragtionName` from the environment variable named
+`INTEGRATION`.
+
+Each one of the config keys within `eventStream` are described in the following
+sections.
 
 #### Auth
 
-Within the `eventStream` section, we have the `auth` key:
+| Valid Values | Required | Default |
+| --- | --- | --- |
+| Auth structure | Yes | N/A |
+
+It describes the credentials to connect to the Salesforce API. It supports two
+auth flows: **JWT**, **Client Credentials**, and **Username-Password**.
+
+**JWT**:
+
+It has the following structure:
+
+```yaml
+  auth:
+    tokenUrl: "<TOKEN URL HERE>"
+    jwt:
+      clientId: "<CLIENT ID HERE>"
+      privateKey: "<PRIVATE KEY HERE>"
+      username: "<USER NAME HERE>"
+```
+
+- `tokenUrl`: base url to access the Slaesforce API. Use to be something like
+`https://my-company--staging.sandbox.my.salesforce.com`.
+- `clientId`: Client ID for the OAuth JWT flow.
+- `privateKey`: Path to the private key file for the OAuth User-Password flow.
+- `username`: Username for the OAuth JWT flow.
+
+**Client Credentials**:
+
+It has the following structure:
+
+```yaml
+  auth:
+    tokenUrl: "<TOKEN URL HERE>"
+    clientCred:
+      clientId: "<CLIENT ID HERE>"
+      clientSecret: "<CLIENT SECRET HERE>"
+```
+
+- `tokenUrl`: base url to access the Slaesforce API. Use to be something like
+`https://my-company--staging.sandbox.my.salesforce.com`.
+- `clientId`: Client ID for the OAuth Client Credentials flow.
+- `clientSecret`: Client Secret for the OAuth Client Credentials flow.
+
+**Username-Password**:
+
+> NOTE: The Username-Password flow is considered unsafe and we only include it
+> as a legacy feature. We strongly encourage using any of the other two methods.
+
+It has the following structure:
 
 ```yaml
   auth:
@@ -89,8 +140,6 @@ Within the `eventStream` section, we have the `auth` key:
       password: "<PASSWORD HERE>"
 ```
 
-It described the credentials to connect to the Salesforce API.
-
 - `tokenUrl`: base url to access the Slaesforce API. Use to be something like
 `https://my-company--staging.sandbox.my.salesforce.com`.
 - `clientId`: Client ID for the OAuth User-Password flow.
@@ -98,20 +147,11 @@ It described the credentials to connect to the Salesforce API.
 - `username`: Username for the OAuth User-Password flow.
 - `Password`: Password for the OAuth User-Password flow.
 
-Any value within the `auth` section can be specified with an environment variable.
-To do that, just set `$ENV_VAR_NAME` as the value. Example:
-
-```yaml
-  auth:
-    tokenUrl: "https://my-company--staging.sandbox.my.salesforce.com"
-    userPass:
-      clientId: $AUTH_CLIENT_ID
-      clientSecret: $AUTH_CLIENT_SECRET
-      username: $AUTH_USERNAME
-      password: $AUTH_PASSWORD
-```
-
 #### Cache
+
+| Valid Values | Required | Default |
+| --- | --- | --- |
+| Cache structure | No | Empty |
 
 Setting up the cache is optional but **strongly recommended**. The cache is used
 to keep track of the latest event ID received. In case there is an interruption
@@ -137,20 +177,11 @@ Currently we support Redis DB:
 - `password`: Redis password. Or `""` if no password.
 - `expireDays`: Expiration time for keys in days. `0` means no expiration time.
 
-Any value within the `cache` section can be specified with an environment variable.
-To do that, just set `$ENV_VAR_NAME` as the value. Example:
-
-```yaml
-  cache:
-    redis:
-      host: "my-redis-server"
-      port: 6379
-      dbNumber: 0
-      password: $REDIS_PASSWORD
-      expireDays: 1
-```
-
 #### Topics
+
+| Valid Values | Required | Default |
+| --- | --- | --- |
+| List of strings | Yes | N/A |
 
 A list of the event types we want to capture. Example:
 
