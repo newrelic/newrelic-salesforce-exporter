@@ -24,11 +24,11 @@ type AuthResponse struct {
 
 func Login(auth config.AuthConfig) (*AuthResponse, error) {
 	if auth.Jwt != nil {
-		return AuthWithJwt(auth)
+		return AuthWithJwt(auth.TokenUrl, auth.Jwt)
 	} else if auth.ClientCred != nil {
-		return AuthWithClientCred(auth)
+		return AuthWithClientCred(auth.TokenUrl, auth.ClientCred)
 	} else if auth.UserPass != nil {
-		return AuthWithUserPass(auth)
+		return AuthWithUserPass(auth.TokenUrl, auth.UserPass)
 	} else {
 		return nil, fmt.Errorf("Auth config missing")
 	}

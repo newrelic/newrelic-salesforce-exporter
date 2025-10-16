@@ -11,14 +11,14 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/newrelic/newrelic-labs-sdk/v2/pkg/integration/log"
 	"github.com/newrelic/newrelic-salesforce-exporter/internal/config"
 )
 
-func AuthWithJwt(auth config.AuthConfig) (*AuthResponse, error) {
-	privateKeyPath := auth.Jwt.PrivateKey
-	clientID := auth.Jwt.ClientId
-	username := auth.Jwt.Username
-	loginUrl := auth.TokenUrl
+func AuthWithJwt(tokenUrl string, auth *config.JwtAuth) (*AuthResponse, error) {
+	privateKeyPath := auth.PrivateKey
+	clientID := auth.ClientId
+	username := auth.Username
 
 	// Load private key
 	privateKeyData, err := os.ReadFile(privateKeyPath)
@@ -34,7 +34,7 @@ func AuthWithJwt(auth config.AuthConfig) (*AuthResponse, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodRS256, jwt.MapClaims{
 		"iss": clientID,
 		"sub": username,
-		"aud": loginUrl,
+		"aud": tokenUrl,
 		"exp": time.Now().Add(time.Minute * 5).Unix(),
 	})
 	signedToken, err := token.SignedString(privateKey)
@@ -45,12 +45,12 @@ func AuthWithJwt(auth config.AuthConfig) (*AuthResponse, error) {
 	body := url.Values{}
 
 	body.Set("grant_type", "urn:ietf:params:oauth:grant-type:jwt-bearer")
-	body.Set("assertion", signedToken,)
+	body.Set("assertion", signedToken)
 
 	ctx, cancelFn := context.WithTimeout(context.Background(), oAuthDialTimeout)
 	defer cancelFn()
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, loginUrl + loginEndpoint, strings.NewReader(body.Encode()))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, tokenUrl+loginEndpoint, strings.NewReader(body.Encode()))
 	if err != nil {
 		return nil, fmt.Errorf("Error creating JWT auth request: %s", err)
 	}
@@ -73,6 +73,8 @@ func AuthWithJwt(auth config.AuthConfig) (*AuthResponse, error) {
 	if err != nil {
 		return nil, fmt.Errorf("Error decoding response: %s", err)
 	}
+
+	log.Debugf("Auth with JWT, OK")
 
 	return &authResponse, nil
 }

@@ -12,21 +12,21 @@ import (
 	"github.com/newrelic/newrelic-salesforce-exporter/internal/config"
 )
 
-func AuthWithUserPass(auth config.AuthConfig) (*AuthResponse, error) {
+func AuthWithUserPass(tokenUrl string, auth *config.UserPassAuth) (*AuthResponse, error) {
 	log.Warnf("Auth with the Username-Password flow is unsafe and discouraged. Better use JWT or Client Credentials.")
 
 	body := url.Values{}
 
 	body.Set("grant_type", "password")
-	body.Set("client_id", auth.UserPass.ClientId)
-	body.Set("client_secret", auth.UserPass.ClientSecret)
-	body.Set("username", auth.UserPass.Username)
-	body.Set("password", auth.UserPass.Password)
+	body.Set("client_id", auth.ClientId)
+	body.Set("client_secret", auth.ClientSecret)
+	body.Set("username", auth.Username)
+	body.Set("password", auth.Password)
 
 	ctx, cancelFn := context.WithTimeout(context.Background(), oAuthDialTimeout)
 	defer cancelFn()
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, auth.TokenUrl+loginEndpoint, strings.NewReader(body.Encode()))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, tokenUrl+loginEndpoint, strings.NewReader(body.Encode()))
 	if err != nil {
 		return nil, err
 	}
@@ -49,6 +49,8 @@ func AuthWithUserPass(auth config.AuthConfig) (*AuthResponse, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	log.Debugf("Auth with Username-Password, OK")
 
 	return &authResponse, nil
 }

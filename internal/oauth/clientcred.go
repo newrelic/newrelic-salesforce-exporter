@@ -8,20 +8,21 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/newrelic/newrelic-labs-sdk/v2/pkg/integration/log"
 	"github.com/newrelic/newrelic-salesforce-exporter/internal/config"
 )
 
-func AuthWithClientCred(auth config.AuthConfig) (*AuthResponse, error) {
+func AuthWithClientCred(tokenUrl string, auth *config.ClientCredAuth) (*AuthResponse, error) {
 	body := url.Values{}
 
 	body.Set("grant_type", "client_credentials")
-	body.Set("client_id", auth.ClientCred.ClientId)
-	body.Set("client_secret", auth.ClientCred.ClientSecret)
+	body.Set("client_id", auth.ClientId)
+	body.Set("client_secret", auth.ClientSecret)
 
 	ctx, cancelFn := context.WithTimeout(context.Background(), oAuthDialTimeout)
 	defer cancelFn()
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, auth.TokenUrl+loginEndpoint, strings.NewReader(body.Encode()))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, tokenUrl+loginEndpoint, strings.NewReader(body.Encode()))
 	if err != nil {
 		return nil, err
 	}
@@ -44,6 +45,8 @@ func AuthWithClientCred(auth config.AuthConfig) (*AuthResponse, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	log.Debugf("Auth with Client Credentials, OK")
 
 	return &authResponse, nil
 }
