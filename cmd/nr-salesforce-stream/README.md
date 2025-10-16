@@ -89,9 +89,6 @@ this integration only supports one auth flow: **Username-Password**.
 
 **Username-Password**:
 
-> NOTE: The Username-Password flow is considered unsafe and we only include it
-> as a legacy feature. We strongly encourage using any of the other two methods.
-
 It has the following structure:
 
 ```yaml
