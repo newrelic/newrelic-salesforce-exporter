@@ -174,7 +174,7 @@ every request, not only the first one.
 | --- | --- | --- |
 | Auth structure | Yes | N/A |
 
-It describes the credentials to connect to the Salesforce API. It supports two
+It describes the credentials to connect to the Salesforce API. It supports three
 auth flows: **JWT**, **Client Credentials**, and **Username-Password**.
 
 **JWT**:
