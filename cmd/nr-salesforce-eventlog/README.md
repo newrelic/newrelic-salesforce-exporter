@@ -22,6 +22,24 @@ go build nr-salesforce-eventlog.go
 
 It will generate a binary `nr-salesforce-eventlog` in the same folder.
 
+## Run
+
+Execute:
+
+```bash
+./nr-salesforce-eventlog --config_path /path/to/config.yml
+```
+
+Where `/path/to/config.yml` is the config file. Check the [setup](#setup) section
+for more information on how to set up the config file or check the
+[sample file](../../config_sample_eventlog.yml) provided in this repo.
+
+For a list of supported parameters:
+
+```bash
+./nr-salesforce-eventlog --help
+```
+
 ## Setup
 
 The event log integration obtains the configuration from a YAML file. There is

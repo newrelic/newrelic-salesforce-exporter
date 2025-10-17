@@ -26,6 +26,24 @@ go build nr-salesforce-stream.go
 
 It will generate a binary `nr-salesforce-stream` in the same folder.
 
+## Run
+
+Execute:
+
+```bash
+./nr-salesforce-stream --config_path /path/to/config.yml
+```
+
+Where `/path/to/config.yml` is the config file. Check the [setup](#setup) section
+for more information on how to set up the config file or check the
+[sample file](../../config_sample_eventstream.yml) provided in this repo.
+
+For a list of supported parameters:
+
+```bash
+./nr-salesforce-stream --help
+```
+
 ## Setup
 
 The event stream integration obtains the configuration from a YAML file. There is
