@@ -1,5 +1,13 @@
 # New Relic Salesforce Event Log Integration
 
+  1. [Introduction](#introduction)
+  1. [Build](#build)
+  1. [Run](#run)
+  1. [Setup](#setup)
+  1. [Data](#data)
+  1. [Debugging](#debugging)
+  1. [Testing](#testing)
+
 ## Introduction
 
 The Event Log integration can collect the following types of data from Salesforce:
