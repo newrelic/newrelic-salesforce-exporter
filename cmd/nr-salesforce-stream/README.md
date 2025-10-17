@@ -28,17 +28,17 @@ It will generate a binary `nr-salesforce-stream` in the same folder.
 
 ## Run
 
-Execute:
+Once the config file is set, we can run the integration:
 
 ```bash
-./nr-salesforce-stream --config_path /path/to/config.yml
+./nr-salesforce-stream --config_path path/to/config.yml
 ```
 
-Where `/path/to/config.yml` is the config file. Check the [setup](#setup) section
-for more information on how to set up the config file or check the
-[sample file](../../config_sample_eventstream.yml) provided in this repo.
+Check the [setup](#setup) section for more information on how to set up the
+config file or check the [sample file](../../config_sample_eventstream.yml)
+provided in this repo.
 
-For a list of supported parameters:
+Run the integration with `--help` for a complete list of arguments:
 
 ```bash
 ./nr-salesforce-stream --help
@@ -193,20 +193,6 @@ specified using the `NR_ACCOUNT_ID` environment variable.
 - `region`: The region of your account ID: Either `US` or `EU`.
 - `format`: The data format we want to inject to New Relic: Either `events` or
 `logs`.
-
-## Run
-
-Once the config file is set, we can run the integration:
-
-```bash
-./nr-salesforce-stream --config_path path/to/config.yml
-```
-
-Run the integration with `--help` for a complete list of arguments:
-
-```bash
-./nr-salesforce-stream --help
-```
 
 ## Data
 

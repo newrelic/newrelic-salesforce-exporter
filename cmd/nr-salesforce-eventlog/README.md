@@ -24,17 +24,17 @@ It will generate a binary `nr-salesforce-eventlog` in the same folder.
 
 ## Run
 
-Execute:
+Once the config file is set, we can run the integration:
 
 ```bash
-./nr-salesforce-eventlog --config_path /path/to/config.yml
+./nr-salesforce-eventlog --config_path path/to/config.yml
 ```
 
-Where `/path/to/config.yml` is the config file. Check the [setup](#setup) section
-for more information on how to set up the config file or check the
-[sample file](../../config_sample_eventlog.yml) provided in this repo.
+Check the [setup](#setup) section for more information on how to set up the
+config file or check the [sample file](../../config_sample_eventlog.yml)
+provided in this repo.
 
-For a list of supported parameters:
+Run the integration with `--help` for a complete list of arguments:
 
 ```bash
 ./nr-salesforce-eventlog --help
@@ -544,3 +544,79 @@ periods in which the integration will send data to New Relic.
 
 Integration execution interval. If `runAsService` is true, it defines the periods
 in which the integration will run a cycle.
+
+## Data
+
+This integration can generate New Relic `events` or `logs`, depending on the value
+of the key `format` in the config file.
+
+### Events
+
+#### Event log files
+
+The integration will generate a new `eventType` for  each log event type, with the
+format `SFDC{name}`. For example, the log event type `Login` will generate
+`SFDCLogin` events.
+
+To view the data, you can run the following NRQL:
+
+```sql
+FROM SFDCLogin SELECT *
+```
+
+#### Custom queries
+
+The integration will generate a new `eventType` for each object event type, with
+the format `SFDC{name}`. For example, the object event type `SetupAuditTrail`
+will generate `SFDCSetupAuditTrail` events.
+
+To view the data, you can run the following NRQL:
+
+```sql
+FROM SFDCSetupAuditTrail SELECT *
+```
+
+#### Limits
+
+The integration will generate a single `eventType` with the value `SFDCLimits`.
+
+To view the data, you can run the following NRQL:
+
+```sql
+FROM SFDCLimits SELECT *
+```
+
+### Logs
+
+Just like events, but instead of the `eventType`, it will use the `message` to
+store the corresponding event type.
+
+For example, to view logs containing a `Login` event log:
+
+```sql
+FROM Log SELECT * WHERE message = 'SFDCLogin'
+```
+
+## Debugging
+
+To capture the complete sequence of console logs, add the following to your config
+file:
+
+```yaml
+log:
+  level: trace
+```
+
+## Testing
+
+From the project's root folder run:
+
+```bash
+go test ./...
+```
+
+Or, for a more detailed output:
+
+```bash
+go test -v ./...
+```
