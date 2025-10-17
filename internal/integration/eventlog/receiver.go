@@ -223,7 +223,7 @@ func buildCustomData(record map[string]any, timestampAttr string) GenericSample 
 	if attrPresent {
 		attrType, attrTypePresent := attributes["type"].(string)
 		if attrTypePresent {
-			eventType = attrType
+			eventType = "SFDC" + attrType
 		} else {
 			log.Warnf("Event does not have an 'attributes.type' key")
 		}
@@ -236,8 +236,9 @@ func buildCustomData(record map[string]any, timestampAttr string) GenericSample 
 
 func buildLimit(name string, limit query.SingleLimitResponse) GenericSample {
 	data := GenericSample{
-		text: name,
+		text: "SFDCLimits",
 		attributes: map[string]any{
+			"limitName": name,
 			"limitMax": limit.Max,
 			"limitRemaining": limit.Remaining,
 		},
