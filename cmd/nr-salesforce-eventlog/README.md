@@ -5,6 +5,7 @@
   1. [Run](#run)
   1. [Setup](#setup)
   1. [Data](#data)
+  1. [Docker](#docker)
   1. [Debugging](#debugging)
   1. [Testing](#testing)
 
@@ -604,6 +605,30 @@ For example, to view logs containing a `Login` event log:
 ```sql
 FROM Log SELECT * WHERE message = 'SFDCLogin'
 ```
+
+## Docker
+
+> Set up correct configurations for `config.yml` and `event_type_fields.yml`
+> before proceeding.
+
+This repo includes a [Dockerfile](../../Dockerfile.eventlog) for the eventlog
+integration.
+
+To create the image, go to the root of the repo folder, and run:
+
+```bash
+docker build -f Dockerfile.eventlog --tag newrelic/sfdc-eventlog:VERSION .
+```
+
+Set `VERSION` accordingly.
+
+And run it:
+
+```bash
+docker run newrelic/sfdc-eventlog:VERSION
+```
+
+Add `-d` after `docker run` to run in detached mode.
 
 ## Debugging
 
