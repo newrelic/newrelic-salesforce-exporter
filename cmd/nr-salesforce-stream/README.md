@@ -5,6 +5,7 @@
   1. [Run](#run)
   1. [Setup](#setup)
   1. [Data](#data)
+  1. [Docker](#docker)
   1. [Debugging](#debugging)
   1. [Testing](#testing)
 
@@ -230,6 +231,29 @@ To view the data, you can run the following NRQL:
 ```sql
 FROM Log SELECT * WHERE message = 'SFDCLoginEventStream'
 ```
+
+## Docker
+
+> Set up correct configuration for `config.yml` before proceeding.
+
+This repo includes a [Dockerfile](../../Dockerfile.eventstream) for the eventlog
+integration.
+
+To create the image, go to the root of the repo folder, and run:
+
+```bash
+docker build -f Dockerfile.eventstream --tag newrelic/sfdc-eventstream:VERSION .
+```
+
+Set `VERSION` accordingly.
+
+And run it:
+
+```bash
+docker run newrelic/sfdc-eventstream:VERSION
+```
+
+Add `-d` after `docker run` to run in detached mode.
 
 ## Debugging
 
