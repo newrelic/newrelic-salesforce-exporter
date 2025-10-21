@@ -16,7 +16,7 @@ import (
 const (
 	INTEGRATION_ID   = "com.newrelic.salesforce.eventlog"
 	INTEGRATION_NAME = "New Relic Salesforce Event Log"
-	DEFAULT_INTERVAL = 5
+	DEFAULT_INTERVAL = 60
 )
 
 var integrationConf config.Config
