@@ -130,7 +130,7 @@ It must contain a descriptive name for the integration. Something like
 
 | Valid Values | Required | Default |
 | --- | --- | --- |
-| Integer number | No | 5 |
+| Positive integer number | No | 5 |
 
 Timeout in seconds for API requests sent to Salesforce.
 
@@ -540,7 +540,7 @@ For each one of the `instances` defined in the config file.
 
 | Valid Values | Required | Default |
 | --- | --- | --- |
-| Number | No | 60 |
+| Positive integer number | No | 60 |
 
 Data harvest interval in seconds. If `runAsService` is true, it defines the
 periods in which the integration will send data to New Relic.
@@ -549,10 +549,10 @@ periods in which the integration will send data to New Relic.
 
 | Valid Values | Required | Default |
 | --- | --- | --- |
-| Number | No | 60 |
+| Positive integer number | No | 60 |
 
-Integration execution interval. If `runAsService` is true, it defines the periods
-in which the integration will run a cycle.
+Integration execution interval in seconds. If `runAsService` is true, it defines
+the periods in which the integration will run a cycle.
 
 ## Data
 
