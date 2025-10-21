@@ -12,6 +12,14 @@ eventLog:
       requestTimeout: 10 # EDIT INSTANCE SPECIFIC TIMEOUT HERE, OR REMOVE
       auth:
         tokenUrl: "<TOKEN URL HERE>"
+        # EDIT, LEAVE ONLY ONE AUTH METHOD
+        jwt:
+          clientId: "<CLIENT ID HERE>"
+          privateKey: "<PRIVATE KEY FILE PATH HERE>"
+          username: "<USER NAME HERE>"
+        clientCred:
+          clientId: "<CLIENT ID HERE>"
+          clientSecret: "<CLIENT SECRET HERE>"
         userPass:
           clientId: "<CLIENT ID HERE>"
           clientSecret: "<CLIENT SECRET HERE>"
