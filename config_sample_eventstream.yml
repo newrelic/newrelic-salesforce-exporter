@@ -23,6 +23,7 @@ eventStream:
   topics: # EDIT TOPICS HERE (events to capture)
     - /event/ApiEventStream
     - /event/ApiAnomalyEvent
+    - /event/BatchApexErrorEvent
     - /event/BulkApiResultEvent
     - /event/ConcurLongRunApexErrEvent
     - /event/CredentialStuffingEvent
@@ -35,6 +36,7 @@ eventStream:
     - /event/LoginAsEventStream
     - /event/LogoutEventStream
     - /event/PermissionSetEvent
+    - /event/PlatformStatusAlertEvent
     - /event/ReportEventStream
     - /event/ReportAnomalyEvent
     - /event/SessionHijackingEvent
