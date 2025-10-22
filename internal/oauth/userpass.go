@@ -13,8 +13,6 @@ import (
 )
 
 func AuthWithUserPass(tokenUrl string, auth *config.UserPassAuth) (*AuthResponse, error) {
-	log.Warnf("Auth with the Username-Password flow is unsafe and discouraged. Better use JWT or Client Credentials.")
-
 	body := url.Values{}
 
 	body.Set("grant_type", "password")
