@@ -21,7 +21,7 @@ The Event Log integration can collect the following types of data from Salesforc
 ## Build
 
 Install [Go](https://go.dev/doc/install) first. The minimum required version is
-`1.23.2`.
+`1.25.3`.
 
 From the folder `cmd/nr-salesforce-eventlog/`, run:
 
