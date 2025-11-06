@@ -6,6 +6,7 @@ import (
 
 	"github.com/newrelic/newrelic-salesforce-exporter/cmd/installer-tool/components/checkerlist"
 	"github.com/newrelic/newrelic-salesforce-exporter/cmd/installer-tool/components/selectoption"
+	"github.com/newrelic/newrelic-salesforce-exporter/cmd/installer-tool/components/textinput"
 )
 
 type EventGroup = int
@@ -100,11 +101,21 @@ func main() {
 	}
 
 	fmt.Printf("\n")
-	
+
 	runMode, err := selectRunMode()
 		if err != nil {
 		fmt.Printf("\n%s\n", err.Error())
         os.Exit(1)
 	}
 	fmt.Printf("\nSelected run mode: %s\n", runModeMap()[runMode])
+
+	fmt.Printf("\n")
+
+	//TODO: ask for NR and SFDC API credentials
+	input, err := textinput.TextInput()
+	if err != nil {
+		fmt.Printf("\n%s\n", err.Error())
+        os.Exit(1)
+	}
+	fmt.Printf("\nInput: %s\n", input)
 }
