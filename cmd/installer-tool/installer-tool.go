@@ -6,8 +6,10 @@ import (
 	"github.com/newrelic/newrelic-salesforce-exporter/cmd/installer-tool/components"
 )
 
+type EventGroup = int
+
 const (
-    UserAccess int = iota
+    UserAccess EventGroup = iota
     ApexUsage
     LightningUsage
     ApiAccess
@@ -30,8 +32,8 @@ const (
 	AlertSecurityDesc = "Real-time Alerts and Security Warnings (*)"
 )
 
-func choiceMap() map[int]string {
-	return map[int]string{
+func choiceMap() map[EventGroup]string {
+	return map[EventGroup]string{
 		UserAccess: UserAccessDesc,
 		ApexUsage: ApexUsageDesc,
 		LightningUsage: LightningUsageDesc,
@@ -44,7 +46,7 @@ func choiceMap() map[int]string {
 	}
 }
 
-func selectEventGroups() []int {
+func selectEventGroups() []EventGroup {
 	choices := choiceMap()
 	title := "Select event groups to collect"
 	footer := []string{
@@ -54,6 +56,7 @@ func selectEventGroups() []int {
 }
 
 func main() {
+	//fmt.Printf("\n")
 	selectedEventGroups := selectEventGroups()
 	choices := choiceMap()
 	fmt.Printf("\nSelected:\n")

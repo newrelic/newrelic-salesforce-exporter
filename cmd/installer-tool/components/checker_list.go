@@ -49,8 +49,11 @@ func (m CheckerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
         switch msg.String() {
 
         // These keys should exit the program.
-        case "ctrl+c", "c":
+        case "c":
             return m, tea.Quit
+
+        case "ctrl+c":
+            return m, tea.Interrupt
 
         // The "up" and "k" keys move the cursor up
         case "up", "k":
@@ -134,7 +137,7 @@ func (m CheckerModel) View() string {
 func CheckerList(choices map[int]string, title string, footer []string) []int {
     p := tea.NewProgram(initialModel(choices, title, footer))
 	m, err := p.Run(); if err != nil {
-        fmt.Printf("Err running checker list: %v", err)
+        fmt.Printf("\n%s\n", err.Error())
         os.Exit(1)
     }
 	model := m.(CheckerModel)
