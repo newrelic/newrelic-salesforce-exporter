@@ -2,7 +2,6 @@ package components
 
 import (
 	"fmt"
-	"os"
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -134,11 +133,10 @@ func (m CheckerModel) View() string {
     return s.String()
 }
 
-func CheckerList(choices map[int]string, title string, footer []string) []int {
+func CheckerList(choices map[int]string, title string, footer []string) ([]int, error) {
     p := tea.NewProgram(initialModel(choices, title, footer))
 	m, err := p.Run(); if err != nil {
-        fmt.Printf("\n%s\n", err.Error())
-        os.Exit(1)
+        return nil, err
     }
 	model := m.(CheckerModel)
 	checked := []int{}
@@ -147,5 +145,5 @@ func CheckerList(choices map[int]string, title string, footer []string) []int {
 			checked = append(checked, pos)
 		}
 	}
-	return checked
+	return checked, nil
 }

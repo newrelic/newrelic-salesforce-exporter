@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/newrelic/newrelic-salesforce-exporter/cmd/installer-tool/components"
 )
@@ -46,7 +47,7 @@ func choiceMap() map[EventGroup]string {
 	}
 }
 
-func selectEventGroups() []EventGroup {
+func selectEventGroups() ([]EventGroup, error) {
 	choices := choiceMap()
 	title := "Select event groups to collect"
 	footer := []string{
@@ -56,8 +57,12 @@ func selectEventGroups() []EventGroup {
 }
 
 func main() {
-	//fmt.Printf("\n")
-	selectedEventGroups := selectEventGroups()
+	fmt.Printf("\n")
+	selectedEventGroups, err := selectEventGroups()
+	if err != nil {
+		fmt.Printf("\n%s\n", err.Error())
+        os.Exit(1)
+	}
 	choices := choiceMap()
 	fmt.Printf("\nSelected:\n")
 	for _,i := range selectedEventGroups {
