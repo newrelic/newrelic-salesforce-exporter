@@ -4,7 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/newrelic/newrelic-salesforce-exporter/cmd/installer-tool/components"
+	"github.com/newrelic/newrelic-salesforce-exporter/cmd/installer-tool/components/checkerlist"
+	"github.com/newrelic/newrelic-salesforce-exporter/cmd/installer-tool/components/selectoption"
 )
 
 type EventGroup = int
@@ -51,21 +52,59 @@ func selectEventGroups() ([]EventGroup, error) {
 	choices := choiceMap()
 	title := "Select event groups to collect"
 	footer := []string{
-		"(*) This group requires rolling out a separate data collector and access to the Salesforce Event Stream.",
+		"(*) This group requires rolling out a separate data collector, the EventStream.",
 	}
-	return components.CheckerList(choices, title, footer)
+	return checkerlist.CheckerList(choices, title, footer)
+}
+
+type RunMode = int
+
+const (
+    ServiceMode RunMode = iota
+    CronLikeMode
+)
+
+const (
+	ServiceModeDesc = "Service mode"
+	CronLikeModeDesc = "Cron-like mode"
+)
+
+func runModeMap() map[RunMode]string {
+	return map[EventGroup]string{
+		ServiceMode: ServiceModeDesc,
+		CronLikeMode: CronLikeModeDesc,
+	}
+}
+
+func selectRunMode() (RunMode, error) {
+	choices := runModeMap()
+	title := "Select the run mode for the integration"
+	footer := []string{
+		"NOTE: this only affects the EventLog integration, the EventStream always runs in service mode.",
+	}
+	return selectoption.SelectList(choices, title, footer)
 }
 
 func main() {
 	fmt.Printf("\n")
+	
 	selectedEventGroups, err := selectEventGroups()
 	if err != nil {
 		fmt.Printf("\n%s\n", err.Error())
         os.Exit(1)
 	}
 	choices := choiceMap()
-	fmt.Printf("\nSelected:\n")
+	fmt.Printf("\nSelected event groups:\n")
 	for _,i := range selectedEventGroups {
 		fmt.Printf("- %s\n", choices[i])
 	}
+
+	fmt.Printf("\n")
+	
+	runMode, err := selectRunMode()
+		if err != nil {
+		fmt.Printf("\n%s\n", err.Error())
+        os.Exit(1)
+	}
+	fmt.Printf("\nSelected run mode: %s\n", runModeMap()[runMode])
 }

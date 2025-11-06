@@ -1,18 +1,11 @@
-package components
+package checkerlist
 
 import (
 	"fmt"
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
-)
-
-var (
-	checkedStyle	= lipgloss.NewStyle().Foreground(lipgloss.Color("#04B575"))
-	titleStyle		= lipgloss.NewStyle().Foreground(lipgloss.Color("#b904aaff")).MarginLeft(2)
-	blurredStyle	= lipgloss.NewStyle().Foreground(lipgloss.Color("240")).MarginLeft(2)
-	footerStyle		= lipgloss.NewStyle().MarginLeft(2)
+	"github.com/newrelic/newrelic-salesforce-exporter/cmd/installer-tool/components"
 )
 
 type CheckerModel struct {
@@ -87,9 +80,9 @@ func (m CheckerModel) View() string {
 	var s strings.Builder
     
     // Title
-    s.WriteString(titleStyle.Render(m.title))
+    s.WriteString(components.TitleStyle.Render(m.title))
     s.WriteString("\n")
-    s.WriteString(titleStyle.Render(strings.Repeat("-", len(m.title))))
+    s.WriteString(components.TitleStyle.Render(strings.Repeat("-", len(m.title))))
     
 	s.WriteString("\n\n")
 
@@ -110,7 +103,7 @@ func (m CheckerModel) View() string {
 		s.WriteString(fmt.Sprintf("%s [%s]", cursor, checked))
         // Render the row
 		if checked == "x" {
-        	s.WriteString(checkedStyle.Render(fmt.Sprintf(" %s", m.choices[i])))
+        	s.WriteString(components.CheckedStyle.Render(fmt.Sprintf(" %s", m.choices[i])))
 		} else {
 			s.WriteString(fmt.Sprintf(" %s", m.choices[i]))
 			
@@ -121,12 +114,12 @@ func (m CheckerModel) View() string {
     // Footer
 	s.WriteString("\n")
     for i := range m.footer {
-        s.WriteString(blurredStyle.Render(m.footer[i]))
+        s.WriteString(components.BlurredStyle.Render(m.footer[i]))
         s.WriteString("\n")
     }
 
 	s.WriteString("\n")
-    s.WriteString(footerStyle.Render("Press 'c' to continue"))
+    s.WriteString(components.FooterStyle.Render("Press 'c' to continue"))
 	s.WriteString("\n")
 
     // Send the UI for rendering
