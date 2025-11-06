@@ -12,29 +12,23 @@ import (
 var (
 	checkedStyle	= lipgloss.NewStyle().Foreground(lipgloss.Color("#04B575"))
 	titleStyle		= lipgloss.NewStyle().Foreground(lipgloss.Color("#b904aaff")).MarginLeft(2)
-	blurredStyle	= lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
+	blurredStyle	= lipgloss.NewStyle().Foreground(lipgloss.Color("240")).MarginLeft(2)
 	footerStyle		= lipgloss.NewStyle().MarginLeft(2)
 )
 
 type CheckerModel struct {
 	choices  []string
+    title    string
+    footer   []string
     cursor   int
     selected map[int]bool
 }
 
-func initialModel() CheckerModel {
+func initialModel(choices []string, title string, footer []string) CheckerModel {
 	return CheckerModel{
-		choices:  []string{
-			"User Acccess",
-			"Apex usage and performance",
-			"Lightning usage and performance",
-			"API access",
-			"Report access",
-			"Document, Content and Database access",
-			"CRM Analytics (Wave) usage and performance",
-			"Errors, Permissions and Violations",
-			"Real-time Alerts and Security Warnings (*)",
-		},
+		choices: choices,
+        title: title,
+        footer: footer,
 		selected: make(map[int]bool),
 		cursor: 0,
 	}
@@ -90,9 +84,11 @@ func (m CheckerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m CheckerModel) View() string {
 	var s strings.Builder
     
-    s.WriteString(titleStyle.Render("Select event groups to collect"))
-	s.WriteString("\n")
-	s.WriteString(titleStyle.Render("------------------------------"))
+    // Title
+    s.WriteString(titleStyle.Render(m.title))
+    s.WriteString("\n")
+    s.WriteString(titleStyle.Render(strings.Repeat("-", len(m.title))))
+    
 	s.WriteString("\n\n")
 
     // Iterate over our choices
@@ -121,10 +117,13 @@ func (m CheckerModel) View() string {
 		s.WriteString("\n")
     }
 
-    // The footer
+    // Footer
 	s.WriteString("\n")
-    s.WriteString(blurredStyle.Render("(*) This group requires rolling out a separate data collector and access to the Salesforce Event Stream."))
-	s.WriteString("\n")
+    for i := range m.footer {
+        s.WriteString(blurredStyle.Render(m.footer[i]))
+        s.WriteString("\n")
+    }
+
 	s.WriteString("\n")
     s.WriteString(footerStyle.Render("Press 'c' to continue"))
 	s.WriteString("\n")
@@ -133,17 +132,17 @@ func (m CheckerModel) View() string {
     return s.String()
 }
 
-func CheckerList() []string {
-    p := tea.NewProgram(initialModel())
+func CheckerList(choices []string, title string, footer []string) []int {
+    p := tea.NewProgram(initialModel(choices, title, footer))
 	m, err := p.Run(); if err != nil {
-        fmt.Printf("Err running bubbletea program: %v", err)
+        fmt.Printf("Err running checker list: %v", err)
         os.Exit(1)
     }
 	model := m.(CheckerModel)
-	checked := []string{}
+	checked := []int{}
 	for pos := range model.selected {
 		if model.selected[pos] {
-			checked = append(checked, model.choices[pos])
+			checked = append(checked, pos)
 		}
 	}
 	return checked
