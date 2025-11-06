@@ -17,14 +17,14 @@ var (
 )
 
 type CheckerModel struct {
-	choices  []string
+	choices  map[int]string
     title    string
     footer   []string
     cursor   int
     selected map[int]bool
 }
 
-func initialModel(choices []string, title string, footer []string) CheckerModel {
+func initialModel(choices map[int]string, title string, footer []string) CheckerModel {
 	return CheckerModel{
 		choices: choices,
         title: title,
@@ -92,8 +92,7 @@ func (m CheckerModel) View() string {
 	s.WriteString("\n\n")
 
     // Iterate over our choices
-    for i, choice := range m.choices {
-
+    for i := range len(m.choices) {
         // Is the cursor pointing at this choice?
         cursor := " " // no cursor
         if m.cursor == i {
@@ -109,9 +108,9 @@ func (m CheckerModel) View() string {
 		s.WriteString(fmt.Sprintf("%s [%s]", cursor, checked))
         // Render the row
 		if checked == "x" {
-        	s.WriteString(checkedStyle.Render(fmt.Sprintf(" %s", choice)))
+        	s.WriteString(checkedStyle.Render(fmt.Sprintf(" %s", m.choices[i])))
 		} else {
-			s.WriteString(fmt.Sprintf(" %s", choice))
+			s.WriteString(fmt.Sprintf(" %s", m.choices[i]))
 			
 		}
 		s.WriteString("\n")
@@ -132,7 +131,7 @@ func (m CheckerModel) View() string {
     return s.String()
 }
 
-func CheckerList(choices []string, title string, footer []string) []int {
+func CheckerList(choices map[int]string, title string, footer []string) []int {
     p := tea.NewProgram(initialModel(choices, title, footer))
 	m, err := p.Run(); if err != nil {
         fmt.Printf("Err running checker list: %v", err)
