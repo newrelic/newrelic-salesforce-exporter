@@ -3,6 +3,7 @@ package textinput
 import (
 	"strings"
 
+	"github.com/charmbracelet/bubbles/cursor"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/newrelic/newrelic-salesforce-exporter/cmd/installer-tool/components"
@@ -22,6 +23,7 @@ func initialModel(label string) InputModel {
 	var t textinput.Model
 	t = textinput.New()
 	t.Cursor.Style = components.BlurredStyle
+	t.Cursor.SetMode(cursor.CursorStatic)
 	t.CharLimit = 50
 	t.Placeholder = ""
 	t.Focus()

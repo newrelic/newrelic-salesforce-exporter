@@ -100,30 +100,60 @@ func main() {
 	fmt.Printf("\n")
 
 	runMode, err := selectRunMode()
-		if err != nil {
+	if err != nil {
 		fmt.Printf("\n%s\n", err.Error())
         os.Exit(1)
 	}
 
 	fmt.Printf("\n")
 
-	fmt.Print(components.Title("Introduce New Relic credentials", nil).String())
-	accountId, err := textinput.TextInput("Account ID")
+	fmt.Print(components.Title("Introduce New Relic API credentials", nil).String())
+	nrAccountId, err := textinput.TextInput("Account ID")
 	if err != nil {
 		fmt.Printf("\n%s\n", err.Error())
         os.Exit(1)
 	}
-	apiKey, err := textinput.TextInput("API Key")
+	nrApiKey, err := textinput.TextInput("API Key")
 	if err != nil {
 		fmt.Printf("\n%s\n", err.Error())
         os.Exit(1)
 	}
-	region, err := textinput.TextInput("Region (US/EU)")
+	nrRegion, err := textinput.TextInput("Region (US/EU)")
 	if err != nil {
 		fmt.Printf("\n%s\n", err.Error())
         os.Exit(1)
 	}
 
+	fmt.Printf("\n")
+
+	fmt.Print(components.Title("Introduce Salesforce API credentials", nil).String())
+	sfdcTokenUrl, err := textinput.TextInput("Token URL")
+	if err != nil {
+		fmt.Printf("\n%s\n", err.Error())
+        os.Exit(1)
+	}
+	sfdcClientId, err := textinput.TextInput("Client ID")
+	if err != nil {
+		fmt.Printf("\n%s\n", err.Error())
+        os.Exit(1)
+	}
+	sfdcClientSecret, err := textinput.TextInput("Client Secret")
+	if err != nil {
+		fmt.Printf("\n%s\n", err.Error())
+        os.Exit(1)
+	}
+	sfdcUsername, err := textinput.TextInput("Username")
+	if err != nil {
+		fmt.Printf("\n%s\n", err.Error())
+        os.Exit(1)
+	}
+	sfdcPass, err := textinput.TextInput("Password")
+	if err != nil {
+		fmt.Printf("\n%s\n", err.Error())
+        os.Exit(1)
+	}
+
+	// TODO: Results
 	fmt.Printf("\n\n-----------------------------\n\n")
 
 	fmt.Printf("Selected event groups:\n")
@@ -133,7 +163,13 @@ func main() {
 
 	fmt.Printf("Selected run mode: %s\n", runModeMap()[runMode])
 
-	fmt.Printf("AccountID: %s\n", accountId)
-	fmt.Printf("APIKey: %s\n", apiKey)
-	fmt.Printf("Region: %s\n", region)
+	fmt.Printf("AccountID: %s\n", nrAccountId)
+	fmt.Printf("APIKey: %s\n", nrApiKey)
+	fmt.Printf("Region: %s\n", nrRegion)
+
+	fmt.Printf("Toke URL: %s\n", sfdcTokenUrl)
+	fmt.Printf("Client ID: %s\n", sfdcClientId)
+	fmt.Printf("Client Secret: %s\n", sfdcClientSecret)
+	fmt.Printf("Username: %s\n", sfdcUsername)
+	fmt.Printf("Password: %s\n", sfdcPass)
 }
