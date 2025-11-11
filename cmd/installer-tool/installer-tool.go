@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"strconv"
 
 	"github.com/newrelic/newrelic-salesforce-exporter/cmd/installer-tool/components"
 	"github.com/newrelic/newrelic-salesforce-exporter/cmd/installer-tool/components/checkerlist"
@@ -124,8 +125,8 @@ func main() {
 
 	var (
 		cacheHost string
-		cachePort string
-		cacheDbNum string
+		cachePort int
+		cacheDbNum int
 		cachePass string
 		cacheEnabled = (cacheSelection == 0)
 	)
@@ -138,16 +139,47 @@ func main() {
 			fmt.Printf("\n%s\n", err.Error())
 			os.Exit(1)
 		}
-		cachePort, err = textinput.TextInput("Redis port")
-		if err != nil {
-			fmt.Printf("\n%s\n", err.Error())
-			os.Exit(1)
+		for {
+			port, err := textinput.TextInput("Redis port")
+			if err != nil {
+				fmt.Printf("\n%s\n", err.Error())
+				os.Exit(1)
+			}
+			i, err := strconv.Atoi(port)
+			if err != nil {
+				//error, bad format
+				components.PrintError("Port must be a number.")
+				continue
+			}
+			if i < 0 {
+				//error, bad range
+				components.PrintError("Port must be a positive number.")
+				continue
+			}
+			cachePort = i
+			break
 		}
-		cacheDbNum, err = textinput.TextInput("Redis DB number")
-		if err != nil {
-			fmt.Printf("\n%s\n", err.Error())
-			os.Exit(1)
+		for {
+			dbNum, err := textinput.TextInput("Redis DB number")
+			if err != nil {
+				fmt.Printf("\n%s\n", err.Error())
+				os.Exit(1)
+			}
+			i, err := strconv.Atoi(dbNum)
+			if err != nil {
+				//error, bad format
+				components.PrintError("DB number must be a number.")
+				continue
+			}
+			if i < 0 {
+				//error, bad range
+				components.PrintError("DB number must be a positive number.")
+				continue
+			}
+			cacheDbNum = i
+			break
 		}
+
 		cachePass, err = textinput.TextInput("Redis password")
 		if err != nil {
 			fmt.Printf("\n%s\n", err.Error())
@@ -168,10 +200,19 @@ func main() {
 		fmt.Printf("\n%s\n", err.Error())
         os.Exit(1)
 	}
-	nrRegion, err := textinput.TextInput("Region (US/EU)")
-	if err != nil {
-		fmt.Printf("\n%s\n", err.Error())
-        os.Exit(1)
+	var nrRegion string
+	for {
+		nrRegion, err = textinput.TextInput("Region (US/EU)")
+		if err != nil {
+			fmt.Printf("\n%s\n", err.Error())
+			os.Exit(1)
+		}
+		if nrRegion != "EU" && nrRegion != "US" {
+			//error, bad values
+			components.PrintError("Region must be US or EU.")
+			continue
+		}
+		break
 	}
 
 	fmt.Printf("\n")

@@ -1,6 +1,7 @@
 package components
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/charmbracelet/lipgloss"
@@ -12,6 +13,7 @@ var (
 	BlurredStyle	= lipgloss.NewStyle().Foreground(lipgloss.Color("240")).MarginLeft(2)
 	FooterStyle		= lipgloss.NewStyle().MarginLeft(2)
 	NoStyle			= lipgloss.NewStyle()
+	ErrorStyle		= lipgloss.NewStyle().Foreground(lipgloss.Color("#b90404ff")).MarginLeft(2)
 )
 
 func Title(title string, s *strings.Builder) *strings.Builder {
@@ -25,4 +27,8 @@ func Title(title string, s *strings.Builder) *strings.Builder {
 	s.WriteString("\n\n")
 
 	return s
+}
+
+func PrintError(err string) {
+	fmt.Printf("%s\n", ErrorStyle.Render(err))
 }
