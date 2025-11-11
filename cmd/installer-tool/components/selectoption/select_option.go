@@ -95,10 +95,12 @@ func (m SelectModel) View() string {
     }
 
     // Footer
-	s.WriteString("\n")
-    for i := range m.footer {
-        s.WriteString(components.BlurredStyle.Render(m.footer[i]))
+    if len(m.footer) > 0 {
         s.WriteString("\n")
+        for i := range m.footer {
+            s.WriteString(components.BlurredStyle.Render(m.footer[i]))
+            s.WriteString("\n")
+        }
     }
 
 	s.WriteString("\n")

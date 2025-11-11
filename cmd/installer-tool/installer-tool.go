@@ -87,6 +87,15 @@ func selectRunMode() (RunMode, error) {
 	return selectoption.SelectList(choices, title, footer)
 }
 
+func selectCache() (int, error) {
+	choices := map[int]string{
+		0: "Yes",
+		1: "No",
+	}
+	title := "Do you want to set up a Redis cache (recomended)?"
+	return selectoption.SelectList(choices, title, []string{})
+}
+
 func main() {
 	fmt.Printf("\n")
 	
@@ -103,6 +112,46 @@ func main() {
 	if err != nil {
 		fmt.Printf("\n%s\n", err.Error())
         os.Exit(1)
+	}
+
+	fmt.Printf("\n")
+
+	cacheEnabled, err := selectCache()
+	if err != nil {
+		fmt.Printf("\n%s\n", err.Error())
+        os.Exit(1)
+	}
+
+	var (
+		cacheHost string
+		cachePort string
+		cacheDbNum string
+		cachePass string
+	)
+
+	if cacheEnabled == 0 {
+		fmt.Printf("\n")
+		
+		cacheHost, err = textinput.TextInput("Host")
+		if err != nil {
+			fmt.Printf("\n%s\n", err.Error())
+			os.Exit(1)
+		}
+		cachePort, err = textinput.TextInput("Port")
+		if err != nil {
+			fmt.Printf("\n%s\n", err.Error())
+			os.Exit(1)
+		}
+		cacheDbNum, err = textinput.TextInput("DB Number")
+		if err != nil {
+			fmt.Printf("\n%s\n", err.Error())
+			os.Exit(1)
+		}
+		cachePass, err = textinput.TextInput("Password")
+		if err != nil {
+			fmt.Printf("\n%s\n", err.Error())
+			os.Exit(1)
+		}
 	}
 
 	fmt.Printf("\n")
@@ -172,4 +221,9 @@ func main() {
 	fmt.Printf("Client Secret: %s\n", sfdcClientSecret)
 	fmt.Printf("Username: %s\n", sfdcUsername)
 	fmt.Printf("Password: %s\n", sfdcPass)
+
+	fmt.Printf("Cache host: %s\n", cacheHost)
+	fmt.Printf("Cache port: %s\n", cachePort)
+	fmt.Printf("Cache DB number: %s\n", cacheDbNum)
+	fmt.Printf("Cache password: %s\n", cachePass)
 }
