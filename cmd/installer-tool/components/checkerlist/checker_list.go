@@ -79,12 +79,7 @@ func (m CheckerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m CheckerModel) View() string {
 	var s strings.Builder
     
-    // Title
-    s.WriteString(components.TitleStyle.Render(m.title))
-    s.WriteString("\n")
-    s.WriteString(components.TitleStyle.Render(strings.Repeat("-", len(m.title))))
-    
-	s.WriteString("\n\n")
+    components.Title(m.title, &s)
 
     // Iterate over our choices
     for i := range len(m.choices) {

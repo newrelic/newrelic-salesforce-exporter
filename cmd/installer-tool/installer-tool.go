@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/newrelic/newrelic-salesforce-exporter/cmd/installer-tool/components"
 	"github.com/newrelic/newrelic-salesforce-exporter/cmd/installer-tool/components/checkerlist"
 	"github.com/newrelic/newrelic-salesforce-exporter/cmd/installer-tool/components/selectoption"
 	"github.com/newrelic/newrelic-salesforce-exporter/cmd/installer-tool/components/textinput"
@@ -95,10 +96,6 @@ func main() {
         os.Exit(1)
 	}
 	choices := choiceMap()
-	fmt.Printf("\nSelected event groups:\n")
-	for _,i := range selectedEventGroups {
-		fmt.Printf("- %s\n", choices[i])
-	}
 
 	fmt.Printf("\n")
 
@@ -107,15 +104,36 @@ func main() {
 		fmt.Printf("\n%s\n", err.Error())
         os.Exit(1)
 	}
-	fmt.Printf("\nSelected run mode: %s\n", runModeMap()[runMode])
 
 	fmt.Printf("\n")
 
-	//TODO: ask for NR and SFDC API credentials
-	input, err := textinput.TextInput()
+	fmt.Print(components.Title("Introduce New Relic credentials", nil).String())
+	accountId, err := textinput.TextInput("Account ID")
 	if err != nil {
 		fmt.Printf("\n%s\n", err.Error())
         os.Exit(1)
 	}
-	fmt.Printf("\nInput: %s\n", input)
+	apiKey, err := textinput.TextInput("API Key")
+	if err != nil {
+		fmt.Printf("\n%s\n", err.Error())
+        os.Exit(1)
+	}
+	region, err := textinput.TextInput("Region (US/EU)")
+	if err != nil {
+		fmt.Printf("\n%s\n", err.Error())
+        os.Exit(1)
+	}
+
+	fmt.Printf("\n\n-----------------------------\n\n")
+
+	fmt.Printf("Selected event groups:\n")
+	for _,i := range selectedEventGroups {
+		fmt.Printf("- %s\n", choices[i])
+	}
+
+	fmt.Printf("Selected run mode: %s\n", runModeMap()[runMode])
+
+	fmt.Printf("AccountID: %s\n", accountId)
+	fmt.Printf("APIKey: %s\n", apiKey)
+	fmt.Printf("Region: %s\n", region)
 }

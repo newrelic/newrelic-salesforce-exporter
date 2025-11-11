@@ -5,31 +5,29 @@ import (
 
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
-)
-
-var (
-	focusedStyle        = lipgloss.NewStyle().Foreground(lipgloss.Color("205"))
-	cursorStyle         = focusedStyle
+	"github.com/newrelic/newrelic-salesforce-exporter/cmd/installer-tool/components"
 )
 
 type InputModel struct {
-	input      textinput.Model
+	label       string
+	input       textinput.Model
 }
 
-func initialModel() InputModel {
+func initialModel(label string) InputModel {
 	m := InputModel{
+		label: label,
 		input: textinput.Model{},
 	}
 
 	var t textinput.Model
 	t = textinput.New()
-	t.Cursor.Style = cursorStyle
-	t.CharLimit = 32
-	t.Placeholder = "Nickname"
+	t.Cursor.Style = components.BlurredStyle
+	t.CharLimit = 50
+	t.Placeholder = ""
 	t.Focus()
-	t.PromptStyle = focusedStyle
-	t.TextStyle = focusedStyle
+	t.PromptStyle = components.CheckedStyle.MarginLeft(2)
+	t.Prompt = label + ": "
+	t.TextStyle = components.NoStyle
 
 	m.input = t
 
@@ -66,16 +64,16 @@ func (m *InputModel) updateInputs(msg tea.Msg) tea.Cmd {
 }
 
 func (m InputModel) View() string {
-	var b strings.Builder
+	var s strings.Builder
 
-	b.WriteString(m.input.View())
-	b.WriteRune('\n')
+	s.WriteString(m.input.View())
+	s.WriteRune('\n')
 
-	return b.String()
+	return s.String()
 }
 
-func TextInput() (string, error) {
-	m, err := tea.NewProgram(initialModel()).Run(); if err != nil {
+func TextInput(label string) (string, error) {
+	m, err := tea.NewProgram(initialModel(label)).Run(); if err != nil {
 		return "", err
 	}
 	model := m.(InputModel)
