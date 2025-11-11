@@ -116,7 +116,7 @@ func main() {
 
 	fmt.Printf("\n")
 
-	cacheEnabled, err := selectCache()
+	cacheSelection, err := selectCache()
 	if err != nil {
 		fmt.Printf("\n%s\n", err.Error())
         os.Exit(1)
@@ -127,27 +127,28 @@ func main() {
 		cachePort string
 		cacheDbNum string
 		cachePass string
+		cacheEnabled = (cacheSelection == 0)
 	)
 
-	if cacheEnabled == 0 {
+	if cacheEnabled {
 		fmt.Printf("\n")
-		
-		cacheHost, err = textinput.TextInput("Host")
+
+		cacheHost, err = textinput.TextInput("Redis host")
 		if err != nil {
 			fmt.Printf("\n%s\n", err.Error())
 			os.Exit(1)
 		}
-		cachePort, err = textinput.TextInput("Port")
+		cachePort, err = textinput.TextInput("Redis port")
 		if err != nil {
 			fmt.Printf("\n%s\n", err.Error())
 			os.Exit(1)
 		}
-		cacheDbNum, err = textinput.TextInput("DB Number")
+		cacheDbNum, err = textinput.TextInput("Redis DB number")
 		if err != nil {
 			fmt.Printf("\n%s\n", err.Error())
 			os.Exit(1)
 		}
-		cachePass, err = textinput.TextInput("Password")
+		cachePass, err = textinput.TextInput("Redis password")
 		if err != nil {
 			fmt.Printf("\n%s\n", err.Error())
 			os.Exit(1)
@@ -203,7 +204,7 @@ func main() {
 	}
 
 	// TODO: Results
-	fmt.Printf("\n\n-----------------------------\n\n")
+	fmt.Printf("\n\n------------ RESULTS ------------\n\n")
 
 	fmt.Printf("Selected event groups:\n")
 	for _,i := range selectedEventGroups {
@@ -222,8 +223,10 @@ func main() {
 	fmt.Printf("Username: %s\n", sfdcUsername)
 	fmt.Printf("Password: %s\n", sfdcPass)
 
-	fmt.Printf("Cache host: %s\n", cacheHost)
-	fmt.Printf("Cache port: %s\n", cachePort)
-	fmt.Printf("Cache DB number: %s\n", cacheDbNum)
-	fmt.Printf("Cache password: %s\n", cachePass)
+	if cacheEnabled {
+		fmt.Printf("Cache host: %s\n", cacheHost)
+		fmt.Printf("Cache port: %s\n", cachePort)
+		fmt.Printf("Cache DB number: %s\n", cacheDbNum)
+		fmt.Printf("Cache password: %s\n", cachePass)
+	}
 }
