@@ -71,7 +71,7 @@ func buildEventLogConfig(userSelection *UserSelection) error {
 	eventLogConfFile, err := os.OpenFile(
 		"./installer_output/config_eventlog.yml",
 		os.O_RDWR|os.O_CREATE|os.O_TRUNC,
-		0755,
+		0600,
 	)
     if err != nil {
         return err
@@ -180,7 +180,11 @@ func buildEventTypes(eventGroups []EventGroup) []string {
 func setupOutputFolder() error {
 	newpath := filepath.Join(".", "installer_output")
 	os.MkdirAll(newpath, os.ModePerm)
-	f, err := os.OpenFile("./installer_output/.gitignore", os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0755)
+	f, err := os.OpenFile(
+		"./installer_output/.gitignore",
+		os.O_RDWR|os.O_CREATE|os.O_TRUNC,
+		0600,
+	)
     if err != nil {
         return err
     }
