@@ -115,9 +115,63 @@ func buildEventTypes(eventGroups []EventGroup) []string {
 				"ExternalCustomApexCallout",
 				"NamedCredential",
 			)
-		// TODO: implement all groups
-		default:
-			panic("Event group not implemented yet")
+		case LightningUsage:
+			eventTypes = append(eventTypes,
+				"LightningError",
+				"LightningInteraction",
+				"LightningLogger",
+				"LightningPageView",
+				"LightningPerformance",
+				"VisualforceRequest",
+			)
+		case ApiAccess:
+			eventTypes = append(eventTypes,
+				"ApiTotalUsage",
+				"BulkApi",
+				"BulkApiRequest",
+				"BulkApi2",
+				"CompositeApi",
+				"CompositeApiSubrequest",
+				"MetadataApiOperation",
+				"RestApi",
+				"SoapApi",
+			)
+		case ReportAccess:
+			eventTypes = append(eventTypes,
+				"AsynchronousReportRun",
+				"Dashboard",
+				"MultiblockReport",
+				"Report",
+				"ReportExport",
+			)
+		case DocContentDbAccess:
+			eventTypes = append(eventTypes,
+				"DatabaseSave",
+				"UniqueQuery",
+				"DocumentAttachmentDownoads",
+				"ContentDocumentLink",
+				"ContentTransfer",
+				"ContentDistribution",
+			)
+		case WaveUsage:
+			eventTypes = append(eventTypes,
+				"WaveChange",
+				"WaveDownload",
+				"WaveInteraction",
+				"WavePerformance",
+			)
+		case ErrPermViol:
+			eventTypes = append(eventTypes,
+				"CorsViolation",
+				"CspViolation",
+				"InsufficientAccess",
+				"PermissionUpdate",
+				"InsecureExternalAssets",
+				"TransactionSecurity",
+				"BlockedRedirect",
+				"HostnameRedirects",
+				"GroupMembership",
+			)
 		}
 	}
 	return eventTypes
