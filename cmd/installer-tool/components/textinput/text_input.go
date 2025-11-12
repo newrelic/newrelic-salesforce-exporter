@@ -14,7 +14,7 @@ type InputModel struct {
 	input       textinput.Model
 }
 
-func initialModel(label string) InputModel {
+func initialModel(label string, initial string) InputModel {
 	m := InputModel{
 		label: label,
 		input: textinput.Model{},
@@ -24,12 +24,13 @@ func initialModel(label string) InputModel {
 	t = textinput.New()
 	t.Cursor.Style = components.BlurredStyle
 	t.Cursor.SetMode(cursor.CursorStatic)
-	t.CharLimit = 50
+	t.CharLimit = 256
 	t.Placeholder = ""
 	t.Focus()
 	t.PromptStyle = components.CheckedStyle.MarginLeft(2)
 	t.Prompt = label + ": "
 	t.TextStyle = components.NoStyle
+	t.SetValue(initial)
 
 	m.input = t
 
@@ -74,8 +75,8 @@ func (m InputModel) View() string {
 	return s.String()
 }
 
-func TextInput(label string) (string, error) {
-	m, err := tea.NewProgram(initialModel(label)).Run(); if err != nil {
+func TextInput(label string, initial string) (string, error) {
+	m, err := tea.NewProgram(initialModel(label, initial)).Run(); if err != nil {
 		return "", err
 	}
 	model := m.(InputModel)

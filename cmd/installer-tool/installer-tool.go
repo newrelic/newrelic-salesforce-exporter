@@ -5,24 +5,11 @@ import (
 	"os"
 	"strconv"
 
+	"github.com/newrelic/newrelic-salesforce-exporter/cmd/installer-tool/builder"
 	"github.com/newrelic/newrelic-salesforce-exporter/cmd/installer-tool/components"
 	"github.com/newrelic/newrelic-salesforce-exporter/cmd/installer-tool/components/checkerlist"
 	"github.com/newrelic/newrelic-salesforce-exporter/cmd/installer-tool/components/selectoption"
 	"github.com/newrelic/newrelic-salesforce-exporter/cmd/installer-tool/components/textinput"
-)
-
-type EventGroup = int
-
-const (
-    UserAccess EventGroup = iota
-    ApexUsage
-    LightningUsage
-    ApiAccess
-	ReportAccess
-	DocContentDbAccess
-	WaveUsage
-	ErrPermViol
-	AlertSecurity
 )
 
 const (
@@ -37,49 +24,43 @@ const (
 	AlertSecurityDesc = "Real-time Alerts and Security Warnings (*)"
 )
 
-func choiceMap() map[EventGroup]string {
-	return map[EventGroup]string{
-		UserAccess: UserAccessDesc,
-		ApexUsage: ApexUsageDesc,
-		LightningUsage: LightningUsageDesc,
-		ApiAccess: ApiAccessDesc,
-		ReportAccess: ReportAccessDesc,
-		DocContentDbAccess: DocContentDbAccessDesc,
-		WaveUsage: WaveUsageDesc,
-		ErrPermViol: ErrPermViolDesc,
-		AlertSecurity: AlertSecurityDesc,
+func choiceMap() map[builder.EventGroup]string {
+	return map[builder.EventGroup]string{
+		builder.UserAccess: UserAccessDesc,
+		builder.ApexUsage: ApexUsageDesc,
+		builder.LightningUsage: LightningUsageDesc,
+		builder.ApiAccess: ApiAccessDesc,
+		builder.ReportAccess: ReportAccessDesc,
+		builder.DocContentDbAccess: DocContentDbAccessDesc,
+		builder.WaveUsage: WaveUsageDesc,
+		builder.ErrPermViol: ErrPermViolDesc,
+		builder.AlertSecurity: AlertSecurityDesc,
 	}
 }
 
-func selectEventGroups() ([]EventGroup, error) {
+func selectEventGroups() ([]builder.EventGroup, error) {
 	choices := choiceMap()
 	title := "Select event groups to collect"
 	footer := []string{
 		"(*) This group requires rolling out a separate data collector, the EventStream.",
+		"\nNOTE: If empty selection, the integration will collect everything from Event Logs.",
 	}
 	return checkerlist.CheckerList(choices, title, footer)
 }
-
-type RunMode = int
-
-const (
-    ServiceMode RunMode = iota
-    CronLikeMode
-)
 
 const (
 	ServiceModeDesc = "Service mode"
 	CronLikeModeDesc = "Cron-like mode"
 )
 
-func runModeMap() map[RunMode]string {
-	return map[EventGroup]string{
-		ServiceMode: ServiceModeDesc,
-		CronLikeMode: CronLikeModeDesc,
+func runModeMap() map[builder.RunMode]string {
+	return map[builder.EventGroup]string{
+		builder.ServiceMode: ServiceModeDesc,
+		builder.CronLikeMode: CronLikeModeDesc,
 	}
 }
 
-func selectRunMode() (RunMode, error) {
+func selectRunMode() (builder.RunMode, error) {
 	choices := runModeMap()
 	title := "Select the run mode for the integration"
 	footer := []string{
@@ -105,7 +86,6 @@ func main() {
 		fmt.Printf("\n%s\n", err.Error())
         os.Exit(1)
 	}
-	choices := choiceMap()
 
 	fmt.Printf("\n")
 
@@ -134,13 +114,13 @@ func main() {
 	if cacheEnabled {
 		fmt.Printf("\n")
 
-		cacheHost, err = textinput.TextInput("Redis host")
+		cacheHost, err = textinput.TextInput("Redis host", "")
 		if err != nil {
 			fmt.Printf("\n%s\n", err.Error())
 			os.Exit(1)
 		}
 		for {
-			port, err := textinput.TextInput("Redis port")
+			port, err := textinput.TextInput("Redis port", "6379")
 			if err != nil {
 				fmt.Printf("\n%s\n", err.Error())
 				os.Exit(1)
@@ -160,7 +140,7 @@ func main() {
 			break
 		}
 		for {
-			dbNum, err := textinput.TextInput("Redis DB number")
+			dbNum, err := textinput.TextInput("Redis DB number", "0")
 			if err != nil {
 				fmt.Printf("\n%s\n", err.Error())
 				os.Exit(1)
@@ -180,7 +160,7 @@ func main() {
 			break
 		}
 
-		cachePass, err = textinput.TextInput("Redis password")
+		cachePass, err = textinput.TextInput("Redis password", "")
 		if err != nil {
 			fmt.Printf("\n%s\n", err.Error())
 			os.Exit(1)
@@ -190,19 +170,19 @@ func main() {
 	fmt.Printf("\n")
 
 	fmt.Print(components.Title("Introduce New Relic API credentials", nil).String())
-	nrAccountId, err := textinput.TextInput("Account ID")
+	nrAccountId, err := textinput.TextInput("Account ID", "")
 	if err != nil {
 		fmt.Printf("\n%s\n", err.Error())
         os.Exit(1)
 	}
-	nrApiKey, err := textinput.TextInput("API Key")
+	nrApiKey, err := textinput.TextInput("API Key", "")
 	if err != nil {
 		fmt.Printf("\n%s\n", err.Error())
         os.Exit(1)
 	}
 	var nrRegion string
 	for {
-		nrRegion, err = textinput.TextInput("Region (US/EU)")
+		nrRegion, err = textinput.TextInput("Region (US/EU)", "US")
 		if err != nil {
 			fmt.Printf("\n%s\n", err.Error())
 			os.Exit(1)
@@ -218,56 +198,91 @@ func main() {
 	fmt.Printf("\n")
 
 	fmt.Print(components.Title("Introduce Salesforce API credentials", nil).String())
-	sfdcTokenUrl, err := textinput.TextInput("Token URL")
+	sfdcTokenUrl, err := textinput.TextInput("Token URL", "")
 	if err != nil {
 		fmt.Printf("\n%s\n", err.Error())
         os.Exit(1)
 	}
-	sfdcClientId, err := textinput.TextInput("Client ID")
+	sfdcClientId, err := textinput.TextInput("Client ID", "")
 	if err != nil {
 		fmt.Printf("\n%s\n", err.Error())
         os.Exit(1)
 	}
-	sfdcClientSecret, err := textinput.TextInput("Client Secret")
+	sfdcClientSecret, err := textinput.TextInput("Client Secret", "")
 	if err != nil {
 		fmt.Printf("\n%s\n", err.Error())
         os.Exit(1)
 	}
-	sfdcUsername, err := textinput.TextInput("Username")
+	sfdcUsername, err := textinput.TextInput("Username", "")
 	if err != nil {
 		fmt.Printf("\n%s\n", err.Error())
         os.Exit(1)
 	}
-	sfdcPass, err := textinput.TextInput("Password")
+	sfdcPass, err := textinput.TextInput("Password", "")
 	if err != nil {
 		fmt.Printf("\n%s\n", err.Error())
         os.Exit(1)
 	}
 
-	// TODO: Results
 	fmt.Printf("\n\n------------ RESULTS ------------\n\n")
 
-	fmt.Printf("Selected event groups:\n")
-	for _,i := range selectedEventGroups {
-		fmt.Printf("- %s\n", choices[i])
-	}
-
-	fmt.Printf("Selected run mode: %s\n", runModeMap()[runMode])
-
-	fmt.Printf("AccountID: %s\n", nrAccountId)
-	fmt.Printf("APIKey: %s\n", nrApiKey)
-	fmt.Printf("Region: %s\n", nrRegion)
-
-	fmt.Printf("Toke URL: %s\n", sfdcTokenUrl)
-	fmt.Printf("Client ID: %s\n", sfdcClientId)
-	fmt.Printf("Client Secret: %s\n", sfdcClientSecret)
-	fmt.Printf("Username: %s\n", sfdcUsername)
-	fmt.Printf("Password: %s\n", sfdcPass)
+	// Build config
+	
+	var redisConfig *builder.RedisConf
 
 	if cacheEnabled {
-		fmt.Printf("Cache host: %s\n", cacheHost)
-		fmt.Printf("Cache port: %s\n", cachePort)
-		fmt.Printf("Cache DB number: %s\n", cacheDbNum)
-		fmt.Printf("Cache password: %s\n", cachePass)
+		redisConfig = &builder.RedisConf{
+			Host: cacheHost,
+			Port: cachePort,
+			DbNum: cacheDbNum,
+			Password: cachePass,
+		}
 	}
+
+	err = builder.BuildConfig(builder.UserSelection{
+		Groups: selectedEventGroups,
+		RunMode: runMode,
+		NewRelic: builder.NewRelicConf{
+			AccountId: nrAccountId,
+			ApiKey: nrApiKey,
+			Region: nrRegion,
+		},
+		Salesforce: builder.SalesforceConf{
+			TokenUrl: sfdcTokenUrl,
+			ClientId: sfdcClientId,
+			ClientSecret: sfdcClientSecret,
+			Username: sfdcUsername,
+			Password: sfdcPass,
+		},
+		Redis: redisConfig,
+	})
+
+	if err != nil {
+		fmt.Printf("Error: %s", err)
+		os.Exit(1)
+	}
+
+	// fmt.Printf("Selected event groups:\n")
+	// for _,i := range selectedEventGroups {
+	// 	fmt.Printf("- %s\n", choiceMap()[i])
+	// }
+
+	// fmt.Printf("Selected run mode: %s\n", runModeMap()[runMode])
+
+	// fmt.Printf("AccountID: %s\n", nrAccountId)
+	// fmt.Printf("APIKey: %s\n", nrApiKey)
+	// fmt.Printf("Region: %s\n", nrRegion)
+
+	// fmt.Printf("Toke URL: %s\n", sfdcTokenUrl)
+	// fmt.Printf("Client ID: %s\n", sfdcClientId)
+	// fmt.Printf("Client Secret: %s\n", sfdcClientSecret)
+	// fmt.Printf("Username: %s\n", sfdcUsername)
+	// fmt.Printf("Password: %s\n", sfdcPass)
+
+	// if cacheEnabled {
+	// 	fmt.Printf("Cache host: %s\n", cacheHost)
+	// 	fmt.Printf("Cache port: %d\n", cachePort)
+	// 	fmt.Printf("Cache DB number: %d\n", cacheDbNum)
+	// 	fmt.Printf("Cache password: %s\n", cachePass)
+	// }
 }

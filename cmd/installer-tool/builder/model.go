@@ -1,0 +1,96 @@
+package builder
+
+type EventGroup = int
+
+const (
+	UserAccess EventGroup = iota
+	ApexUsage
+	LightningUsage
+	ApiAccess
+	ReportAccess
+	DocContentDbAccess
+	WaveUsage
+	ErrPermViol
+	AlertSecurity
+)
+
+type RunMode = int
+
+const (
+	ServiceMode RunMode = iota
+	CronLikeMode
+)
+
+type NewRelicConf struct {
+	AccountId string
+	ApiKey    string
+	Region    string
+}
+
+type SalesforceConf struct {
+	TokenUrl     string
+	ClientId     string
+	ClientSecret string
+	Username     string
+	Password     string
+}
+
+type RedisConf struct {
+	Host     string
+	Port     int
+	DbNum    int
+	Password string
+}
+
+type UserSelection struct {
+	Groups     []EventGroup
+	RunMode    RunMode
+	NewRelic   NewRelicConf
+	Salesforce SalesforceConf
+	Redis      *RedisConf
+}
+
+type UserPass struct {
+	ClientId     string `yaml:"clientId"`
+	ClientSecret string `yaml:"clientSecret"`
+	Username     string `yaml:"username"`
+	Password     string `yaml:"password"`
+}
+
+type Auth struct {
+	TokenUrl string   `yaml:"tokenUrl"`
+	UserPass UserPass `yaml:"userPass"`
+}
+
+type RedisCache struct {
+	Host       string `yaml:"host"`
+	Port       int    `yaml:"port"`
+	DbNumber   int    `yaml:"dbNumber"`
+	Password   string `yaml:"password"`
+	ExpireDays int    `yaml:"expireDays"`
+}
+
+type Cache struct {
+	Redis *RedisCache `yaml:"redis,omitempty"`
+}
+
+type Instance struct {
+	Name       string   `yaml:"name"`
+	Auth       Auth     `yaml:"auth"`
+	Cache      *Cache   `yaml:"cache,omitempty"`
+	EventTypes []string `yaml:"eventTypes,omitempty"`
+}
+
+type EventLog struct {
+	IntegrationName string     `yaml:"integrationName"`
+	Instances       []Instance `yaml:"instances"`
+}
+type EventLogConfigFileModel struct {
+	Version      string   `yaml:"version"`
+	EventLog     EventLog `yaml:"eventLog"`
+	RunAsService bool     `yaml:"runAsService"`
+	LicenseKey   string   `yaml:"licenseKey"`
+	AccountId    string   `yaml:"accountId"`
+	Region       string   `yaml:"region"`
+	Format       string   `yaml:"format"`
+}
