@@ -183,7 +183,7 @@ func setupOutputFolder() error {
 	f, err := os.OpenFile(
 		"./installer_output/.gitignore",
 		os.O_RDWR|os.O_CREATE|os.O_TRUNC,
-		0600,
+		0644,
 	)
     if err != nil {
         return err
