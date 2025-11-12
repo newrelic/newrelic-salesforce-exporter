@@ -188,7 +188,13 @@ func setupOutputFolder() error {
     if err != nil {
         return err
     }
-	f.WriteString("*")
-	f.Close()
+	_, err = f.WriteString("*")
+	if err != nil {
+        return err
+    }
+	err = f.Close()
+	if err != nil {
+        return err
+    }
 	return nil
 }
