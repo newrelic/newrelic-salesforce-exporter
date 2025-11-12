@@ -224,8 +224,6 @@ func main() {
         os.Exit(1)
 	}
 
-	fmt.Printf("\n\n------------ RESULTS ------------\n\n")
-
 	// Build config
 	
 	var redisConfig *builder.RedisConf
@@ -262,27 +260,9 @@ func main() {
 		os.Exit(1)
 	}
 
-	// fmt.Printf("Selected event groups:\n")
-	// for _,i := range selectedEventGroups {
-	// 	fmt.Printf("- %s\n", choiceMap()[i])
-	// }
-
-	// fmt.Printf("Selected run mode: %s\n", runModeMap()[runMode])
-
-	// fmt.Printf("AccountID: %s\n", nrAccountId)
-	// fmt.Printf("APIKey: %s\n", nrApiKey)
-	// fmt.Printf("Region: %s\n", nrRegion)
-
-	// fmt.Printf("Toke URL: %s\n", sfdcTokenUrl)
-	// fmt.Printf("Client ID: %s\n", sfdcClientId)
-	// fmt.Printf("Client Secret: %s\n", sfdcClientSecret)
-	// fmt.Printf("Username: %s\n", sfdcUsername)
-	// fmt.Printf("Password: %s\n", sfdcPass)
-
-	// if cacheEnabled {
-	// 	fmt.Printf("Cache host: %s\n", cacheHost)
-	// 	fmt.Printf("Cache port: %d\n", cachePort)
-	// 	fmt.Printf("Cache DB number: %d\n", cacheDbNum)
-	// 	fmt.Printf("Cache password: %s\n", cachePass)
-	// }
+	fmt.Printf("\n")
+	fmt.Print(components.DoneStyle.Render("Done!"))
+	fmt.Print(components.NoStyle.MarginLeft(1).Render("Output data written into"))
+	fmt.Print(components.NoStyle.MarginLeft(1).Underline(true).Render("'./installer_tool'"))
+	fmt.Printf("\n\n")
 }

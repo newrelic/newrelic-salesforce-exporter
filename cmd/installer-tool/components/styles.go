@@ -13,6 +13,7 @@ var (
 	BlurredStyle	= lipgloss.NewStyle().Foreground(lipgloss.Color("240")).MarginLeft(2)
 	FooterStyle		= lipgloss.NewStyle().MarginLeft(2)
 	NoStyle			= lipgloss.NewStyle()
+	DoneStyle		= TitleStyle.Blink(true)
 	ErrorStyle		= lipgloss.NewStyle().Foreground(lipgloss.Color("#b90404ff")).MarginLeft(2)
 )
 
