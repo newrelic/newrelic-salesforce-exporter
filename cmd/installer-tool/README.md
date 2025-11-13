@@ -8,7 +8,7 @@ go run cmd/installer-tool/installer-tool.go
 
 Follow the installer instruction.
 
-Once finished, the output fill be udnerf the `installer_output` folder, in the repo
+Once finished, the output fill be under the `installer_output` folder, in the repo
 root. It contains the config files for the integrations and the dockerfiles to
 build the docker images.
 
