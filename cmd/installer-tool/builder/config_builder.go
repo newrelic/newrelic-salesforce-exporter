@@ -183,8 +183,8 @@ func buildEventTypes(eventGroups []EventGroup) []string {
 }
 
 func buildEventStreamConfig(userSelection *UserSelection) error {
-	alertSecurity := slices.Contains(userSelection.Groups, AlertSecurity)
-	if !alertSecurity {
+	alertSecurityGroup := slices.Contains(userSelection.Groups, AlertSecurity)
+	if !alertSecurityGroup {
 		return nil
 	}
 	eventStreamConf := EventStreamConfigFileModel{

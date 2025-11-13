@@ -49,8 +49,8 @@ func selectEventGroups() ([]builder.EventGroup, error) {
 }
 
 const (
-	ServiceModeDesc = "Service mode"
-	CronLikeModeDesc = "Cron-like mode"
+	ServiceModeDesc = "Service (runs continuously)"
+	CronLikeModeDesc = "Cron-like (is executed externally and runs once)"
 )
 
 func runModeMap() map[builder.RunMode]string {
@@ -265,4 +265,8 @@ func main() {
 	fmt.Print(components.NoStyle.MarginLeft(1).Render("Output data written into"))
 	fmt.Print(components.NoStyle.MarginLeft(1).Underline(true).Render("'./installer_tool'"))
 	fmt.Printf("\n\n")
+
+	//TODO: build docker images
+
+	//TODO: build dashboards
 }
