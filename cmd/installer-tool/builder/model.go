@@ -76,6 +76,7 @@ type Cache struct {
 
 type Instance struct {
 	Name       string   `yaml:"name"`
+	ApiVer     string   `yaml:"apiVer"`
 	Auth       Auth     `yaml:"auth"`
 	Cache      *Cache   `yaml:"cache,omitempty"`
 	EventTypes []string `yaml:"eventTypes,omitempty"`

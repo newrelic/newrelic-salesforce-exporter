@@ -31,6 +31,7 @@ func buildEventLogConfig(userSelection *UserSelection) error {
 			Instances: []Instance{
 				{
 					Name: "sfdc-instance-1",
+					ApiVer: "64.0",	// The minimum SFDC API version that supports all the event types we collect
 					Auth: Auth{
 						TokenUrl: userSelection.Salesforce.TokenUrl,
 						UserPass: UserPass{
