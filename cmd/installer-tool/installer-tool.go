@@ -22,13 +22,17 @@ func main() {
 		os.Exit(1)
 	}
 
+	err = builder.BuildDocker()
+	if err != nil {
+		fmt.Printf("Error building docker files: %s", err)
+		os.Exit(1)
+	}
+
+	//TODO: build dashboards
+
 	fmt.Printf("\n")
 	fmt.Print(components.DoneStyle.Render("Done!"))
 	fmt.Print(components.NoStyle.MarginLeft(1).Render("Output data written into"))
 	fmt.Print(components.NoStyle.MarginLeft(1).Underline(true).Render("'./installer_tool'"))
 	fmt.Printf("\n\n")
-
-	//TODO: build docker images
-
-	//TODO: build dashboards
 }

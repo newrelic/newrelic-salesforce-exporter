@@ -2,7 +2,6 @@ package builder
 
 import (
 	"os"
-	"path/filepath"
 	"slices"
 
 	"gopkg.in/yaml.v3"
@@ -74,7 +73,7 @@ func buildEventLogConfig(userSelection *UserSelection) error {
 	}
 
 	eventLogConfFile, err := os.OpenFile(
-		filepath.Join(".", "installer_output", "config_eventlog.yml"),
+		buildInstallerPath("config_eventlog.yml"),
 		os.O_RDWR|os.O_CREATE|os.O_TRUNC,
 		0600,
 	)
@@ -231,7 +230,7 @@ func buildEventStreamConfig(userSelection *UserSelection) error {
 	}
 
 	eventLogConfFile, err := os.OpenFile(
-		filepath.Join(".", "installer_output", "config_eventstream.yml"),
+		buildInstallerPath("config_eventstream.yml"),
 		os.O_RDWR|os.O_CREATE|os.O_TRUNC,
 		0600,
 	)
@@ -255,10 +254,9 @@ func buildEventStreamConfig(userSelection *UserSelection) error {
 }
 
 func setupOutputFolder() error {
-	installerOutPath := filepath.Join(".", "installer_output")
-	os.MkdirAll(installerOutPath, os.ModePerm)
+	os.MkdirAll(installerPath(), os.ModePerm)
 	f, err := os.OpenFile(
-		filepath.Join(installerOutPath, ".gitignore"),
+		buildInstallerPath(".gitignore"),
 		os.O_RDWR|os.O_CREATE|os.O_TRUNC,
 		0644,
 	)
