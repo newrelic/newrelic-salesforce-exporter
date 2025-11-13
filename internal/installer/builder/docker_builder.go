@@ -6,6 +6,7 @@ import (
 )
 
 var eventLogDocker = []string{
+	// Build stage
 	"FROM golang:1.25.3-alpine3.22 AS build-stage",
 	"WORKDIR /build",
 	"COPY go.mod go.sum ./",
@@ -13,14 +14,16 @@ var eventLogDocker = []string{
 	"COPY cmd ./cmd",
 	"COPY internal ./internal",
 	"RUN CGO_ENABLED=0 go build ./cmd/nr-salesforce-eventlog/nr-salesforce-eventlog.go",
+	// Release stage
 	"FROM alpine:3.22 AS release-stage",
 	"WORKDIR /app",
 	"COPY --from=build-stage /build/nr-salesforce-eventlog ./",
-	"COPY config_eventlog.yml ./",
+	"COPY installer_output/config_eventlog.yml ./",
 	"CMD [\"./nr-salesforce-eventlog\"]",
 }
 
 var eventStreamDocker = []string{
+	// Build stage
 	"FROM golang:1.25.3-alpine3.22 AS build-stage",
 	"WORKDIR /build",
 	"COPY go.mod go.sum ./",
@@ -28,10 +31,11 @@ var eventStreamDocker = []string{
 	"COPY cmd ./cmd",
 	"COPY internal ./internal",
 	"RUN CGO_ENABLED=0 go build ./cmd/nr-salesforce-stream/nr-salesforce-stream.go",
+	// Release stage
 	"FROM alpine:3.22 AS release-stage",
 	"WORKDIR /app",
 	"COPY --from=build-stage /build/nr-salesforce-stream ./",
-	"COPY config_eventstream.yml ./",
+	"COPY installer_output/config_eventstream.yml ./",
 	"CMD [\"./nr-salesforce-stream\"]",
 }
 
