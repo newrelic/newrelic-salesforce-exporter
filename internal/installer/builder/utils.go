@@ -2,11 +2,11 @@ package builder
 
 import "path/filepath"
 
-func installerPath() string {
+func InstallerPath() string {
 	return filepath.Join(".", "installer_output")
 }
 
-func buildInstallerPath(file string) string {
+func BuildInstallerPath(file string) string {
 	path := filepath.Join(".", "installer_output")
 	return filepath.Join(path, file)
 }

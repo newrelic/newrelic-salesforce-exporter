@@ -51,7 +51,7 @@ func BuildDocker() error {
 
 func buildEventLogDocker() error {
 	eventLogDockerfile, err := os.OpenFile(
-		buildInstallerPath("Dockerfile.eventlog"),
+		BuildInstallerPath("Dockerfile.eventlog"),
 		os.O_RDWR|os.O_CREATE|os.O_TRUNC,
 		0600,
 	)
@@ -75,7 +75,7 @@ func buildEventLogDocker() error {
 
 func buildEventStreamDocker() error {
 	eventStreamDockerfile, err := os.OpenFile(
-		buildInstallerPath("Dockerfile.eventstream"),
+		BuildInstallerPath("Dockerfile.eventstream"),
 		os.O_RDWR|os.O_CREATE|os.O_TRUNC,
 		0600,
 	)

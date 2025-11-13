@@ -73,7 +73,7 @@ func buildEventLogConfig(userSelection *UserSelection) error {
 	}
 
 	eventLogConfFile, err := os.OpenFile(
-		buildInstallerPath("config_eventlog.yml"),
+		BuildInstallerPath("config_eventlog.yml"),
 		os.O_RDWR|os.O_CREATE|os.O_TRUNC,
 		0600,
 	)
@@ -230,7 +230,7 @@ func buildEventStreamConfig(userSelection *UserSelection) error {
 	}
 
 	eventLogConfFile, err := os.OpenFile(
-		buildInstallerPath("config_eventstream.yml"),
+		BuildInstallerPath("config_eventstream.yml"),
 		os.O_RDWR|os.O_CREATE|os.O_TRUNC,
 		0600,
 	)
@@ -254,9 +254,9 @@ func buildEventStreamConfig(userSelection *UserSelection) error {
 }
 
 func setupOutputFolder() error {
-	os.MkdirAll(installerPath(), os.ModePerm)
+	os.MkdirAll(InstallerPath(), os.ModePerm)
 	f, err := os.OpenFile(
-		buildInstallerPath(".gitignore"),
+		BuildInstallerPath(".gitignore"),
 		os.O_RDWR|os.O_CREATE|os.O_TRUNC,
 		0644,
 	)
