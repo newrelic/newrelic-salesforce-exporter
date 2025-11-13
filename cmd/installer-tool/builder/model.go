@@ -86,6 +86,7 @@ type EventLog struct {
 	IntegrationName string     `yaml:"integrationName"`
 	Instances       []Instance `yaml:"instances"`
 }
+
 type EventLogConfigFileModel struct {
 	Version      string   `yaml:"version"`
 	EventLog     EventLog `yaml:"eventLog"`
@@ -94,4 +95,21 @@ type EventLogConfigFileModel struct {
 	AccountId    string   `yaml:"accountId"`
 	Region       string   `yaml:"region"`
 	Format       string   `yaml:"format"`
+}
+
+type EventStream struct {
+	IntegrationName string   `yaml:"integrationName"`
+	Auth            Auth     `yaml:"auth"`
+	Cache           *Cache   `yaml:"cache,omitempty"`
+	Appetite        int      `yaml:"appetite"`
+	Topics          []string `yaml:"topics"`
+}
+
+type EventStreamConfigFileModel struct {
+	Version     string      `yaml:"version"`
+	EventStream EventStream `yaml:"eventStream"`
+	LicenseKey  string      `yaml:"licenseKey"`
+	AccountId   string      `yaml:"accountId"`
+	Region      string      `yaml:"region"`
+	Format      string      `yaml:"format"`
 }
