@@ -7,18 +7,18 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-func BuildConfig(userSelection UserSelection) error {
+func BuildConfig(userSelection *UserSelection) error {
 	err := setupOutputFolder()
 	if err != nil {
 		return err
 	}
 
-	err = buildEventLogConfig(&userSelection)
+	err = buildEventLogConfig(userSelection)
 	if err != nil {
 		return err
 	}
 
-	err = buildEventStreamConfig(&userSelection)
+	err = buildEventStreamConfig(userSelection)
 	if err != nil {
 		return err
 	}

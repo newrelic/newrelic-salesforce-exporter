@@ -16,7 +16,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	err = builder.BuildConfig(userSelection)
+	err = builder.BuildConfig(&userSelection)
 	if err != nil {
 		fmt.Printf("Error building config: %s", err)
 		os.Exit(1)
@@ -28,7 +28,11 @@ func main() {
 		os.Exit(1)
 	}
 
-	//TODO: build dashboards
+	err = builder.BuildDashboards(&userSelection)
+	if err != nil {
+		fmt.Printf("Error building dashboards: %s", err)
+		os.Exit(1)
+	}
 
 	fmt.Printf("\n")
 	fmt.Print(components.DoneStyle.Render("Done!"))
