@@ -1,37 +1,35 @@
-package checkerlist
+package selectoption
 
 import (
 	"fmt"
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/newrelic/newrelic-salesforce-exporter/cmd/installer-tool/tui/components"
+	"github.com/newrelic/newrelic-salesforce-exporter/internal/installer/tui/components"
 )
 
-type CheckerModel struct {
+type SelectModel struct {
 	choices  map[int]string
     title    string
     footer   []string
     cursor   int
-    selected map[int]bool
 }
 
-func initialModel(choices map[int]string, title string, footer []string) CheckerModel {
-	return CheckerModel{
+func initialModel(choices map[int]string, title string, footer []string) SelectModel {
+	return SelectModel{
 		choices: choices,
         title: title,
         footer: footer,
-		selected: make(map[int]bool),
 		cursor: 0,
 	}
 }
 
-func (m CheckerModel) Init() tea.Cmd {
+func (m SelectModel) Init() tea.Cmd {
     // Just return `nil`, which means "no I/O right now, please."
     return nil
 }
 
-func (m CheckerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m SelectModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
     switch msg := msg.(type) {
 
     // Is it a key press?
@@ -58,16 +56,6 @@ func (m CheckerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
             if m.cursor < len(m.choices)-1 {
                 m.cursor++
             }
-
-        // The "enter" key and the spacebar (a literal space) toggle
-        // the selected state for the item that the cursor is pointing at.
-        case "enter", " ":
-            ok := m.selected[m.cursor]
-            if ok {
-                delete(m.selected, m.cursor)
-            } else {
-                m.selected[m.cursor] = true
-            }
         }
     }
 
@@ -76,7 +64,7 @@ func (m CheckerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
     return m, nil
 }
 
-func (m CheckerModel) View() string {
+func (m SelectModel) View() string {
 	var s strings.Builder
     
     components.Title(m.title, &s)
@@ -90,17 +78,17 @@ func (m CheckerModel) View() string {
         }
 
         // Is this choice selected?
-        checked := " " // not selected
-        if _, ok := m.selected[i]; ok {
-            checked = "x" // selected!
+        checked := false // not selected
+        if i == m.cursor {
+            checked = true // selected!
         }
 
-		s.WriteString(fmt.Sprintf("%s [%s]", cursor, checked))
+		s.WriteString(fmt.Sprintf("%s ", cursor))
         // Render the row
-		if checked == "x" {
-        	s.WriteString(components.CheckedStyle.Render(fmt.Sprintf(" %s", m.choices[i])))
+		if checked {
+        	s.WriteString(components.CheckedStyle.Render(fmt.Sprintf("%s", m.choices[i])))
 		} else {
-			s.WriteString(fmt.Sprintf(" %s", m.choices[i]))
+			s.WriteString(fmt.Sprintf("%s", m.choices[i]))
 			
 		}
 		s.WriteString("\n")
@@ -123,17 +111,11 @@ func (m CheckerModel) View() string {
     return s.String()
 }
 
-func CheckerList(choices map[int]string, title string, footer []string) ([]int, error) {
+func SelectList(choices map[int]string, title string, footer []string) (int, error) {
     p := tea.NewProgram(initialModel(choices, title, footer))
 	m, err := p.Run(); if err != nil {
-        return nil, err
+        return -1, err
     }
-	model := m.(CheckerModel)
-	checked := []int{}
-	for pos := range model.selected {
-		if model.selected[pos] {
-			checked = append(checked, pos)
-		}
-	}
-	return checked, nil
+	model := m.(SelectModel)
+	return model.cursor, nil
 }

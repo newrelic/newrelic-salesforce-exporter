@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/newrelic/newrelic-salesforce-exporter/cmd/installer-tool/builder"
-	"github.com/newrelic/newrelic-salesforce-exporter/cmd/installer-tool/tui"
-	"github.com/newrelic/newrelic-salesforce-exporter/cmd/installer-tool/tui/components"
+	"github.com/newrelic/newrelic-salesforce-exporter/internal/installer/builder"
+	"github.com/newrelic/newrelic-salesforce-exporter/internal/installer/tui"
+	"github.com/newrelic/newrelic-salesforce-exporter/internal/installer/tui/components"
 )
 
 func main() {

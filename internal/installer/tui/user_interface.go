@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/newrelic/newrelic-salesforce-exporter/cmd/installer-tool/builder"
-	"github.com/newrelic/newrelic-salesforce-exporter/cmd/installer-tool/tui/components"
-	"github.com/newrelic/newrelic-salesforce-exporter/cmd/installer-tool/tui/components/checkerlist"
-	"github.com/newrelic/newrelic-salesforce-exporter/cmd/installer-tool/tui/components/selectoption"
-	"github.com/newrelic/newrelic-salesforce-exporter/cmd/installer-tool/tui/components/textinput"
+	"github.com/newrelic/newrelic-salesforce-exporter/internal/installer/builder"
+	"github.com/newrelic/newrelic-salesforce-exporter/internal/installer/tui/components"
+	"github.com/newrelic/newrelic-salesforce-exporter/internal/installer/tui/components/checkerlist"
+	"github.com/newrelic/newrelic-salesforce-exporter/internal/installer/tui/components/selectoption"
+	"github.com/newrelic/newrelic-salesforce-exporter/internal/installer/tui/components/textinput"
 )
 
 const (

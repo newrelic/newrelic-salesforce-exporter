@@ -6,7 +6,7 @@ import (
 	"github.com/charmbracelet/bubbles/cursor"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/newrelic/newrelic-salesforce-exporter/cmd/installer-tool/tui/components"
+	"github.com/newrelic/newrelic-salesforce-exporter/internal/installer/tui/components"
 )
 
 type InputModel struct {
