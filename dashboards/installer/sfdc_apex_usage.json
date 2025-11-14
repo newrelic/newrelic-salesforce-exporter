@@ -1,86 +1,19 @@
 {
-  "name": "Salesforce Event Stream",
+  "name": "Salesforce EventLogFile - Apex Usage",
   "description": null,
-  "permissions": "PUBLIC_READ_ONLY",
+  "permissions": "PUBLIC_READ_WRITE",
   "pages": [
     {
-      "guid": "MTU2NzI3N3xWSVp8REFTSEJPQVJEfDQxNTYyNjA2",
-      "name": "Salesforce Event Stream",
+      "guid": "MTU2NzI3N3xWSVp8REFTSEJPQVJEfDQ1MTMyOTc5",
+      "name": "Salesforce EventLogFile - Apex Usage",
       "description": null,
       "widgets": [
         {
-          "id": "462848214",
-          "title": null,
+          "id": "501732000",
+          "title": "Apex Callouts Run Time (milliseconds)",
           "layout": {
             "column": 1,
             "row": 1,
-            "width": 12,
-            "height": 1
-          },
-          "linkedEntityGuids": null,
-          "visualization": {
-            "id": "viz.markdown"
-          },
-          "rawConfiguration": {
-            "text": "---\n---\n# Injected Events\n---\n---"
-          }
-        },
-        {
-          "id": "462004574",
-          "title": "Event distribution",
-          "layout": {
-            "column": 1,
-            "row": 2,
-            "width": 12,
-            "height": 3
-          },
-          "linkedEntityGuids": [],
-          "visualization": {
-            "id": "viz.pie"
-          },
-          "rawConfiguration": {
-            "facet": {
-              "showOtherSeries": true
-            },
-            "legend": {
-              "enabled": true
-            },
-            "nrqlQueries": [
-              {
-                "accountIds": [
-                  0
-                ],
-                "query": "FROM SFDCApiEventStream, SFDCApiAnomalyEvent, SFDCBulkApiResultEvent, SFDCConcurLongRunApexErrEvent, SFDCCredentialStuffingEvent, SFDCFileEvent, SFDCGuestUserAnomalyEvent, SFDCLightningUriEventStream, SFDCListViewEventStream, SFDCLoginEventStream, SFDCLoginAnomalyEvent, SFDCLoginAsEventStream, SFDCLogoutEventStream, SFDCPermissionSetEvent, SFDCReportEventStream, SFDCReportAnomalyEvent, SFDCSessionHijackingEvent, SFDCUriEventStream SELECT count(*) FACET eventType()"
-              }
-            ],
-            "platformOptions": {
-              "ignoreTimeRange": false
-            }
-          }
-        },
-        {
-          "id": "462845889",
-          "title": null,
-          "layout": {
-            "column": 1,
-            "row": 5,
-            "width": 12,
-            "height": 1
-          },
-          "linkedEntityGuids": null,
-          "visualization": {
-            "id": "viz.markdown"
-          },
-          "rawConfiguration": {
-            "text": "---\n---\n# Authentication\n---\n---"
-          }
-        },
-        {
-          "id": "462870070",
-          "title": "User logins over time",
-          "layout": {
-            "column": 1,
-            "row": 6,
             "width": 6,
             "height": 3
           },
@@ -108,7 +41,7 @@
                 "accountIds": [
                   0
                 ],
-                "query": "FROM SFDCLoginEventStream SELECT uniqueCount(UserId) as Logins WHERE Status IN ('Success', 'success') TIMESERIES "
+                "query": "FROM `SFDCApexCallout` SELECT average(TIME) TIMESERIES"
               }
             ],
             "platformOptions": {
@@ -126,11 +59,11 @@
           }
         },
         {
-          "id": "462870072",
-          "title": "Login origin over time",
+          "id": "501734571",
+          "title": "Apex Callouts CPU Time (milliseconds)",
           "layout": {
             "column": 7,
-            "row": 6,
+            "row": 1,
             "width": 6,
             "height": 3
           },
@@ -158,7 +91,7 @@
                 "accountIds": [
                   0
                 ],
-                "query": "FROM SFDCLoginEventStream SELECT uniqueCount(UserId) FACET Country WHERE Status IN ('Success', 'success') TIMESERIES"
+                "query": "FROM `SFDCApexCallout` SELECT average(CPU_TIME) TIMESERIES"
               }
             ],
             "platformOptions": {
@@ -176,15 +109,15 @@
           }
         },
         {
-          "id": "465109977",
-          "title": "Failed logins over time",
+          "id": "501736004",
+          "title": "Apex Execution Execution Time (milliseconds)",
           "layout": {
             "column": 1,
-            "row": 9,
+            "row": 4,
             "width": 6,
             "height": 3
           },
-          "linkedEntityGuids": null,
+          "linkedEntityGuids": [],
           "visualization": {
             "id": "viz.line"
           },
@@ -208,7 +141,7 @@
                 "accountIds": [
                   0
                 ],
-                "query": "FROM SFDCLoginEventStream SELECT uniqueCount(UserId) as LoginAttempts WHERE Status NOT IN ('Success', 'success') TIMESERIES"
+                "query": "FROM `SFDCApexExecution` SELECT average(EXEC_TIME) TIMESERIES"
               }
             ],
             "platformOptions": {
@@ -226,11 +159,11 @@
           }
         },
         {
-          "id": "462004679",
-          "title": "User logouts over time",
+          "id": "501736005",
+          "title": "Apex Execution CPU Time (milliseconds)",
           "layout": {
             "column": 7,
-            "row": 9,
+            "row": 4,
             "width": 6,
             "height": 3
           },
@@ -258,7 +191,7 @@
                 "accountIds": [
                   0
                 ],
-                "query": "FROM SFDCLogoutEventStream SELECT uniqueCount(UserId) as Logins TIMESERIES "
+                "query": "FROM `SFDCApexExecution` SELECT average(CPU_TIME) TIMESERIES"
               }
             ],
             "platformOptions": {
@@ -276,11 +209,11 @@
           }
         },
         {
-          "id": "462004725",
-          "title": "Admin impersonations over time",
+          "id": "501744180",
+          "title": "Apex REST API Run Time (milliseconds)",
           "layout": {
             "column": 1,
-            "row": 12,
+            "row": 7,
             "width": 6,
             "height": 3
           },
@@ -308,7 +241,7 @@
                 "accountIds": [
                   0
                 ],
-                "query": "SELECT count(*) FROM `SFDCLoginAsEventStream` TIMESERIES"
+                "query": "FROM `SFDCApexRestApi` SELECT average(RUN_TIME) TIMESERIES"
               }
             ],
             "platformOptions": {
@@ -326,62 +259,315 @@
           }
         },
         {
-          "id": "462938933",
-          "title": null,
+          "id": "501744181",
+          "title": "Apex REST API CPU Time (milliseconds)",
           "layout": {
-            "column": 1,
-            "row": 15,
-            "width": 12,
-            "height": 1
+            "column": 7,
+            "row": 7,
+            "width": 6,
+            "height": 3
           },
-          "linkedEntityGuids": null,
+          "linkedEntityGuids": [],
           "visualization": {
-            "id": "viz.markdown"
+            "id": "viz.line"
           },
           "rawConfiguration": {
-            "text": "---\n---\n# Page & Data Access\n---\n---"
+            "facet": {
+              "showOtherSeries": false
+            },
+            "legend": {
+              "enabled": true
+            },
+            "markers": {
+              "displayedTypes": {
+                "criticalViolations": false,
+                "deployments": true,
+                "relatedDeployments": true,
+                "warningViolations": false
+              }
+            },
+            "nrqlQueries": [
+              {
+                "accountIds": [
+                  0
+                ],
+                "query": "FROM `SFDCApexRestApi` SELECT average(CPU_TIME) TIMESERIES"
+              }
+            ],
+            "platformOptions": {
+              "ignoreTimeRange": false
+            },
+            "thresholds": {
+              "isLabelVisible": true
+            },
+            "yAxisLeft": {
+              "zero": true
+            },
+            "yAxisRight": {
+              "zero": true
+            }
           }
         },
         {
-          "id": "465109959",
-          "title": "Queried lightning entities",
+          "id": "501744454",
+          "title": "Apex SOAP Run Time (milliseconds)",
+          "layout": {
+            "column": 1,
+            "row": 10,
+            "width": 6,
+            "height": 3
+          },
+          "linkedEntityGuids": [],
+          "visualization": {
+            "id": "viz.line"
+          },
+          "rawConfiguration": {
+            "facet": {
+              "showOtherSeries": false
+            },
+            "legend": {
+              "enabled": true
+            },
+            "markers": {
+              "displayedTypes": {
+                "criticalViolations": false,
+                "deployments": true,
+                "relatedDeployments": true,
+                "warningViolations": false
+              }
+            },
+            "nrqlQueries": [
+              {
+                "accountIds": [
+                  0
+                ],
+                "query": "FROM `SFDCApexSoap` SELECT average(RUN_TIME) TIMESERIES"
+              }
+            ],
+            "platformOptions": {
+              "ignoreTimeRange": false
+            },
+            "thresholds": {
+              "isLabelVisible": true
+            },
+            "yAxisLeft": {
+              "zero": true
+            },
+            "yAxisRight": {
+              "zero": true
+            }
+          }
+        },
+        {
+          "id": "501744456",
+          "title": "Apex SOAP CPU Time (milliseconds)",
+          "layout": {
+            "column": 7,
+            "row": 10,
+            "width": 6,
+            "height": 3
+          },
+          "linkedEntityGuids": [],
+          "visualization": {
+            "id": "viz.line"
+          },
+          "rawConfiguration": {
+            "facet": {
+              "showOtherSeries": false
+            },
+            "legend": {
+              "enabled": true
+            },
+            "markers": {
+              "displayedTypes": {
+                "criticalViolations": false,
+                "deployments": true,
+                "relatedDeployments": true,
+                "warningViolations": false
+              }
+            },
+            "nrqlQueries": [
+              {
+                "accountIds": [
+                  0
+                ],
+                "query": "FROM `SFDCApexSoap` SELECT average(CPU_TIME) TIMESERIES"
+              }
+            ],
+            "platformOptions": {
+              "ignoreTimeRange": false
+            },
+            "thresholds": {
+              "isLabelVisible": true
+            },
+            "yAxisLeft": {
+              "zero": true
+            },
+            "yAxisRight": {
+              "zero": true
+            }
+          }
+        },
+        {
+          "id": "501744550",
+          "title": "Apex Trigger Execution Time (milliseconds)",
+          "layout": {
+            "column": 1,
+            "row": 13,
+            "width": 6,
+            "height": 3
+          },
+          "linkedEntityGuids": [],
+          "visualization": {
+            "id": "viz.line"
+          },
+          "rawConfiguration": {
+            "facet": {
+              "showOtherSeries": false
+            },
+            "legend": {
+              "enabled": true
+            },
+            "markers": {
+              "displayedTypes": {
+                "criticalViolations": false,
+                "deployments": true,
+                "relatedDeployments": true,
+                "warningViolations": false
+              }
+            },
+            "nrqlQueries": [
+              {
+                "accountIds": [
+                  0
+                ],
+                "query": "FROM `SFDCApexTrigger` SELECT average(EXEC_TIME) TIMESERIES"
+              }
+            ],
+            "platformOptions": {
+              "ignoreTimeRange": false
+            },
+            "thresholds": {
+              "isLabelVisible": true
+            },
+            "yAxisLeft": {
+              "zero": true
+            },
+            "yAxisRight": {
+              "zero": true
+            }
+          }
+        },
+        {
+          "id": "501744552",
+          "title": "Apex Trigger CPU Time (milliseconds)",
+          "layout": {
+            "column": 7,
+            "row": 13,
+            "width": 6,
+            "height": 3
+          },
+          "linkedEntityGuids": [],
+          "visualization": {
+            "id": "viz.line"
+          },
+          "rawConfiguration": {
+            "facet": {
+              "showOtherSeries": false
+            },
+            "legend": {
+              "enabled": true
+            },
+            "markers": {
+              "displayedTypes": {
+                "criticalViolations": false,
+                "deployments": true,
+                "relatedDeployments": true,
+                "warningViolations": false
+              }
+            },
+            "nrqlQueries": [
+              {
+                "accountIds": [
+                  0
+                ],
+                "query": "FROM `SFDCApexTrigger` SELECT average(CPU_TIME) TIMESERIES"
+              }
+            ],
+            "platformOptions": {
+              "ignoreTimeRange": false
+            },
+            "thresholds": {
+              "isLabelVisible": true
+            },
+            "yAxisLeft": {
+              "zero": true
+            },
+            "yAxisRight": {
+              "zero": true
+            }
+          }
+        },
+        {
+          "id": "501747684",
+          "title": "Aura Request Run Time (milliseconds)",
           "layout": {
             "column": 1,
             "row": 16,
             "width": 6,
-            "height": 5
+            "height": 3
           },
           "linkedEntityGuids": null,
           "visualization": {
-            "id": "viz.bar"
+            "id": "viz.line"
           },
           "rawConfiguration": {
             "facet": {
               "showOtherSeries": false
+            },
+            "legend": {
+              "enabled": true
+            },
+            "markers": {
+              "displayedTypes": {
+                "criticalViolations": false,
+                "deployments": true,
+                "relatedDeployments": true,
+                "warningViolations": false
+              }
             },
             "nrqlQueries": [
               {
                 "accountIds": [
                   0
                 ],
-                "query": "SELECT count(*) FROM SFDCLightningUriEventStream facet QueriedEntities"
+                "query": "FROM `SFDCAuraRequest` SELECT average(RUN_TIME) TIMESERIES"
               }
             ],
             "platformOptions": {
               "ignoreTimeRange": false
+            },
+            "thresholds": {
+              "isLabelVisible": true
+            },
+            "yAxisLeft": {
+              "zero": true
+            },
+            "yAxisRight": {
+              "zero": true
             }
           }
         },
         {
-          "id": "465108084",
-          "title": "List view per developer over time",
+          "id": "501744713",
+          "title": "Aura Request CPU Time (milliseconds)",
           "layout": {
             "column": 7,
             "row": 16,
             "width": 6,
-            "height": 5
+            "height": 3
           },
-          "linkedEntityGuids": null,
+          "linkedEntityGuids": [],
           "visualization": {
             "id": "viz.line"
           },
@@ -405,7 +591,7 @@
                 "accountIds": [
                   0
                 ],
-                "query": "SELECT count(*) FROM `SFDCListViewEventStream` FACET DeveloperName TIMESERIES"
+                "query": "FROM `SFDCAuraRequest` SELECT average(CPU_TIME) TIMESERIES"
               }
             ],
             "platformOptions": {
@@ -423,15 +609,15 @@
           }
         },
         {
-          "id": "465111768",
-          "title": "URI operations over time",
+          "id": "501744614",
+          "title": "Apex Unexpected Exceptions",
           "layout": {
             "column": 1,
-            "row": 21,
+            "row": 19,
             "width": 6,
-            "height": 5
+            "height": 3
           },
-          "linkedEntityGuids": null,
+          "linkedEntityGuids": [],
           "visualization": {
             "id": "viz.line"
           },
@@ -455,7 +641,7 @@
                 "accountIds": [
                   0
                 ],
-                "query": "SELECT count(*) FROM `SFDCUriEventStream` FACET Operation TIMESERIES "
+                "query": "FROM `SFDCApexUnexpectedException` SELECT count(*) FACET EXCEPTION_CATEGORY TIMESERIES "
               }
             ],
             "platformOptions": {
@@ -473,13 +659,13 @@
           }
         },
         {
-          "id": "465113962",
-          "title": "Listed number of columns",
+          "id": "501745506",
+          "title": "Concurrent Long-Running Apex Limit",
           "layout": {
             "column": 7,
-            "row": 21,
+            "row": 19,
             "width": 6,
-            "height": 5
+            "height": 3
           },
           "linkedEntityGuids": [],
           "visualization": {
@@ -505,7 +691,7 @@
                 "accountIds": [
                   0
                 ],
-                "query": "SELECT average(NumberOfColumns) FROM `SFDCListViewEventStream` TIMESERIES"
+                "query": "FROM `SFDCConcurrentLongRunningApexLimit` SELECT count(*) TIMESERIES "
               }
             ],
             "platformOptions": {
@@ -523,13 +709,13 @@
           }
         },
         {
-          "id": "465107658",
-          "title": "Number of files downloaded",
+          "id": "501744709",
+          "title": "External Custom Apex Callout Total Time (milliseconds)",
           "layout": {
             "column": 1,
-            "row": 26,
+            "row": 22,
             "width": 6,
-            "height": 5
+            "height": 3
           },
           "linkedEntityGuids": [],
           "visualization": {
@@ -555,7 +741,7 @@
                 "accountIds": [
                   0
                 ],
-                "query": "SELECT count(*) FROM `SFDCFileEvent` TIMESERIES"
+                "query": "FROM `SFDCExternalCustomApexCallout` SELECT average(TOTAL_MS) TIMESERIES"
               }
             ],
             "platformOptions": {
@@ -573,134 +759,17 @@
           }
         },
         {
-          "id": "462936505",
-          "title": "Size of data downloaded",
-          "layout": {
-            "column": 7,
-            "row": 26,
-            "width": 6,
-            "height": 5
-          },
-          "linkedEntityGuids": [],
-          "visualization": {
-            "id": "viz.line"
-          },
-          "rawConfiguration": {
-            "facet": {
-              "showOtherSeries": false
-            },
-            "legend": {
-              "enabled": true
-            },
-            "markers": {
-              "displayedTypes": {
-                "criticalViolations": false,
-                "deployments": true,
-                "relatedDeployments": true,
-                "warningViolations": false
-              }
-            },
-            "nrqlQueries": [
-              {
-                "accountIds": [
-                  0
-                ],
-                "query": "SELECT sum(ContentSize)/1024/1024 as 'Size in MiB' FROM `SFDCFileEvent` TIMESERIES"
-              }
-            ],
-            "platformOptions": {
-              "ignoreTimeRange": false
-            },
-            "thresholds": {
-              "isLabelVisible": true
-            },
-            "yAxisLeft": {
-              "zero": true
-            },
-            "yAxisRight": {
-              "zero": true
-            }
-          }
-        },
-        {
-          "id": "464325618",
-          "title": null,
+          "id": "501748480",
+          "title": "Named Credentials",
           "layout": {
             "column": 1,
-            "row": 31,
+            "row": 25,
             "width": 12,
-            "height": 1
-          },
-          "linkedEntityGuids": null,
-          "visualization": {
-            "id": "viz.markdown"
-          },
-          "rawConfiguration": {
-            "text": "---\n---\n# API\n---\n---"
-          }
-        },
-        {
-          "id": "465107284",
-          "title": "API request time over time",
-          "layout": {
-            "column": 1,
-            "row": 32,
-            "width": 6,
-            "height": 4
-          },
-          "linkedEntityGuids": null,
-          "visualization": {
-            "id": "viz.line"
-          },
-          "rawConfiguration": {
-            "facet": {
-              "showOtherSeries": false
-            },
-            "legend": {
-              "enabled": true
-            },
-            "markers": {
-              "displayedTypes": {
-                "criticalViolations": false,
-                "deployments": true,
-                "relatedDeployments": true,
-                "warningViolations": false
-              }
-            },
-            "nrqlQueries": [
-              {
-                "accountIds": [
-                  0
-                ],
-                "query": "FROM SFDCApiEventStream SELECT average(ElapsedTime) as 'API request time (ms)' TIMESERIES "
-              }
-            ],
-            "platformOptions": {
-              "ignoreTimeRange": false
-            },
-            "thresholds": {
-              "isLabelVisible": true
-            },
-            "yAxisLeft": {
-              "zero": true
-            },
-            "yAxisRight": {
-              "zero": true
-            }
-          }
-        },
-        {
-          "id": "464335936",
-          "title": "Queried entities",
-          "layout": {
-            "column": 7,
-            "row": 32,
-            "width": 6,
-            "height": 4
+            "height": 5
           },
           "linkedEntityGuids": [],
           "visualization": {
-            "id": "viz.bar"
+            "id": "viz.table"
           },
           "rawConfiguration": {
             "facet": {
@@ -711,158 +780,7 @@
                 "accountIds": [
                   0
                 ],
-                "query": "FROM SFDCApiEventStream SELECT count(*) FACET QueriedEntities "
-              }
-            ],
-            "platformOptions": {
-              "ignoreTimeRange": false
-            }
-          }
-        },
-        {
-          "id": "464325666",
-          "title": "Bulk API results over time",
-          "layout": {
-            "column": 1,
-            "row": 36,
-            "width": 6,
-            "height": 4
-          },
-          "linkedEntityGuids": [],
-          "visualization": {
-            "id": "viz.line"
-          },
-          "rawConfiguration": {
-            "facet": {
-              "showOtherSeries": false
-            },
-            "legend": {
-              "enabled": true
-            },
-            "markers": {
-              "displayedTypes": {
-                "criticalViolations": false,
-                "deployments": true,
-                "relatedDeployments": true,
-                "warningViolations": false
-              }
-            },
-            "nrqlQueries": [
-              {
-                "accountIds": [
-                  0
-                ],
-                "query": "FROM SFDCBulkApiResultEvent SELECT count(*) as 'Bulk API results' TIMESERIES "
-              }
-            ],
-            "platformOptions": {
-              "ignoreTimeRange": false
-            },
-            "thresholds": {
-              "isLabelVisible": true
-            },
-            "yAxisLeft": {
-              "zero": true
-            },
-            "yAxisRight": {
-              "zero": true
-            }
-          }
-        },
-        {
-          "id": "465114592",
-          "title": null,
-          "layout": {
-            "column": 1,
-            "row": 40,
-            "width": 12,
-            "height": 1
-          },
-          "linkedEntityGuids": null,
-          "visualization": {
-            "id": "viz.markdown"
-          },
-          "rawConfiguration": {
-            "text": "---\n---\n# Security\n---\n---"
-          }
-        },
-        {
-          "id": "465119118",
-          "title": null,
-          "layout": {
-            "column": 1,
-            "row": 41,
-            "width": 4,
-            "height": 3
-          },
-          "linkedEntityGuids": null,
-          "visualization": {
-            "id": "viz.billboard"
-          },
-          "rawConfiguration": {
-            "nrqlQueries": [
-              {
-                "accountIds": [
-                  0
-                ],
-                "query": "FROM `SFDCCredentialStuffingEvent` SELECT count(*) as `Credential Stuffing Logins`"
-              }
-            ]
-          }
-        },
-        {
-          "id": "465119439",
-          "title": "",
-          "layout": {
-            "column": 5,
-            "row": 41,
-            "width": 4,
-            "height": 3
-          },
-          "linkedEntityGuids": [],
-          "visualization": {
-            "id": "viz.billboard"
-          },
-          "rawConfiguration": {
-            "facet": {
-              "showOtherSeries": false
-            },
-            "nrqlQueries": [
-              {
-                "accountIds": [
-                  0
-                ],
-                "query": "FROM `SFDCSessionHijackingEvent` SELECT count(*) as `Session Hijackings`"
-              }
-            ],
-            "platformOptions": {
-              "ignoreTimeRange": false
-            }
-          }
-        },
-        {
-          "id": "465119382",
-          "title": "",
-          "layout": {
-            "column": 9,
-            "row": 41,
-            "width": 4,
-            "height": 3
-          },
-          "linkedEntityGuids": [],
-          "visualization": {
-            "id": "viz.billboard"
-          },
-          "rawConfiguration": {
-            "facet": {
-              "showOtherSeries": false
-            },
-            "nrqlQueries": [
-              {
-                "accountIds": [
-                  0
-                ],
-                "query": "FROM `SFDCGuestUserAnomalyEvent` SELECT count(*) as `Data Access Anomalies`"
+                "query": "FROM `SFDCNamedCredential` SELECT * LIMIT MAX"
               }
             ],
             "platformOptions": {

@@ -12,25 +12,25 @@ import (
 func main() {
 	userSelection, err := tui.Questionnaire()
 	if err != nil {
-		fmt.Printf("Error in questionnaire: %s", err)
+		fmt.Printf("\nError in questionnaire: %s\n", err)
 		os.Exit(1)
 	}
 
 	err = builder.BuildConfig(&userSelection)
 	if err != nil {
-		fmt.Printf("Error building config: %s", err)
+		fmt.Printf("\nError building config: %s\n", err)
 		os.Exit(1)
 	}
 
 	err = builder.BuildDocker(&userSelection)
 	if err != nil {
-		fmt.Printf("Error building docker files: %s", err)
+		fmt.Printf("\nError building docker files: %s\n", err)
 		os.Exit(1)
 	}
 
 	err = builder.BuildDashboards(&userSelection)
 	if err != nil {
-		fmt.Printf("Error building dashboards: %s", err)
+		fmt.Printf("\nError building dashboards: %s\n", err)
 		os.Exit(1)
 	}
 
