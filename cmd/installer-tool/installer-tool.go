@@ -22,7 +22,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	err = builder.BuildDocker()
+	err = builder.BuildDocker(&userSelection)
 	if err != nil {
 		fmt.Printf("Error building docker files: %s", err)
 		os.Exit(1)

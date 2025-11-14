@@ -2,6 +2,7 @@ package builder
 
 import (
 	"os"
+	"slices"
 	"strings"
 )
 
@@ -39,12 +40,17 @@ var eventStreamDocker = []string{
 	"CMD [\"./nr-salesforce-stream\"]",
 }
 
-func BuildDocker() error {
+func BuildDocker(userSelection *UserSelection) error {
 	err := buildEventLogDocker()
 	if err != nil {
         return err
     }
 
+	alertSecurityGroup := slices.Contains(userSelection.Groups, AlertSecurity)
+	if !alertSecurityGroup {
+		return nil
+	}
+	
 	err = buildEventStreamDocker()
 	if err != nil {
         return err
