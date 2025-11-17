@@ -8,16 +8,16 @@ import (
 	"strconv"
 )
 
-func BuildDashboards(userSelection *UserSelection) error {
+func BuildDashboards(userSelection *UserSelection, dashboardsPath string) error {
 	for _, eventGroup := range userSelection.Groups {
 		switch eventGroup {
 		case UserAccess:
-			err := processDashboard("sfdc_user_access.json", userSelection.NewRelic.AccountId)
+			err := processDashboard("sfdc_user_access.json", userSelection.NewRelic.AccountId, dashboardsPath)
 			if err != nil {
 				return err
 			}
 		case ApexUsage:
-			err := processDashboard("sfdc_apex_usage.json", userSelection.NewRelic.AccountId)
+			err := processDashboard("sfdc_apex_usage.json", userSelection.NewRelic.AccountId, dashboardsPath)
 			if err != nil {
 				return err
 			}
@@ -41,13 +41,13 @@ func BuildDashboards(userSelection *UserSelection) error {
 	return nil
 }
 
-func processDashboard(filename string, accountId string) error {
+func processDashboard(filename string, accountId string, dashboardsPath string) error {
 	accountIdInt, err := strconv.Atoi(accountId)
     if err != nil {
         return err
     }
 
-	path := filepath.Join("dashboards", "installer", filename)
+	path := filepath.Join(dashboardsPath, filename)
     dat, err := os.ReadFile(path)
 	if err != nil {
 		return err
@@ -66,8 +66,24 @@ func processDashboard(filename string, accountId string) error {
 		return err
 	}
 
-	//TODO: write to file
-	fmt.Printf("Result json:\n%s", string(result))
+	// Write dashboard
+
+	f, err := os.OpenFile(
+		BuildInstallerPath(filename),
+		os.O_RDWR|os.O_CREATE|os.O_TRUNC,
+		0644,
+	)
+    if err != nil {
+        return err
+    }
+	_, err = f.WriteString(string(result))
+	if err != nil {
+        return err
+    }
+	err = f.Close()
+	if err != nil {
+        return err
+    }
 
 	return nil
 }
