@@ -39,7 +39,7 @@ func main() {
 
 	dashboardsPath := filepath.Join("dashboards", "installer")
 	fmt.Print(components.NoStyle.MarginLeft(2).Render("Loading dashboard files from"))
-	fmt.Print(components.NoStyle.MarginLeft(1).Render(dashboardsPath))
+	fmt.Print(components.NoStyle.MarginLeft(1).Render("'" + dashboardsPath + "'"))
 	fmt.Print(components.NoStyle.MarginLeft(1).Render("..."))
 	fmt.Printf("\n")
 
