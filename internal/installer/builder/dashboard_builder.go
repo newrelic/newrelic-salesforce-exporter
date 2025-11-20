@@ -22,7 +22,10 @@ func BuildDashboards(userSelection *UserSelection, dashboardsPath string) error 
 				return err
 			}
 		case LightningUsage:
-			return fmt.Errorf("TODO: LightningUsage dashboard")
+			err := processDashboard("sfdc_lightning_usage.json", userSelection.NewRelic.AccountId, dashboardsPath)
+			if err != nil {
+				return err
+			}
 		case ApiAccess:
 			return fmt.Errorf("TODO: ApiAccess dashboard")
 		case ReportAccess:
