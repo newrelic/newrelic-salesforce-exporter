@@ -11,7 +11,7 @@ tzlocal==2.1
 urllib3==1.26.19
 PyJWT~=2.4.0
 cryptography==43.0.1
-pip==23.3
+pip==26.0
 wheel==0.38.1
 setuptools==70.0.0
 future~=0.18.2
