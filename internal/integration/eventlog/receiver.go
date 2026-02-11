@@ -238,8 +238,8 @@ func buildLimit(name string, limit query.SingleLimitResponse) GenericSample {
 	data := GenericSample{
 		text: "SFDCLimits",
 		attributes: map[string]any{
-			"limitName": name,
-			"limitMax": limit.Max,
+			"limitName":      name,
+			"limitMax":       limit.Max,
 			"limitRemaining": limit.Remaining,
 		},
 		timestamp: time.Now(),
@@ -265,7 +265,7 @@ func truncLongStrings(sample *GenericSample) {
 
 // Generic poll function, to be used in both receivers (events and logs)
 func poll(s SalesforceReceiverInterface, sender DataSenderInterface) error {
-	log.Debugf("-----> Poll for instance '%s'", s.getConfig().Name)
+	log.Debugf("Begin poll for instance '%s'", s.getConfig().Name)
 
 	since := getTimeRange(s)
 	until := time.Now()
@@ -306,7 +306,7 @@ func poll(s SalesforceReceiverInterface, sender DataSenderInterface) error {
 		processLimitsResponse(limits, sender)
 	}
 
-	log.Debugf("-----> END Poll for instance '%s'", s.getConfig().Name)
+	log.Debugf("End poll for instance '%s'", s.getConfig().Name)
 
 	return nil
 }
@@ -455,7 +455,7 @@ func buildCsvFile(s SalesforceReceiverInterface, filePath string, record *query.
 	}
 	// Add log record Id to cache
 	addToCache(s, record.Id)
-	
+
 	return CsvFile{filePath, record.EventType, fieldMapping}
 }
 

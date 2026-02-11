@@ -12,6 +12,7 @@ const (
 	WaveUsage
 	ErrPermViol
 	AlertSecurity
+	OrgLimits
 )
 
 type RunMode = int

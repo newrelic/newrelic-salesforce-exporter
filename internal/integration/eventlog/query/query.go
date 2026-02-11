@@ -78,14 +78,14 @@ func RequestLogFiles(conf *config.EventLogInstance, db cache.Cache, since time.T
 	if len(conf.EventTypes) > 0 {
 		eventTypeFilter := make([]string, 0)
 		for _, eventType := range conf.EventTypes {
-			eventTypeFilter = append(eventTypeFilter, "EventType" + " = " + "'" + eventType + "'")
+			eventTypeFilter = append(eventTypeFilter, "EventType"+" = "+"'"+eventType+"'")
 		}
 		soqlModel.AndOrWhere(eventTypeFilter...)
 	}
 	soql := soqlModel.Build()
-	
+
 	log.Debugf("Run EventLogFile SOQL query: %s", soql)
-	
+
 	url := conf.Auth.TokenUrl + "/services/data/v" + conf.ApiVer + "/query?q=" + soql
 
 	resp, err := request(conf, db, url, false)
@@ -115,7 +115,7 @@ func RequestLogFiles(conf *config.EventLogInstance, db cache.Cache, since time.T
 // Download a CSV file to disk.
 // Result: Local path to downloaded file.
 func DownloadCsvFile(conf *config.EventLogInstance, db cache.Cache, record *EventLogfileRecord) (string, error) {
-	resp, err := request(conf, db, conf.Auth.TokenUrl + record.LogFile, false)
+	resp, err := request(conf, db, conf.Auth.TokenUrl+record.LogFile, false)
 	if err != nil {
 		return "", err
 	}
@@ -181,7 +181,7 @@ func RequestCustomQuery(customQuery *config.QueryConfig, conf *config.EventLogIn
 			return GenericEventResponse{}, err
 		}
 
-		jresp,_ := json.MarshalIndent(response, "", "    ")
+		jresp, _ := json.MarshalIndent(response, "", "    ")
 		log.Debugf("Query result:\n%s", string(jresp))
 
 		return response, nil
@@ -214,7 +214,7 @@ func RequestLimits(conf *config.EventLogInstance, db cache.Cache) (map[string]Si
 			return nil, err
 		}
 
-		jresp,_ := json.MarshalIndent(response, "", "    ")
+		jresp, _ := json.MarshalIndent(response, "", "    ")
 		log.Debugf("Query result:\n%s", string(jresp))
 
 		if len(limitsConf.Names) == 0 {
@@ -248,7 +248,7 @@ func request(conf *config.EventLogInstance, db cache.Cache, url string, isRetry 
 	}
 
 	req.Header.Add("User-Agent", getUserAgent())
-	req.Header.Add("Authorization", "Bearer " + accessToken)
+	req.Header.Add("Authorization", "Bearer "+accessToken)
 
 	client := http.DefaultClient
 	client.Timeout = time.Duration(conf.RequestTimeout) * time.Second
@@ -281,5 +281,5 @@ func getUserAgent() string {
 }
 
 func csvFilePath(record *EventLogfileRecord) string {
-	return filepath.Join(os.TempDir(), record.Id + ".csv")
+	return filepath.Join(os.TempDir(), record.Id+".csv")
 }
