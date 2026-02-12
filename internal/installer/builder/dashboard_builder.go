@@ -41,11 +41,15 @@ func BuildDashboards(userSelection *UserSelection, dashboardsPath string) error 
 			return fmt.Errorf("TODO: ErrPermViol dashboard")
 		case AlertSecurity:
 			return fmt.Errorf("TODO: AlertSecurity dashboard")
-		case OrgLimits:
-			return fmt.Errorf("TODO: OrgLimits dashboard")
 		default:
 			return fmt.Errorf("Unknown event group")
 		}
+	}
+
+	// Org Limits dashboard
+	err := processDashboard("sfdc_org_limits.json", userSelection.NewRelic.AccountId, dashboardsPath)
+	if err != nil {
+		return err
 	}
 
 	return nil
