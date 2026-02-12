@@ -433,8 +433,8 @@ func downloadCsvFiles(s SalesforceReceiverInterface, response *query.EventLogfil
 	csvFiles := []CsvFile{}
 	var lastLogDateStr string
 	for _, record := range response.Records {
-		lastLogDateStr = record.LogDate
-		log.Debugf("CSV file Id '%s', LogDate '%s'", record.Id, record.LogDate)
+		lastLogDateStr = record.CreatedDate
+		log.Debugf("CSV file Id = '%s', CreratedDate = '%s' LogDate = '%s'", record.Id, record.CreatedDate, record.LogDate)
 		if notCached(s, record.Id) {
 			filePath, err := query.DownloadCsvFile(s.getConfig(), s.getDB(), &record)
 			if err != nil {
@@ -447,13 +447,11 @@ func downloadCsvFiles(s SalesforceReceiverInterface, response *query.EventLogfil
 			log.Debugf("Logs already processed, ignoring (Id = %s)", record.Id)
 		}
 	}
+	// NOTE: event log files come in cronological order, and thus the last one is also the most recent
 	lastLogDate, err := time.Parse(LogDateFormat, lastLogDateStr)
-	if err == nil {
-		// Add 1 second to avoid requesting again the last log in the next run
-		lastLogDate = lastLogDate.Add(time.Second * 1)
-	} else {
+	if err != nil {
 		log.Warnf("Error parsing the last EventLogFile LogDate")
-		// Fallback
+		// Fallback to now
 		lastLogDate = time.Now()
 	}
 	return csvFiles, lastLogDate

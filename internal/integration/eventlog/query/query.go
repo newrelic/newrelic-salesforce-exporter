@@ -70,10 +70,10 @@ func tokenCacheKey(conf *config.EventLogInstance) string {
 // Request EventLogFile object.
 // Result: List of log files. Each one being a relative path to download a CSV file.
 func RequestLogFiles(conf *config.EventLogInstance, db cache.Cache, since time.Time, until time.Time) (EventLogfileResponse, error) {
-	soqlModel := MakeSoqlQuery("EventLogFile", "Id", "EventType", "LogDate", "LogFile")
+	soqlModel := MakeSoqlQuery("EventLogFile", "Id", "EventType", "CreatedDate", "LogDate", "LogFile")
 	soqlModel.AndWhere("Interval = 'Hourly'")
-	soqlModel.AndWhere("LogDate >= " + since.UTC().Format(time.RFC3339))
-	soqlModel.AndWhere("LogDate <= " + until.UTC().Format(time.RFC3339))
+	soqlModel.AndWhere("CreatedDate >= " + since.UTC().Format(time.RFC3339))
+	soqlModel.AndWhere("CreatedDate <= " + until.UTC().Format(time.RFC3339))
 	// Apply EventType filter
 	if len(conf.EventTypes) > 0 {
 		eventTypeFilter := make([]string, 0)

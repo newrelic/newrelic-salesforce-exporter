@@ -111,8 +111,8 @@ sections.
 | --- | --- | --- |
 | Auth structure | Yes | N/A |
 
-It describes the credentials to connect to the Salesforce API. The Pub/Sub API,
-used to read event streams, only supports the **Username-Password** auth flow:
+It describes the credentials to connect to the Salesforce API. Currently we only
+support the **Username-Password** auth flow:
 
 **Username-Password**:
 

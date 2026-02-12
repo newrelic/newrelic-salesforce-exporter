@@ -20,10 +20,11 @@ type EventLogfileResponse struct {
 }
 
 type EventLogfileRecord struct {
-	Id        string `json:"Id"`
-	LogDate   string `json:"LogDate"`
-	LogFile   string `json:"LogFile"`
-	EventType string `json:"EventType"`
+	Id          string `json:"Id"`
+	LogDate     string `json:"LogDate"`
+	CreatedDate string `json:"CreatedDate"`
+	LogFile     string `json:"LogFile"`
+	EventType   string `json:"EventType"`
 }
 
 type SoqlQuery struct {
