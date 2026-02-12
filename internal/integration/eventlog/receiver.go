@@ -20,6 +20,7 @@ import (
 )
 
 const MaxLinesToRead = 100
+const LogDateFormat = "2006-01-02T15:04:05.999999-0700"
 
 type FieldMapping = map[string]bool
 
@@ -210,8 +211,7 @@ func buildCustomData(record map[string]any, timestampAttr string) GenericSample 
 	timestamp := time.Now()
 	ts, tsPresent := record[timestampAttr].(string)
 	if tsPresent {
-		layout := "2006-01-02T15:04:05.999999-0700"
-		ts, err := time.Parse(layout, ts)
+		ts, err := time.Parse(LogDateFormat, ts)
 		if err == nil {
 			timestamp = ts
 			delete(record, timestampAttr)
@@ -269,7 +269,6 @@ func poll(s SalesforceReceiverInterface, sender DataSenderInterface) error {
 
 	since := getTimeRange(s)
 	until := time.Now()
-	setLastRunIntoCache(s, until)
 
 	// Collect event logs
 	if !s.getConfig().SkipLogFiles {
@@ -281,8 +280,13 @@ func poll(s SalesforceReceiverInterface, sender DataSenderInterface) error {
 		} else {
 			log.Debugf("Read %d records", len(response.Records))
 
-			processLogFilesResponse(s, &response, sender)
+			lastLogDate := processLogFilesResponse(s, &response, sender)
+			// We to set the time of the last log/event we receive, otherwise we may have data gaps
+			setLastRunIntoCache(s, lastLogDate)
 		}
+	} else {
+		// Skip log files, set last date to now
+		setLastRunIntoCache(s, until)
 	}
 
 	// Collect custom queries data
@@ -380,11 +384,11 @@ func sendCsv(csvContext *CsvContext, sender DataSenderInterface, fieldMapping Fi
 	log.Debugf("Finished sending CSV lines")
 }
 
-func processLogFilesResponse(s SalesforceReceiverInterface, response *query.EventLogfileResponse, sender DataSenderInterface) {
+func processLogFilesResponse(s SalesforceReceiverInterface, response *query.EventLogfileResponse, sender DataSenderInterface) time.Time {
 	totalEventsSent := 0
 
 	// Download CSV files
-	csvFiles := downloadCsvFiles(s, response)
+	csvFiles, lastLogDate := downloadCsvFiles(s, response)
 
 	// Parse CSV and generate events
 	for _, csvFile := range csvFiles {
@@ -420,12 +424,17 @@ func processLogFilesResponse(s SalesforceReceiverInterface, response *query.Even
 			log.Errorf("Error deleting CSV file: %s", err.Error())
 		}
 	}
+
+	return lastLogDate
 }
 
-func downloadCsvFiles(s SalesforceReceiverInterface, response *query.EventLogfileResponse) []CsvFile {
+func downloadCsvFiles(s SalesforceReceiverInterface, response *query.EventLogfileResponse) ([]CsvFile, time.Time) {
 	// Download CSV files
 	csvFiles := []CsvFile{}
+	var lastLogDateStr string
 	for _, record := range response.Records {
+		lastLogDateStr = record.LogDate
+		log.Debugf("CSV file Id '%s', LogDate '%s'", record.Id, record.LogDate)
 		if notCached(s, record.Id) {
 			filePath, err := query.DownloadCsvFile(s.getConfig(), s.getDB(), &record)
 			if err != nil {
@@ -438,7 +447,16 @@ func downloadCsvFiles(s SalesforceReceiverInterface, response *query.EventLogfil
 			log.Debugf("Logs already processed, ignoring (Id = %s)", record.Id)
 		}
 	}
-	return csvFiles
+	lastLogDate, err := time.Parse(LogDateFormat, lastLogDateStr)
+	if err == nil {
+		// Add 1 second to avoid requesting again the last log in the next run
+		lastLogDate = lastLogDate.Add(time.Second * 1)
+	} else {
+		log.Warnf("Error parsing the last EventLogFile LogDate")
+		// Fallback
+		lastLogDate = time.Now()
+	}
+	return csvFiles, lastLogDate
 }
 
 func buildCsvFile(s SalesforceReceiverInterface, filePath string, record *query.EventLogfileRecord) CsvFile {
