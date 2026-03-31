@@ -50,6 +50,8 @@ type UserSelection struct {
 	Redis      *RedisConf
 }
 
+//TODO: use a single model for config and installer
+
 type UserPass struct {
 	ClientId     string `yaml:"clientId"`
 	ClientSecret string `yaml:"clientSecret"`

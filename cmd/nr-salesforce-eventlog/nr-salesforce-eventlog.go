@@ -47,26 +47,24 @@ func main() {
 		os.Exit(1)
 	}
 
-	for index := range integrationConf.EventLog.Instances {
-		instance := &integrationConf.EventLog.Instances[index]
+	instance := integrationConf.EventLog
 
-		// Read external query files and merge them into the main config
-		queries, err := eventlog.ParseQueryFiles(instance.CustomQueryFiles, instance.ApiVer)
+	// Read external query files and merge them into the main config
+	queries, err := eventlog.ParseQueryFiles(instance.CustomQueryFiles, instance.ApiVer)
+	if err != nil {
+		log.Errorf("Error parsing external query files = %s", err)
+		os.Exit(1)
+	}
+	instance.CustomQueries = append(instance.CustomQueries, queries...)
+
+	// Read field mapping
+	if instance.FieldMappingFile != "" {
+		mapping, err := eventlog.ParseMappingFile(instance.FieldMappingFile)
 		if err != nil {
-			log.Errorf("Error parsing external query files = %s", err)
+			log.Errorf("Error parsing field mapping files = %s", err)
 			os.Exit(1)
 		}
-		instance.CustomQueries = append(instance.CustomQueries, queries...)
-
-		// Read field mapping
-		if instance.FieldMappingFile != "" {
-			mapping, err := eventlog.ParseMappingFile(instance.FieldMappingFile)
-			if err != nil {
-				log.Errorf("Error parsing field mapping files = %s", err)
-				os.Exit(1)
-			}
-			instance.FieldMapping = mapping
-		}
+		instance.FieldMapping = mapping
 	}
 
 	if err := eventlog.IntegrityCheck(&integrationConf); err != nil {
@@ -98,7 +96,7 @@ func main() {
 
 	// Run the integration
 	defer i.Shutdown(ctx)
- 	err = i.Run(ctx)
+	err = i.Run(ctx)
 	if err != nil {
 		log.Errorf("Error running Salesforce intergation = %s", err)
 		os.Exit(1)
@@ -112,11 +110,10 @@ func createEventsPipeline(i *integration.LabsIntegration, newRelicExporter *expo
 	ep.AddExporter(newRelicExporter)
 
 	// Add one Salesforce Events Receiver component per instance
-	for _, instanceConfig  := range integrationConf.EventLog.Instances {
-		db := cache.BuildCache(instanceConfig.Cache)
-		sfdcReceiver := eventlog.NewSalesforceEventsReceiver(i, &instanceConfig, db)
-		ep.AddReceiver(sfdcReceiver)
-	}
+	instance := integrationConf.EventLog
+	db := cache.BuildCache(instance.Cache)
+	sfdcReceiver := eventlog.NewSalesforceEventsReceiver(i, instance, db)
+	ep.AddReceiver(sfdcReceiver)
 
 	i.AddComponent(ep)
 }
@@ -126,11 +123,10 @@ func createLogsPipeline(i *integration.LabsIntegration, newRelicExporter *export
 	ep.AddExporter(newRelicExporter)
 
 	// Add one Salesforce Logs Receiver component per instance
-	for _, instanceConfig  := range integrationConf.EventLog.Instances {
-		db := cache.BuildCache(instanceConfig.Cache)
-		sfdcReceiver := eventlog.NewSalesforceLogsReceiver(i, &instanceConfig, db)
-		ep.AddReceiver(sfdcReceiver)
-	}
+	instance := integrationConf.EventLog
+	db := cache.BuildCache(instance.Cache)
+	sfdcReceiver := eventlog.NewSalesforceLogsReceiver(i, instance, db)
+	ep.AddReceiver(sfdcReceiver)
 
 	i.AddComponent(ep)
 }

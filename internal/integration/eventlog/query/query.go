@@ -16,7 +16,7 @@ import (
 	"github.com/newrelic/newrelic-salesforce-exporter/internal/oauth"
 )
 
-func auth(conf *config.EventLogInstance, db cache.Cache) (string, error) {
+func auth(conf *config.EventLogConfig, db cache.Cache) (string, error) {
 	accessToken, ok := getTokenFromCache(conf, db).(string)
 	if ok {
 		log.Debugf("Got token from cache")
@@ -32,7 +32,7 @@ func auth(conf *config.EventLogInstance, db cache.Cache) (string, error) {
 	}
 }
 
-func relogin(conf *config.EventLogInstance, db cache.Cache) error {
+func relogin(conf *config.EventLogConfig, db cache.Cache) error {
 	deleteTokenFromCache(conf, db)
 	_, reqErr := auth(conf, db)
 	if reqErr != nil {
@@ -41,7 +41,7 @@ func relogin(conf *config.EventLogInstance, db cache.Cache) error {
 	return nil
 }
 
-func getTokenFromCache(conf *config.EventLogInstance, db cache.Cache) any {
+func getTokenFromCache(conf *config.EventLogConfig, db cache.Cache) any {
 	val, err := db.GetCacheVal(tokenCacheKey(conf))
 	if err != nil {
 		log.Errorf("Error getting token from cache: %s", err.Error())
@@ -49,27 +49,27 @@ func getTokenFromCache(conf *config.EventLogInstance, db cache.Cache) any {
 	return val
 }
 
-func setTokenIntoCache(conf *config.EventLogInstance, db cache.Cache, accessToken string) {
+func setTokenIntoCache(conf *config.EventLogConfig, db cache.Cache, accessToken string) {
 	err := db.SetCacheVal(tokenCacheKey(conf), accessToken)
 	if err != nil {
 		log.Errorf("Error setting token into cache: %s", err.Error())
 	}
 }
 
-func deleteTokenFromCache(conf *config.EventLogInstance, db cache.Cache) {
+func deleteTokenFromCache(conf *config.EventLogConfig, db cache.Cache) {
 	err := db.DelCacheVal(tokenCacheKey(conf))
 	if err != nil {
 		log.Errorf("Error deleting token from cache: %s", err.Error())
 	}
 }
 
-func tokenCacheKey(conf *config.EventLogInstance) string {
+func tokenCacheKey(conf *config.EventLogConfig) string {
 	return conf.Name + "_access_token"
 }
 
 // Request EventLogFile object.
 // Result: List of log files. Each one being a relative path to download a CSV file.
-func RequestLogFiles(conf *config.EventLogInstance, db cache.Cache, since time.Time, until time.Time) (EventLogfileResponse, error) {
+func RequestLogFiles(conf *config.EventLogConfig, db cache.Cache, since time.Time, until time.Time) (EventLogfileResponse, error) {
 	soqlModel := MakeSoqlQuery("EventLogFile", "Id", "EventType", "CreatedDate", "LogDate", "LogFile")
 	soqlModel.AndWhere("Interval = 'Hourly'")
 	soqlModel.AndWhere("CreatedDate >= " + since.UTC().Format(time.RFC3339))
@@ -114,7 +114,7 @@ func RequestLogFiles(conf *config.EventLogInstance, db cache.Cache, since time.T
 
 // Download a CSV file to disk.
 // Result: Local path to downloaded file.
-func DownloadCsvFile(conf *config.EventLogInstance, db cache.Cache, record *EventLogfileRecord) (string, error) {
+func DownloadCsvFile(conf *config.EventLogConfig, db cache.Cache, record *EventLogfileRecord) (string, error) {
 	resp, err := request(conf, db, conf.Auth.TokenUrl+record.LogFile, false)
 	if err != nil {
 		return "", err
@@ -139,7 +139,7 @@ func DownloadCsvFile(conf *config.EventLogInstance, db cache.Cache, record *Even
 
 // Send a SOQL request.
 // Result: response object.
-func RequestCustomQuery(customQuery *config.QueryConfig, conf *config.EventLogInstance, db cache.Cache, since time.Time, until time.Time) (GenericEventResponse, error) {
+func RequestCustomQuery(customQuery *config.QueryConfig, conf *config.EventLogConfig, db cache.Cache, since time.Time, until time.Time) (GenericEventResponse, error) {
 	soqlModel := MakeSoqlQuery(customQuery.Soql.From, customQuery.Soql.Select...)
 	soqlModel.AndWhere(customQuery.Soql.Where)
 	soqlModel.AndWhere(customQuery.Timestamp + " >= " + since.UTC().Format(time.RFC3339))
@@ -192,7 +192,7 @@ func RequestCustomQuery(customQuery *config.QueryConfig, conf *config.EventLogIn
 
 // Request Salesforce Org limits
 // Result: list of limits.
-func RequestLimits(conf *config.EventLogInstance, db cache.Cache) (map[string]SingleLimitResponse, error) {
+func RequestLimits(conf *config.EventLogConfig, db cache.Cache) (map[string]SingleLimitResponse, error) {
 	limitsConf := &conf.Limits
 	url := conf.Auth.TokenUrl + "/services/data/v" + limitsConf.ApiVer + "/limits"
 
@@ -236,7 +236,7 @@ func RequestLimits(conf *config.EventLogInstance, db cache.Cache) (map[string]Si
 }
 
 // Perform a generic request to Salesforce API.
-func request(conf *config.EventLogInstance, db cache.Cache, url string, isRetry bool) (*http.Response, error) {
+func request(conf *config.EventLogConfig, db cache.Cache, url string, isRetry bool) (*http.Response, error) {
 	accessToken, err := auth(conf, db)
 	if err != nil {
 		return nil, err

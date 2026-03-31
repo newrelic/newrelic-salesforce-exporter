@@ -53,27 +53,12 @@ type RedisConfig struct {
 }
 
 type EventStreamConfig struct {
+	//TODO: remove integrationName
 	IntegrationName string       `mapstructure:"integrationName"`
 	Auth            AuthConfig   `mapstructure:"auth"`
 	Cache           *CacheConfig `mapstructure:"cache"`
 	Appetite        int32        `mapstructure:"appetite"`
 	Topics          []string     `mapstructure:"topics"`
-}
-
-type EventLogInstance struct {
-	Name                string             `mapstructure:"name"`
-	ApiVer              string             `mapstructure:"apiVer"`
-	Auth                AuthConfig         `mapstructure:"auth"`
-	Cache               *CacheConfig       `mapstructure:"cache"`
-	EventTypes          []string           `mapstructure:"eventTypes"`
-	FieldMappingFile    string             `mapstructure:"fieldMappingFile"`
-	FieldMapping        FieldMappingConfig `mapstructure:"fieldMapping"`
-	InitialTimeInterval TimeIntervalConfig `mapstructure:"initialTimeInterval"`
-	SkipLogFiles        bool               `mapstructure:"skipLogFiles"`
-	CustomQueryFiles    []string           `mapstructure:"customQueryFiles"`
-	CustomQueries       []QueryConfig      `mapstructure:"customQueries"`
-	RequestTimeout      uint               `mapstructure:"requestTimeout"`
-	Limits              LimitsConfig       `mapstructure:"limits"`
 }
 
 type FieldNames = []string
@@ -112,9 +97,19 @@ type TimeIntervalConfig struct {
 }
 
 type EventLogConfig struct {
-	IntegrationName string             `mapstructure:"integrationName"`
-	Instances       []EventLogInstance `mapstructure:"instances"`
-	RequestTimeout  uint               `mapstructure:"requestTimeout"`
+	Name                string             `mapstructure:"instanceName"`
+	ApiVer              string             `mapstructure:"apiVer"`
+	RequestTimeout      uint               `mapstructure:"requestTimeout"`
+	Auth                AuthConfig         `mapstructure:"auth"`
+	Cache               *CacheConfig       `mapstructure:"cache"`
+	EventTypes          []string           `mapstructure:"eventTypes"`
+	FieldMappingFile    string             `mapstructure:"fieldMappingFile"`
+	FieldMapping        FieldMappingConfig `mapstructure:"fieldMapping"`
+	InitialTimeInterval TimeIntervalConfig `mapstructure:"initialTimeInterval"`
+	SkipLogFiles        bool               `mapstructure:"skipLogFiles"`
+	CustomQueryFiles    []string           `mapstructure:"customQueryFiles"`
+	CustomQueries       []QueryConfig      `mapstructure:"customQueries"`
+	Limits              LimitsConfig       `mapstructure:"limits"`
 }
 
 type Config struct {

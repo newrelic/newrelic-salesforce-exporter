@@ -71,36 +71,31 @@ The `eventLog` key contains the following structure:
 
 ```yaml
 eventLog:
-  integrationName: "MY INTEGRATION NAME"
   requestTimeout: 10
-  instances:
-    - name: "FIRST INSTANCE NAME HERE"
-      apiVer: "64.0"
-      requestTimeout: 10
-      initialTimeInterval:
-        # Initial time interval section, described later
+  instanceName: "INSTANCE NAME HERE"
+  apiVer: "64.0"
+  initialTimeInterval:
+    # Initial time interval section, described later
 
-      auth:
-        # Auth section, described later
-      cache:
-        # Cache section, described later
+  auth:
+    # Auth section, described later
+  cache:
+    # Cache section, described later
 
-      skipLogFiles: false
-      eventTypes:
-        # Event types section
-      fieldMapping:
-        # Field mapping section, described later
-      fieldMappingFile: event_type_fields.yml
+  skipLogFiles: false
+  eventTypes:
+    # Event types section
+  fieldMapping:
+    # Field mapping section, described later
+  fieldMappingFile: event_type_fields.yml
 
-      customQueries:
-        # Custom queries section, described later
-      customQueryFiles:
-        # Custom queries files section, described later
+  customQueries:
+    # Custom queries section, described later
+  customQueryFiles:
+    # Custom queries files section, described later
 
-      limits:
-        # Limits section, described later
-
-    - name: # ... other instances
+  limits:
+    # Limits section, described later
 ```
 
 Any value within the `eventLog` section can be specified with an environment
@@ -108,23 +103,14 @@ variable. To do that, just set `$ENV_VAR_NAME` as the value. Example:
 
 ```yaml
 eventLog:
-  integrationName: $INTEGRATION
+  requestTimeout: $REQUEST_TIMEOUT
 ```
 
-It will get the value of `integragtionName` from the environment variable named
-`INTEGRATION`.
+It will get the value of `requestTimeout` from the environment variable named
+`REQUEST_TIMEOUT`.
 
 Each one of the config keys within `eventLog` are described in the following
 sections.
-
-#### - `integrationName`
-
-| Valid Values | Required | Default |
-| --- | --- | --- |
-| Text | Yes | N/A |
-
-It must contain a descriptive name for the integration. Something like
-`com.newrelic.labs.sfdc.eventlog` is recommended.
 
 #### - `requestTimeout`
 
@@ -134,26 +120,15 @@ It must contain a descriptive name for the integration. Something like
 
 Timeout in seconds for API requests sent to Salesforce.
 
-#### - `instances`
-
-| Valid Values | Required | Default |
-| --- | --- | --- |
-| List of instance structures | Yes | N/A |
-
-Is a list of `instance` structures, each one contains the description of a single
-Salesforce instance. It must contain at least one instance. Each instance contains
-the following keys:
-
-##### - `name`
+#### - `instanceName`
 
 | Valid Values | Required | Default |
 | --- | --- | --- |
 | Text | Yes | N/A |
 
-A descriptive instance name. Names can't be repeated, each instance must have a
-different name.
+A descriptive instance name. Names should be unique to avoid conflicts when the same cache is used for various instances, and for better separation of data.
 
-##### - `apiVer`
+#### - `apiVer`
 
 | Valid Values | Required | Default |
 | --- | --- | --- |
@@ -164,17 +139,7 @@ API version numbers used to access the Salesforce APIs.
 > NOTE: API version is not checked. User is responsible for providing a valid
 > [Salesforce API version](https://developer.salesforce.com/docs/atlas.en-us.api_rest.meta/api_rest/dome_versions.htm).
 
-##### - `requestTimeout`
-
-| Valid Values | Required | Default |
-| --- | --- | --- |
-| Integer number | No | Integration level timeout |
-
-Timeout in seconds for API requests sent to Salesforce, for current instance. If
-defined, it has precedence over the `requestTimeout` defined for the entire
-integration.
-
-##### - `initialTimeInterval`
+#### - `initialTimeInterval`
 
 | Valid Values | Required | Default |
 | --- | --- | --- |
@@ -195,7 +160,7 @@ of the previous request (`last_run_ts`). This `last_run_ts` is stored in the
 cache. If the cache is not present, then `initialTimeInterval` will be used for
 every request, not only the first one.
 
-##### - `auth`
+#### - `auth`
 
 | Valid Values | Required | Default |
 | --- | --- | --- |
@@ -264,7 +229,7 @@ It has the following structure:
 - `username`: Username for the OAuth User-Password flow.
 - `Password`: Password for the OAuth User-Password flow.
 
-##### - `cache`
+#### - `cache`
 
 | Valid Values | Required | Default |
 | --- | --- | --- |
@@ -293,7 +258,7 @@ Currently we support Redis DB:
 - `password`: Redis password. Or `""` if no password.
 - `expireDays`: Expiration time for keys in days. `0` means no expiration time.
 
-##### - `skipLogFiles`
+#### - `skipLogFiles`
 
 | Valid Values | Required | Default |
 | --- | --- | --- |
@@ -301,7 +266,7 @@ Currently we support Redis DB:
 
 If `true`, it won't request event log files.
 
-##### - `eventTypes`
+#### - `eventTypes`
 
 | Valid Values | Required | Default |
 | --- | --- | --- |
@@ -320,7 +285,7 @@ It has the following structure:
 If present, the integration will request the listed [event types](https://developer.salesforce.com/docs/atlas.en-us.object_reference.meta/object_reference/sforce_api_objects_eventlogfile_supportedeventtypes.htm)
 only. If not present or empty, it will request all event types.
 
-##### - `fieldMapping`
+#### - `fieldMapping`
 
 | Valid Values | Required | Default |
 | --- | --- | --- |
@@ -342,7 +307,7 @@ not all attributes are required, we can filter and only get the events we need.
 
 If not present, all attributes will be reported.
 
-##### - `fieldMappingFile`
+#### - `fieldMappingFile`
 
 | Valid Values | Required | Default |
 | --- | --- | --- |
@@ -364,7 +329,7 @@ The file has the following format:
 `fieldMapping` and `fieldMappingFile` are mutually exclusive, if both are
 defined, `fieldMappingFile` takes precedence.
 
-##### - `customQueries`
+#### - `customQueries`
 
 | Valid Values | Required | Default |
 | --- | --- | --- |
@@ -403,11 +368,11 @@ Each entry in the list has the following structure:
 - `where`: Conditions. Optional.
 - `tail`: Any additional [SOQL clause](https://developer.salesforce.com/docs/atlas.en-us.soql_sosl.meta/soql_sosl/sforce_api_calls_soql_select.htm). Optional.
 - `apiVer`: The API version to use for this request. If not present, it will use
-the API version defined in the instance, or the integration. Optional.
+the API version defined in the instance. Optional.
 - `timestamp`: Which attribute from the object represents the timestamp. Required.
 - `apiName`: Which API we want to use, `rest` or `tooling`. Default `rest`. Optional.
 
-##### - `customQueryFiles`
+#### - `customQueryFiles`
 
 | Valid Values | Required | Default |
 | --- | --- | --- |
@@ -436,7 +401,7 @@ Each file has the following structure:
 Where each entry in `queries` is a query structure like the ones defined before,
 in the `customQueries` section.
 
-##### - `limits`
+#### - `limits`
 
 | Valid Values | Required | Default |
 | --- | --- | --- |
@@ -454,7 +419,7 @@ It has the following structure:
 ```
 
 - `apiVer`: API version to use for the Limits API request. If not present, it
-will use the version defined for the instance or the integration. Optional.
+will use the version defined for the instance. Optional.
 - `names`: List of limit names to report. Optional.
 
 The list of limits to report from the [Limits API](https://developer.salesforce.com/docs/atlas.en-us.api_rest.meta/api_rest/resources_limits.htm).
@@ -533,8 +498,6 @@ cycle and finish. A single cycle is composed of:
   1. Downloading event log files
   1. Requesting custom queries
   1. Getting limits
-
-For each one of the `instances` defined in the config file.
 
 #### - `harvestInterval`
 

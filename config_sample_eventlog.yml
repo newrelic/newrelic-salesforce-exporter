@@ -4,65 +4,62 @@ isTemplate: true  # Remove or set it to "false" after setting up all the options
 ### Config for the Event Log integration
 
 eventLog:
-  integrationName: "com.newrelic.labs.sfdc.eventlog"
-  requestTimeout: 10 # EDIT GENERAL TIMEOUT HERE
-  instances:
-    - name: "newrelic-staging-1"
-      apiVer: "64.0" # EDIT INSTANCE SPECIFIC API VERSION HERE, OR REMOVE
-      requestTimeout: 10 # EDIT INSTANCE SPECIFIC TIMEOUT HERE, OR REMOVE
-      auth:
-        tokenUrl: "<TOKEN URL HERE>"
-        # EDIT, LEAVE ONLY ONE AUTH METHOD
-        jwt:
-          clientId: "<CLIENT ID HERE>"
-          privateKey: "<PRIVATE KEY FILE PATH HERE>"
-          username: "<USER NAME HERE>"
-        clientCred:
-          clientId: "<CLIENT ID HERE>"
-          clientSecret: "<CLIENT SECRET HERE>"
-        userPass:
-          clientId: "<CLIENT ID HERE>"
-          clientSecret: "<CLIENT SECRET HERE>"
-          username: "<USER NAME HERE>"
-          password: "<PASSWORD HERE>"
-      cache:
-        redis:
-          host: "<REDIS SERVER HOST HERE>"
-          port: 6379 # EDIT REDIS SERVER PORT HERE
-          dbNumber: 0 # EDIT REDIS SERVER DATABASE NUMBER HERE
-          password: "<PASSWORD HERE or empty if no password>"
-          expireDays: 1 # EDIT KEY EXPIRATION TIME HERE
-      initialTimeInterval: # EDIT INITIAL TIME INTERVAL HERE
-        hours: 6
-        minutes: 30
-      skipLogFiles: false # EDIT SKIP LOG FILES HERE
-      eventTypes: # EDIT EVENT TYPES HERE
-        - Login
-        - URI
-        - API
-        - ApexCallout
-      fieldMappingFile: event_type_fields.yml # EDIT FIELD MAPPING FILE HERE, OR REMOVE
-      fieldMapping: # EDIT FIELD MAPPING HERE, OR REMOVE
-        Login: ["RUN_TIME", "LOGIN_TYPE", "API_TYPE"]
-        URI: ["URI", "CLIENT_IP", "USER_ID"]
-      customQueries: # EDIT CUSTOM QUERIES HERE, OR REMOVE
-        - soql:
-            select: [Action, CreatedDate]
-            from: "SetupAuditTrail"
-            where: "Action = 'changedApexClass'"
-          apiVer: "64.0"  # EDIT QUERY SPECIFIC API VERSION HERE, OR REMOVE
-          timestamp: CreatedDate
-          apiName: rest # either "rest" or "tooling"
-      customQueryFiles: # EDIT CUSTOM QUERIES FILES HERE, OR REMOVE
-        - "/path/to/query_one.yml"
-        - "/path/to/query_two.yml"
-      limits: # EDIT API LIMITS HERE, OR REMOVE
-        apiVer: "58.0" # EDIT LIMITS API VERSION HERE, OR REMOVE
-        names:
-          - ActiveScratchOrgs
-          - DailyApiRequests
-          - PublishCallbackUsageInApex
-          - PermissionSets
+  instanceName: "myorg-staging-1" # SET A MEANINGFUL AND UNIQUE INSTANCE NAME
+  requestTimeout: 10 # EDIT TIMEOUT HERE
+  apiVer: "64.0" # EDIT INSTANCE SPECIFIC API VERSION HERE, OR REMOVE
+  auth:
+    tokenUrl: "<TOKEN URL HERE>"
+    # EDIT, LEAVE ONLY ONE AUTH METHOD
+    jwt:
+      clientId: "<CLIENT ID HERE>"
+      privateKey: "<PRIVATE KEY FILE PATH HERE>"
+      username: "<USER NAME HERE>"
+    clientCred:
+      clientId: "<CLIENT ID HERE>"
+      clientSecret: "<CLIENT SECRET HERE>"
+    userPass:
+      clientId: "<CLIENT ID HERE>"
+      clientSecret: "<CLIENT SECRET HERE>"
+      username: "<USER NAME HERE>"
+      password: "<PASSWORD HERE>"
+  cache:
+    redis:
+      host: "<REDIS SERVER HOST HERE>"
+      port: 6379 # EDIT REDIS SERVER PORT HERE
+      dbNumber: 0 # EDIT REDIS SERVER DATABASE NUMBER HERE
+      password: "<PASSWORD HERE or empty if no password>"
+      expireDays: 1 # EDIT KEY EXPIRATION TIME HERE
+  initialTimeInterval: # EDIT INITIAL TIME INTERVAL HERE
+    hours: 6
+    minutes: 30
+  skipLogFiles: false # EDIT SKIP LOG FILES HERE
+  eventTypes: # EDIT EVENT TYPES HERE
+    - Login
+    - URI
+    - API
+    - ApexCallout
+  fieldMappingFile: event_type_fields.yml # EDIT FIELD MAPPING FILE HERE, OR REMOVE
+  fieldMapping: # EDIT FIELD MAPPING HERE, OR REMOVE
+    Login: ["RUN_TIME", "LOGIN_TYPE", "API_TYPE"]
+    URI: ["URI", "CLIENT_IP", "USER_ID"]
+  customQueries: # EDIT CUSTOM QUERIES HERE, OR REMOVE
+    - soql:
+        select: [Action, CreatedDate]
+        from: "SetupAuditTrail"
+        where: "Action = 'changedApexClass'"
+      apiVer: "64.0"  # EDIT QUERY SPECIFIC API VERSION HERE, OR REMOVE
+      timestamp: CreatedDate
+      apiName: rest # either "rest" or "tooling"
+  customQueryFiles: # EDIT CUSTOM QUERIES FILES HERE, OR REMOVE
+    - "/path/to/query_one.yml"
+    - "/path/to/query_two.yml"
+  limits: # EDIT API LIMITS HERE, OR REMOVE
+    apiVer: "58.0" # EDIT LIMITS API VERSION HERE, OR REMOVE
+    names:
+      - ActiveScratchOrgs
+      - DailyApiRequests
+      - PublishCallbackUsageInApex
+      - PermissionSets
 
 ### Config for the New Relic client
 

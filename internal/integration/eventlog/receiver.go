@@ -31,7 +31,7 @@ type CsvFile struct {
 }
 
 type SalesforceReceiverInterface interface {
-	getConfig() *config.EventLogInstance
+	getConfig() *config.EventLogConfig
 	getDB() cache.Cache
 }
 
@@ -46,7 +46,7 @@ type DataSenderInterface interface {
 
 type SalesforceLogsReceiver struct {
 	i              *integration.LabsIntegration
-	instanceConfig *config.EventLogInstance
+	instanceConfig *config.EventLogConfig
 	db             cache.Cache
 }
 
@@ -60,7 +60,7 @@ func (s *SalesforceLogsReceiver) PollLogs(context context.Context, writer chan<-
 
 /// Logs sender implementation of SalesforceReceiverInterface
 
-func (s *SalesforceLogsReceiver) getConfig() *config.EventLogInstance {
+func (s *SalesforceLogsReceiver) getConfig() *config.EventLogConfig {
 	return s.instanceConfig
 }
 
@@ -102,7 +102,7 @@ func (s *LogsSender) send(data any) {
 
 type SalesforceEventsReceiver struct {
 	i              *integration.LabsIntegration
-	instanceConfig *config.EventLogInstance
+	instanceConfig *config.EventLogConfig
 	db             cache.Cache
 }
 
@@ -116,7 +116,7 @@ func (s *SalesforceEventsReceiver) PollEvents(context context.Context, writer ch
 
 /// Events sender implementation of SalesforceReceiverInterface
 
-func (s *SalesforceEventsReceiver) getConfig() *config.EventLogInstance {
+func (s *SalesforceEventsReceiver) getConfig() *config.EventLogConfig {
 	return s.instanceConfig
 }
 
@@ -569,7 +569,7 @@ func processLimitsResponse(response map[string]query.SingleLimitResponse, sender
 	}
 }
 
-func NewSalesforceEventsReceiver(i *integration.LabsIntegration, instanceConfig *config.EventLogInstance, db cache.Cache) pipeline.EventsReceiver {
+func NewSalesforceEventsReceiver(i *integration.LabsIntegration, instanceConfig *config.EventLogConfig, db cache.Cache) pipeline.EventsReceiver {
 	return &SalesforceEventsReceiver{
 		i:              i,
 		instanceConfig: instanceConfig,
@@ -577,7 +577,7 @@ func NewSalesforceEventsReceiver(i *integration.LabsIntegration, instanceConfig 
 	}
 }
 
-func NewSalesforceLogsReceiver(i *integration.LabsIntegration, instanceConfig *config.EventLogInstance, db cache.Cache) pipeline.LogsReceiver {
+func NewSalesforceLogsReceiver(i *integration.LabsIntegration, instanceConfig *config.EventLogConfig, db cache.Cache) pipeline.LogsReceiver {
 	return &SalesforceLogsReceiver{
 		i:              i,
 		instanceConfig: instanceConfig,
