@@ -126,7 +126,10 @@ Timeout in seconds for API requests sent to Salesforce.
 | --- | --- | --- |
 | Text | Yes | N/A |
 
-A descriptive instance name. Names should be unique to avoid conflicts when the same cache is used for various instances, and for better separation of data.
+A descriptive instance name. Names should be unique to avoid conflicts when the same
+cache or the same New Relic account is used for multiple instances.
+The attribute `sf.instance.name`, included on every generated event and log, contains
+this value, and can be used to filter data from different instances.
 
 #### - `apiVer`
 
