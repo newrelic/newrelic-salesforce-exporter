@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/csv"
 	"io"
+	"maps"
 	"os"
 	"strconv"
 	"strings"
@@ -55,7 +56,7 @@ func (s *SalesforceLogsReceiver) GetId() string {
 }
 
 func (s *SalesforceLogsReceiver) PollLogs(context context.Context, writer chan<- model.Log) error {
-	return poll(s, &LogsSender{writer})
+	return poll(s, &LogsSender{writer, buildDefaultAttributes(s)})
 }
 
 /// Logs sender implementation of SalesforceReceiverInterface
@@ -71,7 +72,8 @@ func (s *SalesforceLogsReceiver) getDB() cache.Cache {
 /// DataSenderInterface for logs
 
 type LogsSender struct {
-	writer chan<- model.Log
+	writer     chan<- model.Log
+	Attributes map[string]any
 }
 
 func (s *LogsSender) buildCsvLine(fields []string, line []string, fieldMapping FieldMapping) any {
@@ -92,6 +94,7 @@ func (s *LogsSender) buildLimit(name string, limit query.SingleLimitResponse) an
 func (s *LogsSender) send(data any) {
 	logData, ok := data.(model.Log)
 	if ok {
+		maps.Copy(logData.Attributes, s.Attributes)
 		s.writer <- logData
 	} else {
 		log.Errorf("Log sender received a data object that is not a model.Log: %v", data)
@@ -111,7 +114,7 @@ func (s *SalesforceEventsReceiver) GetId() string {
 }
 
 func (s *SalesforceEventsReceiver) PollEvents(context context.Context, writer chan<- model.Event) error {
-	return poll(s, &EventsSender{writer})
+	return poll(s, &EventsSender{writer, buildDefaultAttributes(s)})
 }
 
 /// Events sender implementation of SalesforceReceiverInterface
@@ -127,7 +130,8 @@ func (s *SalesforceEventsReceiver) getDB() cache.Cache {
 /// DataSenderInterface for events
 
 type EventsSender struct {
-	writer chan<- model.Event
+	writer     chan<- model.Event
+	Attributes map[string]any
 }
 
 func (s *EventsSender) buildCsvLine(fields []string, line []string, fieldMapping FieldMapping) any {
@@ -150,6 +154,7 @@ func (s *EventsSender) buildLimit(name string, limit query.SingleLimitResponse) 
 func (s *EventsSender) send(data any) {
 	event, ok := data.(model.Event)
 	if ok {
+		maps.Copy(event.Attributes, s.Attributes)
 		s.writer <- event
 	} else {
 		log.Errorf("Event sender received a data object that is not a model.Event: %v", data)
@@ -260,6 +265,12 @@ func truncLongStrings(sample *GenericSample) {
 				log.Debugf("Truncate attribute '%s' string that exceeds the 4096 limit", k)
 			}
 		}
+	}
+}
+
+func buildDefaultAttributes(s SalesforceReceiverInterface) map[string]any {
+	return map[string]any{
+		"sf.instance.name": s.getConfig().Name,
 	}
 }
 
@@ -434,7 +445,7 @@ func downloadCsvFiles(s SalesforceReceiverInterface, response *query.EventLogfil
 	var lastLogDateStr string
 	for _, record := range response.Records {
 		lastLogDateStr = record.CreatedDate
-		log.Debugf("CSV file Id = '%s', CreratedDate = '%s' LogDate = '%s'", record.Id, record.CreatedDate, record.LogDate)
+		log.Debugf("CSV file Id = '%s', CreatedDate = '%s' LogDate = '%s'", record.Id, record.CreatedDate, record.LogDate)
 		if notCached(s, record.Id) {
 			filePath, err := query.DownloadCsvFile(s.getConfig(), s.getDB(), &record)
 			if err != nil {
@@ -515,9 +526,13 @@ func readCsvData(csvContext *CsvContext) (*CsvContext, error) {
 	return csvContext, nil
 }
 
+func logIdCacheKey(s SalesforceReceiverInterface, id string) string {
+	return s.getConfig().Name + "_" + id
+}
+
 // Check if log ID is present in the cache (was already sent)
 func notCached(s SalesforceReceiverInterface, id string) bool {
-	val, err := s.getDB().GetCacheVal(id)
+	val, err := s.getDB().GetCacheVal(logIdCacheKey(s, id))
 	if err != nil {
 		log.Warnf("Error accessing the cache: %s", err.Error())
 		return true
@@ -526,7 +541,7 @@ func notCached(s SalesforceReceiverInterface, id string) bool {
 }
 
 func addToCache(s SalesforceReceiverInterface, id string) {
-	err := s.getDB().SetCacheVal(id, 1)
+	err := s.getDB().SetCacheVal(logIdCacheKey(s, id), 1)
 	if err != nil {
 		log.Warnf("Error setting log Id in the cache: %s", err.Error())
 	}

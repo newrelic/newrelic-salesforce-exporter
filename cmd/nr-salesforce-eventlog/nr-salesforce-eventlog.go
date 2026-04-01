@@ -41,6 +41,7 @@ func main() {
 		os.Exit(1)
 	}
 
+	// We read config here because NewStandaloneIntegration has to init the viper config
 	integrationConf, err = config.ReadConfig()
 	if err != nil {
 		log.Errorf("Error loading config = %s", err)
@@ -67,6 +68,7 @@ func main() {
 		instance.FieldMapping = mapping
 	}
 
+	// We check config integrity here because ParseQueryFiles and ParseMappingFile may change the config object
 	if err := eventlog.IntegrityCheck(&integrationConf); err != nil {
 		log.Errorf("Error checking config integrity = %s", err)
 		os.Exit(1)
