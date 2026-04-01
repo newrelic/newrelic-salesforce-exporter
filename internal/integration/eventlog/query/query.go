@@ -67,6 +67,15 @@ func tokenCacheKey(conf *config.EventLogConfig) string {
 	return conf.Name + "_access_token"
 }
 
+func generateError(resp *http.Response) error {
+	respBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("Error %d (could not read the response body)", resp.StatusCode)
+	} else {
+		return fmt.Errorf("Error %d, body: %s", resp.StatusCode, respBytes)
+	}
+}
+
 // Request EventLogFile object.
 // Result: List of log files. Each one being a relative path to download a CSV file.
 func RequestLogFiles(conf *config.EventLogConfig, db cache.Cache, since time.Time, until time.Time) (EventLogfileResponse, error) {
@@ -108,7 +117,7 @@ func RequestLogFiles(conf *config.EventLogConfig, db cache.Cache, since time.Tim
 
 		return response, nil
 	} else {
-		return EventLogfileResponse{}, fmt.Errorf("Unexpected status code %d", resp.StatusCode)
+		return EventLogfileResponse{}, generateError(resp)
 	}
 }
 
@@ -133,7 +142,7 @@ func DownloadCsvFile(conf *config.EventLogConfig, db cache.Cache, record *EventL
 
 		return filePath, err
 	} else {
-		return "", fmt.Errorf("Unexpected status code %d", resp.StatusCode)
+		return "", generateError(resp)
 	}
 }
 
@@ -186,7 +195,7 @@ func RequestCustomQuery(customQuery *config.QueryConfig, conf *config.EventLogCo
 
 		return response, nil
 	} else {
-		return GenericEventResponse{}, fmt.Errorf("Unexpected status code %d", resp.StatusCode)
+		return GenericEventResponse{}, generateError(resp)
 	}
 }
 
@@ -231,7 +240,7 @@ func RequestLimits(conf *config.EventLogConfig, db cache.Cache) (map[string]Sing
 			return filteredResponse, nil
 		}
 	} else {
-		return nil, fmt.Errorf("Unexpected status code %d", resp.StatusCode)
+		return nil, generateError(resp)
 	}
 }
 
