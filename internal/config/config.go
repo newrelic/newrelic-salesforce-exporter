@@ -78,10 +78,11 @@ type ExternalQueryFileConfig struct {
 }
 
 type QueryConfig struct {
-	Soql      SoqlConfig `mapstructure:"soql"`
-	ApiVer    string     `mapstructure:"apiVer"`
-	Timestamp string     `mapstructure:"timestamp"`
-	ApiName   string     `mapstructure:"apiName"`
+	Soql         SoqlConfig `mapstructure:"soql"`
+	ApiVer       string     `mapstructure:"apiVer"`
+	Timestamp    string     `mapstructure:"timestamp"`
+	EndTimestamp string     `mapstructure:"endTimestamp"`
+	ApiName      string     `mapstructure:"apiName"`
 }
 
 type SoqlConfig struct {

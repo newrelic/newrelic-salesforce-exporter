@@ -154,7 +154,11 @@ func RequestCustomQuery(customQuery *config.QueryConfig, conf *config.EventLogCo
 	soqlModel := MakeSoqlQuery(customQuery.Soql.From, customQuery.Soql.Select...)
 	soqlModel.AndWhere(customQuery.Soql.Where)
 	soqlModel.AndWhere(customQuery.Timestamp + " >= " + since.UTC().Format(time.RFC3339))
-	soqlModel.AndWhere(customQuery.Timestamp + " <= " + until.UTC().Format(time.RFC3339))
+	if customQuery.EndTimestamp == "" {
+		soqlModel.AndWhere(customQuery.Timestamp + " <= " + until.UTC().Format(time.RFC3339))
+	} else {
+		soqlModel.AndWhere(customQuery.EndTimestamp + " <= " + until.UTC().Format(time.RFC3339))
+	}
 	soqlModel.Tail(customQuery.Soql.Tail)
 	soql := soqlModel.Build()
 

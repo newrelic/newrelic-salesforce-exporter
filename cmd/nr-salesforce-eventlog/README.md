@@ -364,17 +364,19 @@ It defines a list of custom SOQL queries to request using the SFDC query API.
 Unlike `EventLogFile`, these queries can request data from any of the
 [standard objects](https://developer.salesforce.com/docs/atlas.en-us.object_reference.meta/object_reference/sforce_api_objects_list.htm)
 or the [tooling objects](https://developer.salesforce.com/docs/atlas.en-us.api_tooling.meta/api_tooling/reference_objects_list.htm).
+
 Each entry in the list has the following structure:
 
 ```yaml
   - soql:
-      select: [Action, CreatedDate]
-      from: "SetupAuditTrail"
-      where: "Action = 'changedApexClass'"
-      tail: "limit 10"
-    apiVer: "64.0"
-    timestamp: CreatedDate
-    apiName: rest
+      select: [ATTRIBUTE_1, ATTRIBUTE_2, ATTRIBUTE_N]
+      from: "OBJECT_NAME"
+      where: "CONDITION"
+      tail: "FINAL_SOQL_CLAUSES"
+    apiVer: "API_VER"
+    timestamp: TIMESTAMP_ATTRIBUTE
+    endTimestamp: END_TIMESTAMP_ATTRIBUTE
+    apiName: REST_OR_TOOLING
 ```
 
 - `select`: List of attributes from the object. Required.
@@ -384,7 +386,42 @@ Each entry in the list has the following structure:
 - `apiVer`: The API version to use for this request. If not present, it will use
 the API version defined in the instance. Optional.
 - `timestamp`: Which attribute from the object represents the timestamp. Required.
+- `endTimestamp`: In case we want different attributes for the start and end of the time range. Optional.
 - `apiName`: Which API we want to use, `rest` or `tooling`. Default `rest`. Optional.
+
+Examples:
+
+To represent the following SOQL query:
+
+```SQL
+SELECT Action, CreatedDate FROM SetupAuditTrail WHERE Action = 'changedApexClass' AND CreatedDate >= {SINCE} AND CreatedDate <= {UNTIL} LIMIT 10
+```
+We use:
+
+```yaml
+  - soql:
+      select: [Action, CreatedDate]
+      from: "SetupAuditTrail"
+      where: "Action = 'changedApexClass'"
+      tail: "limit 10"
+    timestamp: CreatedDate
+```
+
+To represent the following SOQL query:
+
+```SQL
+SELECT EventName, EventType, UsageType, Client, Value, StartDate, EndDate FROM PlatformEventUsageMetric WHERE TimeSegment = 'FifteenMinutes' AND Client != 'SYSTEM' AND StartDate >= {SINCE} AND EndDate <= {UNTIL}
+```
+We use:
+
+```yaml
+  - soql:
+      select: [EventName, EventType, UsageType, Client, Value, StartDate, EndDate]
+      from: "PlatformEventUsageMetric"
+      where: "TimeSegment = 'FifteenMinutes' AND Client != 'SYSTEM'"
+    timestamp: StartDate
+    endTimestamp: EndDate
+```
 
 #### - `customQueryFiles`
 
