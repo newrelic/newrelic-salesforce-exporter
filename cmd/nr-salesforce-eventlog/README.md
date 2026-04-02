@@ -40,8 +40,7 @@ Once the config file is set, we can run the integration:
 ```
 
 Check the [setup](#setup) section for more information on how to set up the
-config file or check the [sample file](../../config_sample_eventlog.yml)
-provided in this repo.
+config file.
 
 Run the integration with `--help` for a complete list of arguments:
 
@@ -56,7 +55,7 @@ a [sample config file](../../config_sample_eventlog.yml) you can use as a
 template to create your own. Or check the [config example](#config-example)
 section for a simpler config example.
 
-The following is a list of the required keys and a description for each.
+The following is a description of all the configuration options.
 
 ### Version
 
