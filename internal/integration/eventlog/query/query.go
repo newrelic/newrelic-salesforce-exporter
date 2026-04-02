@@ -80,7 +80,9 @@ func generateError(resp *http.Response) error {
 // Result: List of log files. Each one being a relative path to download a CSV file.
 func RequestLogFiles(conf *config.EventLogConfig, db cache.Cache, since time.Time, until time.Time) (EventLogfileResponse, error) {
 	soqlModel := MakeSoqlQuery("EventLogFile", "Id", "EventType", "CreatedDate", "LogDate", "LogFile")
-	soqlModel.AndWhere("Interval = 'Hourly'")
+	if !conf.NoInterval {
+		soqlModel.AndWhere("Interval = 'Hourly'")
+	}
 	soqlModel.AndWhere("CreatedDate >= " + since.UTC().Format(time.RFC3339))
 	soqlModel.AndWhere("CreatedDate <= " + until.UTC().Format(time.RFC3339))
 	// Apply EventType filter

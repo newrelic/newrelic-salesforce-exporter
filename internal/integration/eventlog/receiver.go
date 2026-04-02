@@ -291,9 +291,11 @@ func poll(s SalesforceReceiverInterface, sender DataSenderInterface) error {
 		} else {
 			log.Debugf("Read %d records", len(response.Records))
 
-			lastLogDate := processLogFilesResponse(s, &response, sender)
-			// We to set the time of the last log/event we receive, otherwise we may have data gaps
-			setLastRunIntoCache(s, lastLogDate)
+			if len(response.Records) > 0 {
+				lastLogDate := processLogFilesResponse(s, &response, sender)
+				// We to set the time of the last log/event we receive, otherwise we may have data gaps
+				setLastRunIntoCache(s, lastLogDate)
+			}
 		}
 	} else {
 		// Skip log files, set last date to now

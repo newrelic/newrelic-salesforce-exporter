@@ -269,6 +269,17 @@ Currently we support Redis DB:
 
 If `true`, it won't request event log files.
 
+#### - `noInterval`
+
+| Valid Values | Required | Default |
+| --- | --- | --- |
+| Boolean | No | false |
+
+If `true`, it won't use the `Interval` field for the `EventLogFile` query. Necessary when
+the Salesforce account does not have the Shield service activated. Not setting this
+option on accounts without the Shield license will cause the `EventLogFile` query
+to fail with an error 400.
+
 #### - `eventTypes`
 
 | Valid Values | Required | Default |
@@ -350,7 +361,7 @@ It has the following structure:
 ```
 
 It defines a list of custom SOQL queries to request using the SFDC query API.
-Unlike EventLogFiles, these queries can request data from any of the
+Unlike `EventLogFile`, these queries can request data from any of the
 [standard objects](https://developer.salesforce.com/docs/atlas.en-us.object_reference.meta/object_reference/sforce_api_objects_list.htm)
 or the [tooling objects](https://developer.salesforce.com/docs/atlas.en-us.api_tooling.meta/api_tooling/reference_objects_list.htm).
 Each entry in the list has the following structure:

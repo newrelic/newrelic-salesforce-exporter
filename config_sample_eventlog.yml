@@ -32,7 +32,6 @@ eventLog:
   initialTimeInterval: # EDIT INITIAL TIME INTERVAL HERE
     hours: 6
     minutes: 30
-  skipLogFiles: false # EDIT SKIP LOG FILES HERE
   eventTypes: # EDIT EVENT TYPES HERE
     - Login
     - URI
