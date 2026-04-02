@@ -1,3 +1,20 @@
+# Installer Tool
+
+**WORK IN PROGRESS**
+
+- [x] UI and questionnaire.
+- [x] Build dockerfiles for both integrations.
+- [x] Build config files for both integrations.
+- [x] Build New Relic dashboard for Apex usage.
+- [x] Build New Relic dashboard for API access.
+- [x] Build New Relic dashboard for Lightning usage.
+- [x] Build New Relic dashboard for User access.
+- [ ] Build New Relic dashboard for Report access.
+- [ ] Build New Relic dashboard for Doc content and DB access.
+- [ ] Build New Relic dashboard for Wave usage.
+- [ ] Build New Relic dashboard for Errors, Permissions and Violations.
+- [ ] Build New Relic dashboard for Security and Alerts.
+
 ## Run
 
 From the repo root folder, run:
