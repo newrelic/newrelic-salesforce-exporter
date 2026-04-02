@@ -32,15 +32,20 @@ func BuildDashboards(userSelection *UserSelection, dashboardsPath string) error 
 				return err
 			}
 		case ReportAccess:
-			return fmt.Errorf("TODO: ReportAccess dashboard")
+			fmt.Println("TODO: ReportAccess dashboard")
+			return nil
 		case DocContentDbAccess:
-			return fmt.Errorf("TODO: DocContentDbAccess dashboard")
+			fmt.Println("TODO: DocContentDbAccess dashboard")
+			return nil
 		case WaveUsage:
-			return fmt.Errorf("TODO: WaveUsage dashboard")
+			fmt.Println("TODO: WaveUsage dashboard")
+			return nil
 		case ErrPermViol:
-			return fmt.Errorf("TODO: ErrPermViol dashboard")
+			fmt.Println("TODO: ErrPermViol dashboard")
+			return nil
 		case AlertSecurity:
-			return fmt.Errorf("TODO: AlertSecurity dashboard")
+			fmt.Println("TODO: AlertSecurity dashboard")
+			return nil
 		default:
 			return fmt.Errorf("Unknown event group")
 		}
