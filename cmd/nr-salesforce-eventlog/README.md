@@ -661,6 +661,13 @@ log:
   level: trace
 ```
 
+To test the data acquisition from the Salesforce APIs, without actually sending it to
+New Relic, add the following to your config file:
+
+```yaml
+dry_run: true
+```
+
 ## Testing
 
 From the project's root folder run:
