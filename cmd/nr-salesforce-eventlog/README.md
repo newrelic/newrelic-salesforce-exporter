@@ -53,7 +53,8 @@ Run the integration with `--help` for a complete list of arguments:
 
 The event log integration obtains the configuration from a YAML file. There is
 a [sample config file](../../config_sample_eventlog.yml) you can use as a
-template to create your own.
+template to create your own. Or check the [config example](#config-example)
+section for a simpler config example.
 
 The following is a list of the required keys and a description for each.
 
@@ -574,6 +575,46 @@ periods in which the integration will send data to New Relic.
 
 Integration execution interval in seconds. If `runAsService` is true, it defines
 the periods in which the integration will run a cycle.
+
+### Config example
+
+The most common use case for this integration is getting the event log files. The
+following is a working config.yml example for this use case:
+
+```yaml
+version: "2.0"
+
+eventLog:
+  instanceName: "myorg-1"
+  apiVer: "64.0"
+  requestTimeout: 120
+  auth:
+    tokenUrl: "<TOKEN URL HERE>"
+    # Salesforce credentials
+    userPass:
+      clientId: "<CLIENT ID HERE>"
+      clientSecret: "<CLIENT SECRET HERE>"
+      username: "<USER NAME HERE>"
+      password: "<PASSWORD HERE>"
+  cache:
+    # Redis server config and credentials
+    redis:
+      host: "<REDIS SERVER HOST HERE>"
+      port: 6379 # EDIT REDIS SERVER PORT HERE
+      dbNumber: 0 # EDIT REDIS SERVER DATABASE NUMBER HERE
+      password: "<PASSWORD HERE or empty if no password>"
+      expireDays: 2 # EDIT KEY EXPIRATION TIME HERE
+  initialTimeInterval: # EDIT INITIAL TIME INTERVAL HERE
+    hours: 1
+    minutes: 0
+
+# New Relic credentials
+
+licenseKey: "<NEW RELIC LICENSE KEY HERE>"
+accountId: "<NEW RELIC ACCOUNT ID HERE>"
+region: "<NEW RELIC REGION HERE>" # either "EU" or "US"
+format: "<NEW RELIC FORMAT HERE>" # either "events" or "logs"
+```
 
 ## Data
 
