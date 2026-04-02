@@ -278,11 +278,11 @@ func buildDefaultAttributes(s SalesforceReceiverInterface) map[string]any {
 func poll(s SalesforceReceiverInterface, sender DataSenderInterface) error {
 	log.Debugf("Begin poll for instance '%s'", s.getConfig().Name)
 
-	since := getTimeRange(s)
-	until := time.Now()
-
 	// Collect event logs
 	if !s.getConfig().SkipLogFiles {
+		since := getTimeRange(s, lastRunCacheKey(s))
+		until := time.Now()
+
 		log.Debugf("Request logs since: %v", since)
 
 		response, err := query.RequestLogFiles(s.getConfig(), s.getDB(), since, until)
@@ -294,25 +294,36 @@ func poll(s SalesforceReceiverInterface, sender DataSenderInterface) error {
 			if len(response.Records) > 0 {
 				lastLogDate := processLogFilesResponse(s, &response, sender)
 				// We to set the time of the last log/event we receive, otherwise we may have data gaps
-				setLastRunIntoCache(s, lastLogDate)
+				setLastRunIntoCache(s, lastLogDate, lastRunCacheKey(s))
 			}
 		}
 	} else {
-		// Skip log files, set last date to now
-		setLastRunIntoCache(s, until)
+		// Skip event log files, set last run date to now
+		setLastRunIntoCache(s, time.Now(), lastRunCacheKey(s))
 	}
 
 	// Collect custom queries data
-	for _, customQuery := range s.getConfig().CustomQueries {
-		log.Debugf("Custom query = %+v", customQuery)
+	if len(s.getConfig().CustomQueries) > 0 {
+		since := getTimeRange(s, customQueriesLastRunCacheKey(s))
+		until := time.Now()
 
-		response, err := query.RequestCustomQuery(&customQuery, s.getConfig(), s.getDB(), since, until)
-		if err != nil {
-			log.Errorf("Error in custom query: %s", err.Error())
-			continue
+		for _, customQuery := range s.getConfig().CustomQueries {
+
+			log.Debugf("Custom query = %+v", customQuery)
+
+			response, err := query.RequestCustomQuery(&customQuery, s.getConfig(), s.getDB(), since, until)
+			if err != nil {
+				log.Errorf("Error in custom query: %s", err.Error())
+				continue
+			}
+
+			processEventResponse(s, &response, sender, &customQuery)
 		}
 
-		processEventResponse(s, &response, sender, &customQuery)
+		setLastRunIntoCache(s, until, customQueriesLastRunCacheKey(s))
+	} else {
+		// No custom queries, set last run date to now
+		setLastRunIntoCache(s, time.Now(), customQueriesLastRunCacheKey(s))
 	}
 
 	// Collect org limits
@@ -330,9 +341,9 @@ func poll(s SalesforceReceiverInterface, sender DataSenderInterface) error {
 	return nil
 }
 
-func getTimeRange(s SalesforceReceiverInterface) time.Time {
-	if lastRunExistsInCache(s) {
-		return getLastRunFromCache(s)
+func getTimeRange(s SalesforceReceiverInterface, cacheKey string) time.Time {
+	if lastRunExistsInCache(s, cacheKey) {
+		return getLastRunFromCache(s, cacheKey)
 	} else {
 		// If last_run_ts not set, use a fixed interval
 		timeInterval := s.getConfig().InitialTimeInterval
@@ -349,8 +360,8 @@ func getTimeRange(s SalesforceReceiverInterface) time.Time {
 	}
 }
 
-func lastRunExistsInCache(s SalesforceReceiverInterface) bool {
-	val, err := s.getDB().GetCacheVal(lastRunCacheKey(s))
+func lastRunExistsInCache(s SalesforceReceiverInterface, cacheKey string) bool {
+	val, err := s.getDB().GetCacheVal(cacheKey)
 	if err != nil {
 		return false
 	}
@@ -358,8 +369,8 @@ func lastRunExistsInCache(s SalesforceReceiverInterface) bool {
 	return ok
 }
 
-func getLastRunFromCache(s SalesforceReceiverInterface) time.Time {
-	val, err := s.getDB().GetCacheVal(lastRunCacheKey(s))
+func getLastRunFromCache(s SalesforceReceiverInterface, cacheKey string) time.Time {
+	val, err := s.getDB().GetCacheVal(cacheKey)
 	if err != nil {
 		log.Errorf("Error getting 'last_run_ts' from cache: %s", err.Error())
 	}
@@ -375,16 +386,22 @@ func getLastRunFromCache(s SalesforceReceiverInterface) time.Time {
 	return tsTime
 }
 
-func setLastRunIntoCache(s SalesforceReceiverInterface, ts time.Time) {
+func setLastRunIntoCache(s SalesforceReceiverInterface, ts time.Time, cacheKey string) {
 	tsStr := strconv.FormatInt(ts.UnixMilli(), 10)
-	err := s.getDB().SetCacheVal(lastRunCacheKey(s), tsStr)
+	err := s.getDB().SetCacheVal(cacheKey, tsStr)
 	if err != nil {
 		log.Errorf("Error setting 'last_run_ts' into cache: %s", err.Error())
 	}
 }
 
+// Last run for EventLogFile queries
 func lastRunCacheKey(s SalesforceReceiverInterface) string {
 	return s.getConfig().Name + "_last_run_ts"
+}
+
+// Last run for custom queries
+func customQueriesLastRunCacheKey(s SalesforceReceiverInterface) string {
+	return s.getConfig().Name + "_custom_queries_last_run_ts"
 }
 
 func sendCsv(csvContext *CsvContext, sender DataSenderInterface, fieldMapping FieldMapping) {
