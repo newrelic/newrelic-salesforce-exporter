@@ -16,7 +16,7 @@ The Event Log integration can collect the following types of data from Salesforc
 - [Event Logs](https://developer.salesforce.com/docs/atlas.en-us.object_reference.meta/object_reference/sforce_api_objects_eventlogfile.htm)
 - [Standard Objects](https://developer.salesforce.com/docs/atlas.en-us.object_reference.meta/object_reference/sforce_api_objects_list.htm)
 - [Tooling Objects](https://developer.salesforce.com/docs/atlas.en-us.api_tooling.meta/api_tooling/reference_objects_list.htm)
-- [API Limits](https://developer.salesforce.com/docs/atlas.en-us.api_rest.meta/api_rest/resources_limits.htm)
+- [Org Limits](https://developer.salesforce.com/docs/atlas.en-us.api_rest.meta/api_rest/resources_limits.htm)
 
 ## Build
 
@@ -82,7 +82,6 @@ eventLog:
   cache:
     # Cache section, described later
 
-  skipLogFiles: false
   eventTypes:
     # Event types section
   fieldMapping:
@@ -268,6 +267,14 @@ Currently we support Redis DB:
 | Boolean | No | false |
 
 If `true`, it won't request event log files.
+
+#### - `skipLimits`
+
+| Valid Values | Required | Default |
+| --- | --- | --- |
+| Boolean | No | false |
+
+If `true`, it won't request Org Limits.
 
 #### - `noInterval`
 

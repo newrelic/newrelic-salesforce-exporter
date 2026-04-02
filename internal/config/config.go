@@ -108,6 +108,7 @@ type EventLogConfig struct {
 	FieldMapping        FieldMappingConfig `mapstructure:"fieldMapping"`
 	InitialTimeInterval TimeIntervalConfig `mapstructure:"initialTimeInterval"`
 	SkipLogFiles        bool               `mapstructure:"skipLogFiles"`
+	SkipLimits          bool               `mapstructure:"skipLimits"`
 	NoInterval          bool               `mapstructure:"noInterval"`
 	CustomQueryFiles    []string           `mapstructure:"customQueryFiles"`
 	CustomQueries       []QueryConfig      `mapstructure:"customQueries"`

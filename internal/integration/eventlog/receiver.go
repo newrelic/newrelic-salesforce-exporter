@@ -316,11 +316,13 @@ func poll(s SalesforceReceiverInterface, sender DataSenderInterface) error {
 	}
 
 	// Collect org limits
-	limits, err := query.RequestLimits(s.getConfig(), s.getDB())
-	if err != nil {
-		log.Errorf("Error requesting org limis: %s", err.Error())
-	} else {
-		processLimitsResponse(limits, sender)
+	if !s.getConfig().SkipLimits {
+		limits, err := query.RequestLimits(s.getConfig(), s.getDB())
+		if err != nil {
+			log.Errorf("Error requesting org limis: %s", err.Error())
+		} else {
+			processLimitsResponse(limits, sender)
+		}
 	}
 
 	log.Debugf("End poll for instance '%s'", s.getConfig().Name)
