@@ -430,6 +430,8 @@ We use:
     endTimestamp: EndDate
 ```
 
+> NOTE: the integration automatically calculates the time range and sets the values for `{SINCE}` and `{UNTIL}`.
+
 #### - `customQueryFiles`
 
 | Valid Values | Required | Default |
