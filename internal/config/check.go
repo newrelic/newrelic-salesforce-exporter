@@ -8,8 +8,8 @@ import (
 )
 
 func CheckUrl(urlStr string) bool {
-	if _, err := url.ParseRequestURI(urlStr) ; err != nil {
-   		return false
+	if _, err := url.ParseRequestURI(urlStr); err != nil {
+		return false
 	}
 	return true
 }
@@ -19,7 +19,7 @@ func CheckAuth(auth *AuthConfig) error {
 		return errors.New("Empty 'auth.tokenUrl'")
 	}
 	if !CheckUrl(auth.TokenUrl) {
-   		return errors.New("Invalid URL 'auth.tokenUrl'")
+		return errors.New("Invalid URL 'auth.tokenUrl'")
 	}
 	definedAuthMethods := 0
 	if auth.Jwt != nil {
@@ -45,7 +45,7 @@ func CheckAuth(auth *AuthConfig) error {
 		if err != nil {
 			return err
 		}
-	}	
+	}
 	if auth.UserPass != nil {
 		err := CheckUserPassCredentials(auth.UserPass)
 		if err != nil {
@@ -105,10 +105,10 @@ func CheckClientCredCredentials(clientCredAuth *ClientCredAuth) error {
 
 func CheckCache(cache *CacheConfig) error {
 	if cache == nil {
-		log.Warnf("Cache not defined, events won't be de-duplicated.")
+		log.Warnf("Cache not defined.")
 	} else {
 		if cache.Redis == nil {
-			log.Warnf("Redis DB not defined, events won't be de-duplicated.")
+			log.Warnf("Redis DB not defined.")
 		} else {
 			if cache.Redis.Host == "" {
 				return errors.New("Empty 'cache.redis.host'")
