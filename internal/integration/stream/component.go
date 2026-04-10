@@ -95,7 +95,7 @@ func (c *StreamComponent) ExecuteSync(ctx context.Context) error {
 				timestamp = time.Now()
 			}
 
-			ev["sf.integration.name"] = c.instanceName
+			ev["sf.instance.name"] = c.instanceName
 
 			switch c.format {
 			case Events:
