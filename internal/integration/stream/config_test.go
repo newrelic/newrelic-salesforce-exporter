@@ -8,22 +8,22 @@ import (
 
 func rightStreamConf() *config.EventStreamConfig {
 	return &config.EventStreamConfig{
-		IntegrationName: "my.integration.name",
+		Name: "my-instance-name",
 		Auth: config.AuthConfig{
 			TokenUrl: "http://example.com",
 			UserPass: &config.UserPassAuth{
-				ClientId: "client_id",
+				ClientId:     "client_id",
 				ClientSecret: "client_secret",
-				Username: "username",
-				Password: "password",
+				Username:     "username",
+				Password:     "password",
 			},
 		},
 		Cache: &config.CacheConfig{
 			Redis: &config.RedisConfig{
-				Host: "host",
-				Port: 100,
-				DbNumber: 0,
-				Password: "password",
+				Host:       "host",
+				Port:       100,
+				DbNumber:   0,
+				Password:   "password",
 				ExpireDays: 0,
 			},
 		},
@@ -53,10 +53,10 @@ func TestIntegrityCheck(t *testing.T) {
 		t.Errorf("Integrity check didn't accept a valid event stream config")
 	}
 
-	conf.EventStream.IntegrationName = ""
+	conf.EventStream.Name = ""
 	err = IntegrityCheck(&conf)
 	if err == nil {
-		t.Errorf("Integrity check didn't catch an empty event stream integration name")
+		t.Errorf("Integrity check didn't catch an empty event stream instance name")
 	}
 
 	conf.EventStream = rightStreamConf()

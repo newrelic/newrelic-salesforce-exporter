@@ -11,16 +11,16 @@ func IntegrityCheck(conf *config.Config) error {
 	if conf.EventStream == nil {
 		return errors.New("Config eventStream must be defined")
 	}
-	if conf.EventStream.IntegrationName == "" {
-		return errors.New("Config eventStream integrationName must be defined")
+	if conf.EventStream.Name == "" {
+		return errors.New("Config eventStream instanceName must be defined")
 	}
-	if err := CheckAuth(&conf.EventStream.Auth) ; err != nil {
+	if err := CheckAuth(&conf.EventStream.Auth); err != nil {
 		return err
 	}
-	if err := config.CheckCache(conf.EventStream.Cache) ; err != nil {
+	if err := config.CheckCache(conf.EventStream.Cache); err != nil {
 		return err
 	}
-	if err := checkTopics(conf.EventStream.Topics) ; err != nil {
+	if err := checkTopics(conf.EventStream.Topics); err != nil {
 		return err
 	}
 	return nil
@@ -31,14 +31,14 @@ func CheckAuth(auth *config.AuthConfig) error {
 		return errors.New("Empty 'auth.tokenUrl'")
 	}
 	if !config.CheckUrl(auth.TokenUrl) {
-   		return errors.New("Invalid URL 'auth.tokenUrl'")
+		return errors.New("Invalid URL 'auth.tokenUrl'")
 	}
 	if auth.Jwt != nil {
 		return errors.New("Invalid auth method, only userPass is supported")
 	}
 	if auth.ClientCred != nil {
 		return errors.New("Invalid auth method, only userPass is supported")
-	}	
+	}
 	if auth.UserPass != nil {
 		err := config.CheckUserPassCredentials(auth.UserPass)
 		if err != nil {

@@ -13,6 +13,7 @@ import (
 	"github.com/linkedin/goavro/v2"
 	"github.com/newrelic/newrelic-labs-sdk/v2/pkg/integration/log"
 	"github.com/newrelic/newrelic-salesforce-exporter/internal/cache"
+	"github.com/newrelic/newrelic-salesforce-exporter/internal/config"
 	"github.com/newrelic/newrelic-salesforce-exporter/internal/integration/stream/pubsub/common"
 	"github.com/newrelic/newrelic-salesforce-exporter/internal/integration/stream/pubsub/proto"
 	"github.com/newrelic/newrelic-salesforce-exporter/internal/oauth"
@@ -25,17 +26,17 @@ import (
 )
 
 const (
-	tokenHeader    = "accesstoken"
-	instanceHeader = "instanceurl"
-	tenantHeader   = "tenantid"
+	tokenHeader      = "accesstoken"
+	instanceHeader   = "instanceurl"
+	tenantHeader     = "tenantid"
 	userInfoEndpoint = "/services/oauth2/userinfo"
 )
 
-var LOGIN_LOCK = LoginLock {}
+var LOGIN_LOCK = LoginLock{}
 
 type LoginLock struct {
-	Mutex    		sync.Mutex
-	lastAuthTime	time.Time
+	Mutex        sync.Mutex
+	lastAuthTime time.Time
 }
 
 type UserInfoResponse struct {
@@ -45,7 +46,7 @@ type UserInfoResponse struct {
 
 func (ll *LoginLock) ShouldLogin() bool {
 	// Last auth was less than 5 minutes ago?
-	return ll.lastAuthTime.Before(time.Now().Add(-5*time.Minute))
+	return ll.lastAuthTime.Before(time.Now().Add(-5 * time.Minute))
 }
 
 func (ll *LoginLock) DidLogin() {
@@ -53,13 +54,13 @@ func (ll *LoginLock) DidLogin() {
 }
 
 type PubSubClient struct {
-	accessToken		string
-	instanceURL		string
-	userID 			string
-	orgID  			string
-	conn       		*grpc.ClientConn
-	pubSubClient	proto.PubSubClient
-	schemaCache		map[string]*goavro.Codec
+	accessToken  string
+	instanceURL  string
+	userID       string
+	orgID        string
+	conn         *grpc.ClientConn
+	pubSubClient proto.PubSubClient
+	schemaCache  map[string]*goavro.Codec
 }
 
 // Closes the underlying connection to the gRPC server
@@ -67,16 +68,24 @@ func (c *PubSubClient) Close() {
 	c.conn.Close()
 }
 
+func accessTokenCacheKey(instanceName string) string {
+	return instanceName + "_" + "event_stream_access_token"
+}
+
+func instanceUrlCacheKey(instanceName string) string {
+	return instanceName + "_" + "event_stream_instance_url"
+}
+
 // Makes a call to the OAuth server to fetch credentials. Credentials are stored as part of the PubSubClient object so that they can be
 // referenced later in other methods
-func (c *PubSubClient) Authenticate(db cache.Cache) error {
+func (c *PubSubClient) Authenticate(db cache.Cache, instanceConfig *config.EventStreamConfig) error {
 	LOGIN_LOCK.Mutex.Lock()
-    defer LOGIN_LOCK.Mutex.Unlock()
+	defer LOGIN_LOCK.Mutex.Unlock()
 
-    if !LOGIN_LOCK.ShouldLogin() {
+	if !LOGIN_LOCK.ShouldLogin() {
 		log.Debugf("Recently authenticated, try to use credentials from cache")
-		accessToken, _ := db.GetCacheVal("event_stream_access_token")
-		instanceUrl, _ := db.GetCacheVal("event_stream_instance_url")
+		accessToken, _ := db.GetCacheVal(accessTokenCacheKey(instanceConfig.Name))
+		instanceUrl, _ := db.GetCacheVal(instanceUrlCacheKey(instanceConfig.Name))
 		if accessToken != nil && instanceUrl != nil {
 			log.Debugf("Using auth credentials from cache")
 			c.accessToken = accessToken.(string)
@@ -94,8 +103,8 @@ func (c *PubSubClient) Authenticate(db cache.Cache) error {
 	c.accessToken = resp.AccessToken
 	c.instanceURL = resp.InstanceURL
 
-	db.SetCacheVal("event_stream_access_token", c.accessToken)
-	db.SetCacheVal("event_stream_instance_url", c.instanceURL)
+	db.SetCacheVal(accessTokenCacheKey(instanceConfig.Name), c.accessToken)
+	db.SetCacheVal(instanceUrlCacheKey(instanceConfig.Name), c.instanceURL)
 
 	LOGIN_LOCK.DidLogin()
 
@@ -192,19 +201,19 @@ func (c *PubSubClient) GetSchema(schemaId string) (*proto.SchemaInfo, error) {
 }
 
 type SubscribeOpts struct {
-	Channel chan<- map[string]any
-	TopicName string
+	Channel      chan<- map[string]any
+	TopicName    string
 	ReplayPreset proto.ReplayPreset
-	ReplayId []byte
-	Cache cache.Cache
-	ReplayIdKey string
+	ReplayId     []byte
+	Cache        cache.Cache
+	ReplayIdKey  string
 }
 
 // Wrapper function around the Subscribe RPC. This will add the OAuth credentials and create a separate streaming client that will be used to
 // fetch data from the topic. This method will continuously consume messages unless an error occurs; if an error does occur then this method will
 // return the last successfully consumed ReplayId as well as the error message. If no messages were successfully consumed then this method will return
 // the same ReplayId that it originally received as a parameter
-func (c *PubSubClient) Subscribe(subsOpts SubscribeOpts, db cache.Cache) ([]byte, error) {
+func (c *PubSubClient) Subscribe(subsOpts SubscribeOpts, db cache.Cache, instanceConfig *config.EventStreamConfig) ([]byte, error) {
 	ctx, cancelFn := context.WithCancel(c.getAuthContext())
 	defer cancelFn()
 
@@ -212,7 +221,7 @@ func (c *PubSubClient) Subscribe(subsOpts SubscribeOpts, db cache.Cache) ([]byte
 	// After 60 seconds, if the connection is alive, Recv will receive an empty response if there are no events in the queue.
 	// Doc reference:
 	// https://developer.salesforce.com/docs/platform/pub-sub-api/guide/flow-control.html#keeping-the-subscription-stream-alive-from-the-client
-	timeoutDuration := 62*time.Second
+	timeoutDuration := 62 * time.Second
 	timeoutTimer := time.AfterFunc(timeoutDuration, func() {
 		log.Warnf("Connection is dead, cancel it")
 		cancelFn()
@@ -270,7 +279,7 @@ func (c *PubSubClient) Subscribe(subsOpts SubscribeOpts, db cache.Cache) ([]byte
 			if len(errorCode) > 0 {
 				if errorCode[0] == "sfdc.platform.eventbus.grpc.service.auth.error" {
 					log.Warnf("Auth credentials outdated, relogin")
-					c.Authenticate(db)
+					c.Authenticate(db, instanceConfig)
 				}
 			}
 
@@ -428,7 +437,7 @@ func (c *PubSubClient) Publish(topicName string, schema *proto.SchemaInfo) error
 	}
 
 	if err := result[0].GetError(); err != nil {
-		return fmt.Errorf(result[0].GetError().GetMsg())
+		return fmt.Errorf("%s", result[0].GetError().GetMsg())
 	}
 
 	return nil
@@ -583,7 +592,7 @@ func (c *PubSubClient) PublishStream(topicName string, schema *proto.SchemaInfo)
 
 				for _, res := range results {
 					if res.GetError() != nil {
-						shutdownGoroutine(fmt.Errorf(res.GetError().GetMsg()))
+						shutdownGoroutine(fmt.Errorf("%s", res.GetError().GetMsg()))
 						return
 					}
 				}

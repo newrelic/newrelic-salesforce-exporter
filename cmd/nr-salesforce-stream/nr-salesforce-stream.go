@@ -26,7 +26,7 @@ func main() {
 		log.Errorf("Error creating NR integration = %s", err)
 		os.Exit(1)
 	}
-	
+
 	integrationConf, err = config.ReadConfig()
 	if err != nil {
 		log.Errorf("Error loading config = %s", err)
@@ -50,7 +50,7 @@ func main() {
 
 	ch := make(chan map[string]any)
 
-	streamComponent, err := stream.NewStreamComponent(exporter, ch, integrationConf.Format)
+	streamComponent, err := stream.NewStreamComponent(exporter, ch, integrationConf.Format, integrationConf.EventStream.Name)
 	if err != nil {
 		log.Errorf("Error creating stream component = %s", err)
 		os.Exit(1)
@@ -93,7 +93,7 @@ func subscribeToTopic(topicName string, ch chan<- map[string]any) {
 	defer client.Close()
 
 	log.Debugf("Populating auth token...")
-	err = client.Authenticate(db)
+	err = client.Authenticate(db, integrationConf.EventStream)
 	if err != nil {
 		client.Close()
 		log.Errorf("could not authenticate: %s", err)
@@ -108,7 +108,7 @@ func subscribeToTopic(topicName string, ch chan<- map[string]any) {
 		os.Exit(1)
 	}
 
-	replayIdKey := topicName + "_last_replay_id"
+	replayIdKey := integrationConf.EventStream.Name + "_" + topicName + "_last_replay_id"
 
 	curReplayId := readReplayIdFromCache(db, replayIdKey)
 
@@ -129,10 +129,10 @@ func subscribeToTopic(topicName string, ch chan<- map[string]any) {
 			ReplayIdKey:  replayIdKey,
 		}
 
-		curReplayId, err = client.Subscribe(subsOpts, db)
+		curReplayId, err = client.Subscribe(subsOpts, db, integrationConf.EventStream)
 		if err != nil {
 			log.Errorf("error occurred while subscribing to topic: %s", err)
-			time.Sleep(2*time.Second)
+			time.Sleep(2 * time.Second)
 		}
 	}
 }

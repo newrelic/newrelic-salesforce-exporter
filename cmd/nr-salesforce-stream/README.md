@@ -75,7 +75,7 @@ The `eventStream` key contains the following structure:
 
 ```yaml
 eventStream:
-  integrationName: "MY INTEGRATION NAME"
+  instanceName: "myorg-myenv"
   appetite: 10
   auth:
     # Auth section, described later
@@ -85,8 +85,10 @@ eventStream:
     # Topics section, described later
 ```
 
-The `integrationName` must contain a descriptive name for the integration,
-something like `com.newrelic.labs.sfdc.eventstream` is recommended.
+The `instanceName` must contain a descriptive name. Names should be unique to avoid
+conflicts when the same cache or the same New Relic account is used for multiple instances.
+The attribute `sf.instance.name`, included on every generated event and log, contains
+this value, and can be used to filter data from different instances.
 
 The `appetite` must contain an integer with the maximum number of events to read
 per call. If unspecified, the default value is `10`.
@@ -96,11 +98,11 @@ variable. To do that, just set `$ENV_VAR_NAME` as the value. Example:
 
 ```yaml
 eventStream:
-  integrationName: $INTEGRATION
+  instanceName: $INSTANCE_NAME
 ```
 
-It will get the value of `integragtionName` from the environment variable named
-`INTEGRATION`.
+It will get the value of `instanceName` from the environment variable named
+`INSTANCE_NAME`.
 
 Each one of the config keys within `eventStream` are described in the following
 sections.

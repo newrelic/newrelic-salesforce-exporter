@@ -53,12 +53,11 @@ type RedisConfig struct {
 }
 
 type EventStreamConfig struct {
-	//TODO: remove integrationName
-	IntegrationName string       `mapstructure:"integrationName"`
-	Auth            AuthConfig   `mapstructure:"auth"`
-	Cache           *CacheConfig `mapstructure:"cache"`
-	Appetite        int32        `mapstructure:"appetite"`
-	Topics          []string     `mapstructure:"topics"`
+	Name     string       `mapstructure:"instanceName"`
+	Auth     AuthConfig   `mapstructure:"auth"`
+	Cache    *CacheConfig `mapstructure:"cache"`
+	Appetite int32        `mapstructure:"appetite"`
+	Topics   []string     `mapstructure:"topics"`
 }
 
 type FieldNames = []string

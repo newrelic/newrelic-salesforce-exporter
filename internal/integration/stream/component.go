@@ -38,9 +38,10 @@ type StreamComponent struct {
 	logBuff       []model.Log
 	format        DataFormat
 	maxBufferSize int
+	instanceName  string
 }
 
-func NewStreamComponent(exporter EventLogExporter, ch chan map[string]any, formatConf string) (StreamComponent, error) {
+func NewStreamComponent(exporter EventLogExporter, ch chan map[string]any, formatConf string, instanceName string) (StreamComponent, error) {
 	var format DataFormat
 	var eventBuff []model.Event = nil
 	var logBuff []model.Log = nil
@@ -64,6 +65,7 @@ func NewStreamComponent(exporter EventLogExporter, ch chan map[string]any, forma
 		logBuff:       logBuff,
 		format:        format,
 		maxBufferSize: MAX_BUFFER_SIZE,
+		instanceName:  instanceName,
 	}, nil
 }
 
@@ -92,6 +94,8 @@ func (c *StreamComponent) ExecuteSync(ctx context.Context) error {
 				log.Warnf("Event '%s' has no 'EventDate'. Using current time.", eventType)
 				timestamp = time.Now()
 			}
+
+			ev["sf.integration.name"] = c.instanceName
 
 			switch c.format {
 			case Events:
