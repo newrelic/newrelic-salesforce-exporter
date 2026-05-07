@@ -1,4 +1,4 @@
-[![New Relic Community header](https://opensource.newrelic.com/static/Community_Project-0c3079a4e4dbe2cbd05edc4f8e169d7b.png)](https://opensource.newrelic.com/oss-category/#new-relic-community)
+[![Community Project header](https://github.com/newrelic/open-source-office/raw/master/examples/categories/images/Community_Project.png)](https://github.com/newrelic/open-source-office/blob/master/examples/categories/index.md#category-community-project)
 
 ![GitHub forks](https://img.shields.io/github/forks/newrelic/newrelic-salesforce-exporter?style=social)
 ![GitHub stars](https://img.shields.io/github/stars/newrelic/newrelic-salesforce-exporter?style=social)
