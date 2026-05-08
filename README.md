@@ -907,7 +907,8 @@ SOQL result sets as well.
 
 ### Authentication
 
-The exporter supports the [OAuth 2.0 Username-Password flow](https://help.salesforce.com/s/articleView?id=sf.remoteaccess_oauth_username_password_flow.htm&type=5)
+The exporter supports the [OAuth 2.0 Username-Password flow](https://help.salesforce.com/s/articleView?id=sf.remoteaccess_oauth_username_password_flow.htm&type=5),
+the [OAuth 2.0 Client Credentials flow](https://help.salesforce.com/s/articleView?id=sf.remoteaccess_oauth_client_credentials_flow.htm&type=5),
 and the
 [OAuth 2.0 JWT Bearer flow](https://help.salesforce.com/s/articleView?id=sf.remoteaccess_oauth_jwt_flow.htm&type=5)
 for gaining access to the ReST API via a
@@ -1024,6 +1025,70 @@ export SF_CLIENT_ID="ABCDEFG1234567"
 export SF_CLIENT_SECRET="1123581321abc=="
 export SF_USERNAME="pat"
 export SF_PASSWORD="My5fPa55w0rd"
+```
+
+#### OAuth 2.0 Client Credentials Flow
+
+For the [OAuth 2.0 Client Credentials Flow](https://help.salesforce.com/s/articleView?id=sf.remoteaccess_oauth_client_credentials_flow.htm&type=5),
+the following parameters are required.
+
+##### `grant_type`
+
+The `grant_type` for the OAuth 2.0 Client Credentials Flow _must_ be set to
+`client_credentials` (case-sensitive).
+
+The grant type can also be specified using the `{auth_env_prefix}SF_GRANT_TYPE`
+environment variable.
+
+##### `client_id`
+
+| Description | Valid Values | Required | Default |
+| --- | --- | --- | --- |
+| Consumer key of the connected app | string | Y | N/a |
+
+This parameter specifies the **consumer key** of the connected app. To access
+this value, navigate to "Manage Consumer Details" when viewing the Connected App
+details.
+
+The client ID can also be specified using the `{auth_env_prefix}SF_CLIENT_ID`
+environment variable.
+
+##### `client_secret`
+
+| Description | Valid Values | Required | Default |
+| --- | --- | --- | --- |
+| Consumer secret of the connected app | string | Y | N/a |
+
+This parameter specifies the **consumer secret** of the connected app. To access
+this value, navigate to "Manage Consumer Details" when viewing the Connected App
+details.
+
+The client secret can also be specified using the
+`{auth_env_prefix}SF_CLIENT_SECRET` environment variable.
+
+##### Example
+
+Below is an example OAuth 2.0 Client Credentials Flow configuration in the
+[`auth`](#auth) attribute of the [instance arguments](#instance-arguments)
+attribute of the [instance configuration parameter](#instance-configuration-parameters).
+
+```yaml
+token_url: https://my.salesforce.test/services/oauth2/token
+# ... other instance arguments ...
+auth:
+  grant_type: client_credentials
+  client_id: "ABCDEFG1234567"
+  client_secret: "1123581321abc=="
+```
+
+Below is an example OAuth 2.0 Client Credentials Flow configuration using
+environment variables with _no prefix_ from a `bash` shell.
+
+```bash
+export SF_TOKEN_URL="https://my.salesforce.test/services/oauth2/token"
+export SF_GRANT_TYPE="client_credentials"
+export SF_CLIENT_ID="ABCDEFG1234567"
+export SF_CLIENT_SECRET="1123581321abc=="
 ```
 
 #### OAuth 2.0 JWT Bearer Flow

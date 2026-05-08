@@ -204,6 +204,89 @@ class TestFactory(unittest.TestCase):
         self.assertTrue('password' in auth_data)
         self.assertEqual(auth_data['password'], 'beepboop')
 
+    def test_new_authenticator_returns_new_authenticator_from_config_with_client_credentials(self):
+        '''
+        new_authenticator() returns a new Authenticator configured from the instance config when grant_type is client_credentials
+        given: an instance configuration
+        and given: a data cache
+        when: new_authenticator() is called
+        and when: the data cache is None
+        and when: the 'auth' property exists with grant_type client_credentials
+        then: return a new Authenticator configured from the 'auth' property
+        '''
+
+        # setup
+        config = mod_config.Config({
+            'token_url': 'https://my.salesforce.test',
+            'auth': {
+                'grant_type': 'client_credentials',
+                'client_id': '12345',
+                'client_secret': '56789',
+            }
+        })
+
+        # execute
+        f = factory.Factory()
+        authenticator = f.new_authenticator(config, None)
+
+        # verify
+        self.assertEqual(authenticator.token_url, 'https://my.salesforce.test')
+        self.assertIsNone(authenticator.data_cache)
+        self.assertIsNone(authenticator.request_timeout)
+
+        auth_data = authenticator.auth_data
+
+        self.assertIsNotNone(auth_data)
+        self.assertTrue('grant_type' in auth_data)
+        self.assertEqual(auth_data['grant_type'], 'client_credentials')
+        self.assertTrue('client_id' in auth_data)
+        self.assertEqual(auth_data['client_id'], '12345')
+        self.assertTrue('client_secret' in auth_data)
+        self.assertEqual(auth_data['client_secret'], '56789')
+        self.assertFalse('username' in auth_data)
+        self.assertFalse('password' in auth_data)
+
+    @patch.dict(os.environ, {
+        'SF_TOKEN_URL': 'https://my.salesforce.test',
+        'SF_GRANT_TYPE': 'client_credentials',
+        'SF_CLIENT_ID': 'ABCDEF',
+        'SF_CLIENT_SECRET': 'GHIJKL',
+    })
+    def test_new_authenticator_returns_new_authenticator_from_env_with_client_credentials(self):
+        '''
+        new_authenticator() returns a new Authenticator configured from environment variables when grant_type is client_credentials
+        given: an instance configuration
+        and given: a data cache
+        when: new_authenticator() is called
+        and when: the data cache is None
+        and when: SF_GRANT_TYPE is client_credentials
+        then: return a new Authenticator configured from the environment
+        '''
+
+        # setup
+        config = mod_config.Config({})
+
+        # execute
+        f = factory.Factory()
+        authenticator = f.new_authenticator(config, None)
+
+        # verify
+        self.assertEqual(authenticator.token_url, 'https://my.salesforce.test')
+        self.assertIsNone(authenticator.data_cache)
+        self.assertIsNone(authenticator.request_timeout)
+
+        auth_data = authenticator.auth_data
+
+        self.assertIsNotNone(auth_data)
+        self.assertTrue('grant_type' in auth_data)
+        self.assertEqual(auth_data['grant_type'], 'client_credentials')
+        self.assertTrue('client_id' in auth_data)
+        self.assertEqual(auth_data['client_id'], 'ABCDEF')
+        self.assertTrue('client_secret' in auth_data)
+        self.assertEqual(auth_data['client_secret'], 'GHIJKL')
+        self.assertFalse('username' in auth_data)
+        self.assertFalse('password' in auth_data)
+
     @patch.dict(os.environ, {
         'SF_TOKEN_URL': 'https://my.salesforce.test',
         'SF_GRANT_TYPE': 'password',

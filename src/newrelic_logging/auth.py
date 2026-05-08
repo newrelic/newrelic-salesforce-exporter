@@ -196,6 +196,38 @@ class Authenticator:
         except RequestException as e:
             raise LoginException(f'authentication failed for sfdc instance {self.instance_url}') from e
 
+    def authenticate_with_client_credentials(self, session: Session) -> None:
+        client_id = self.auth_data['client_id']
+        client_secret = self.auth_data['client_secret']
+
+        params = {
+            "grant_type": "client_credentials",
+            "client_id": client_id,
+            "client_secret": client_secret,
+        }
+
+        headers = {
+            "Content-Type": "application/x-www-form-urlencoded",
+            "Accept": "application/json"
+        }
+
+        try:
+            print_info(f'retrieving salesforce token at {self.token_url}')
+            resp = session.post(
+                self.token_url,
+                params=params,
+                headers=headers,
+                timeout=self.request_timeout,
+            )
+            if resp.status_code != 200:
+                raise LoginException(f'salesforce token request failed. status-code:{resp.status_code}, reason: {resp.reason}')
+
+            self.store_auth(resp.json())
+        except ConnectionError as e:
+            raise LoginException(f'authentication failed for sfdc instance {self.instance_url}') from e
+        except RequestException as e:
+            raise LoginException(f'authentication failed for sfdc instance {self.instance_url}') from e
+
     def authenticate(self, session: Session) -> None:
         if self.data_cache and self.load_auth_from_cache():
             return
@@ -204,6 +236,11 @@ class Authenticator:
         if oauth_type == 'password':
             self.authenticate_with_password(session)
             print_info('Correctly authenticated with user/pass flow')
+            return
+
+        if oauth_type == 'client_credentials':
+            self.authenticate_with_client_credentials(session)
+            print_info('Correctly authenticated with client credentials flow')
             return
 
         self.authenticate_with_jwt(session)
@@ -228,6 +265,19 @@ def validate_oauth_config(auth: dict) -> dict:
 
     if not auth['password']:
         raise ConfigException('password', 'missing OAuth password')
+
+    return auth
+
+
+def validate_client_credentials_config(auth: dict) -> dict:
+    if not auth['client_id']:
+        raise ConfigException('client_id', 'missing OAuth client id')
+
+    if not auth['client_secret']:
+        raise ConfigException(
+            'client_secret',
+            'missing OAuth client secret',
+        )
 
     return auth
 
@@ -273,6 +323,16 @@ def make_auth_from_config(auth: Config) -> dict:
             'password': auth.get('password', env_var_name=SF_PASSWORD),
         })
 
+    if grant_type == 'client_credentials':
+        return validate_client_credentials_config({
+            'grant_type': grant_type,
+            'client_id': auth.get('client_id', env_var_name=SF_CLIENT_ID),
+            'client_secret': auth.get(
+                'client_secret',
+                env_var_name=SF_CLIENT_SECRET,
+            ),
+        })
+
     if grant_type == 'urn:ietf:params:oauth:grant-type:jwt-bearer':
         exp_offset = auth.get(
             'expiration_offset',
@@ -302,6 +362,13 @@ def make_auth_from_env(config: Config) -> dict:
             'client_secret': config.getenv(SF_CLIENT_SECRET),
             'username': config.getenv(SF_USERNAME),
             'password': config.getenv(SF_PASSWORD),
+        })
+
+    if grant_type == 'client_credentials':
+        return validate_client_credentials_config({
+            'grant_type': grant_type,
+            'client_id': config.getenv(SF_CLIENT_ID),
+            'client_secret': config.getenv(SF_CLIENT_SECRET),
         })
 
     if grant_type == 'urn:ietf:params:oauth:grant-type:jwt-bearer':
