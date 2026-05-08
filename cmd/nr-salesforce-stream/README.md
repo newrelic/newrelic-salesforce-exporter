@@ -11,7 +11,7 @@
 
 ## Introduction
 
-The Event Stream integration reads a stream of events from Salesforce and injects
+The Event Stream integration reads a stream of [real-time events](https://developer.salesforce.com/docs/atlas.en-us.platform_events.meta/platform_events/platform_events_objects_monitoring.htm) from Salesforce and injects
 them into New Relic.
 It uses the [Pub/Sub API](https://developer.salesforce.com/docs/platform/pub-sub-api/overview)
 to subscribe to [topics](https://developer.salesforce.com/docs/platform/pub-sub-api/references/methods/gettopic-rpc.html)
