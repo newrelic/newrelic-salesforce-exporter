@@ -150,7 +150,7 @@ func (c *StreamComponent) Execute(ctx context.Context) error {
 }
 
 func (c *StreamComponent) Shutdown(ctx context.Context) error {
-	return errors.New("StreamComponent should never use Shitdown")
+	return errors.New("StreamComponent should never use Shutdown")
 }
 
 func withRunAsService(runAsService bool) integration.LabsIntegrationOpt {
