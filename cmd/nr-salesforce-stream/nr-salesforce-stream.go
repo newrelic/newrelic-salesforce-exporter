@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"math"
 	"os"
 	"sync"
 	"time"
@@ -112,6 +113,7 @@ func subscribeToTopic(topicName string, ch chan<- map[string]any) {
 
 	curReplayId := readReplayIdFromCache(db, replayIdKey)
 
+	connErrsSinceLastSuccess := float64(0)
 	for {
 		log.Debugf("Subscribing to topic %s", topicName)
 
@@ -132,7 +134,13 @@ func subscribeToTopic(topicName string, ch chan<- map[string]any) {
 		curReplayId, err = client.Subscribe(subsOpts, db, integrationConf.EventStream)
 		if err != nil {
 			log.Errorf("error occurred while subscribing to topic: %s", err)
-			time.Sleep(2 * time.Second)
+			// Exponential backoff to avoid overwhelming the API
+			if connErrsSinceLastSuccess < 5 {
+				connErrsSinceLastSuccess += 1
+			}
+			time.Sleep(time.Duration(math.Pow(2, connErrsSinceLastSuccess)) * time.Second)
+		} else {
+			connErrsSinceLastSuccess = 0
 		}
 	}
 }
