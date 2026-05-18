@@ -1,0 +1,50 @@
+version: "2.0"
+isTemplate: true  # Remove or set it to "false" after setting up all the options below
+
+### Config for the Event Streamming integration
+
+eventStream:
+  instanceName: "myorg-staging-1" # SET A MEANINGFUL AND UNIQUE INSTANCE NAME
+  auth:
+    tokenUrl: "<TOKEN URL HERE>"
+    userPass:
+      clientId: "<CLIENT ID HERE>"
+      clientSecret: "<CLIENT SECRET HERE>"
+      username: "<USER NAME HERE>"
+      password: "<PASSWORD HERE>"
+  cache:
+    redis:
+      host: "<REDIS SERVER HOST HERE>"
+      port: 6379 # EDIT REDIS SERVER PORT HERE
+      dbNumber: 0 # EDIT REDIS SERVER DATABASE NUMBER HERE
+      password: "<PASSWORD HERE or empty if no password>"
+      expireDays: 1 # EDIT KEY EXPIRATION TIME HERE
+  appetite: 50 # EDIT APPETITE HERE (maximum number of events to read per call)
+  topics: # EDIT TOPICS HERE (events to capture)
+    - /event/ApiEventStream
+    - /event/ApiAnomalyEvent
+    - /event/BatchApexErrorEvent
+    - /event/BulkApiResultEvent
+    - /event/ConcurLongRunApexErrEvent
+    - /event/CredentialStuffingEvent
+    - /event/FileEvent
+    - /event/GuestUserAnomalyEvent
+    - /event/LightningUriEventStream
+    - /event/ListViewEventStream
+    - /event/LoginEventStream
+    - /event/LoginAnomalyEvent
+    - /event/LoginAsEventStream
+    - /event/LogoutEventStream
+    - /event/PermissionSetEvent
+    - /event/PlatformStatusAlertEvent
+    - /event/ReportEventStream
+    - /event/ReportAnomalyEvent
+    - /event/SessionHijackingEvent
+    - /event/UriEventStream
+
+### Config for the New Relic client
+
+licenseKey: "<LICENSE KEY HERE>"
+accountId: "<ACCOUNT ID HERE>"
+region: "<REGION HERE>" # either "EU" or "US"
+format: "<FORMAT HERE>" # either "events" or "logs"

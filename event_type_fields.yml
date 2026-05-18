@@ -1,5 +1,8 @@
+# Field mapping file example
+
+# NOTE: 'EVENT_TYPE' and 'TIMESTAMP' are special keys handled internally, no need to specify.
 mapping: {
-  'Login': [ "EVENT_TYPE", "TIMESTAMP", "REQUEST_ID", "ORGANIZATION_ID", "USER_ID", "RUN_TIME",
+  'Login': [ "REQUEST_ID", "ORGANIZATION_ID", "USER_ID", "RUN_TIME",
              "CPU_TIME",
              "URI",
              "USER_TYPE",
