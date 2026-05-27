@@ -32,8 +32,10 @@ func BuildDashboards(userSelection *UserSelection, dashboardsPath string) error 
 				return err
 			}
 		case ReportAccess:
-			fmt.Println("TODO: ReportAccess dashboard")
-			return nil
+			err := processDashboard("sfdc_report_access.json", userSelection.NewRelic.AccountId, dashboardsPath)
+			if err != nil {
+				return err
+			}
 		case DocContentDbAccess:
 			fmt.Println("TODO: DocContentDbAccess dashboard")
 			return nil
