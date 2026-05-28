@@ -9,8 +9,8 @@
 - [x] Build New Relic dashboard for API access.
 - [x] Build New Relic dashboard for Lightning usage.
 - [x] Build New Relic dashboard for User access.
-- [ ] Build New Relic dashboard for Report access.
-- [ ] Build New Relic dashboard for Doc content and DB access.
+- [x] Build New Relic dashboard for Report access.
+- [x] Build New Relic dashboard for Doc content and DB access.
 - [ ] Build New Relic dashboard for Wave usage.
 - [ ] Build New Relic dashboard for Errors, Permissions and Violations.
 - [ ] Build New Relic dashboard for Security and Alerts.
