@@ -42,8 +42,10 @@ func BuildDashboards(userSelection *UserSelection, dashboardsPath string) error 
 				return err
 			}
 		case WaveUsage:
-			fmt.Println("TODO: WaveUsage dashboard")
-			return nil
+			err := processDashboard("sfdc_wave_usage.json", userSelection.NewRelic.AccountId, dashboardsPath)
+			if err != nil {
+				return err
+			}
 		case ErrPermViol:
 			fmt.Println("TODO: ErrPermViol dashboard")
 			return nil
