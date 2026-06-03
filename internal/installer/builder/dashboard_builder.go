@@ -29,8 +29,7 @@ func BuildDashboards(userSelection *UserSelection, dashboardsPath string) error 
 		case ErrPermViol:
 			dashboardFile = "sfdc_err_perm_viol.json"
 		case AlertSecurity:
-			fmt.Println("TODO: AlertSecurity dashboard")
-			return nil
+			dashboardFile = "sfdc_sec_alerts.json"
 		default:
 			return fmt.Errorf("Unknown event group")
 		}
