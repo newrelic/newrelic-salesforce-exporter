@@ -10,50 +10,34 @@ import (
 
 func BuildDashboards(userSelection *UserSelection, dashboardsPath string) error {
 	for _, eventGroup := range userSelection.Groups {
+		var dashboardFile string
 		switch eventGroup {
 		case UserAccess:
-			err := processDashboard("sfdc_user_access.json", userSelection.NewRelic.AccountId, dashboardsPath)
-			if err != nil {
-				return err
-			}
+			dashboardFile = "sfdc_user_access.json"
 		case ApexUsage:
-			err := processDashboard("sfdc_apex_usage.json", userSelection.NewRelic.AccountId, dashboardsPath)
-			if err != nil {
-				return err
-			}
+			dashboardFile = "sfdc_apex_usage.json"
 		case LightningUsage:
-			err := processDashboard("sfdc_lightning_usage.json", userSelection.NewRelic.AccountId, dashboardsPath)
-			if err != nil {
-				return err
-			}
+			dashboardFile = "sfdc_lightning_usage.json"
 		case ApiAccess:
-			err := processDashboard("sfdc_api_access.json", userSelection.NewRelic.AccountId, dashboardsPath)
-			if err != nil {
-				return err
-			}
+			dashboardFile = "sfdc_api_access.json"
 		case ReportAccess:
-			err := processDashboard("sfdc_report_access.json", userSelection.NewRelic.AccountId, dashboardsPath)
-			if err != nil {
-				return err
-			}
+			dashboardFile = "sfdc_report_access.json"
 		case DocContentDbAccess:
-			err := processDashboard("sfdc_docdb_access.json", userSelection.NewRelic.AccountId, dashboardsPath)
-			if err != nil {
-				return err
-			}
+			dashboardFile = "sfdc_docdb_access.json"
 		case WaveUsage:
-			err := processDashboard("sfdc_wave_usage.json", userSelection.NewRelic.AccountId, dashboardsPath)
-			if err != nil {
-				return err
-			}
+			dashboardFile = "sfdc_wave_usage.json"
 		case ErrPermViol:
-			fmt.Println("TODO: ErrPermViol dashboard")
-			return nil
+			dashboardFile = "sfdc_err_perm_viol.json"
 		case AlertSecurity:
 			fmt.Println("TODO: AlertSecurity dashboard")
 			return nil
 		default:
 			return fmt.Errorf("Unknown event group")
+		}
+
+		err := processDashboard(dashboardFile, userSelection.NewRelic.AccountId, dashboardsPath)
+		if err != nil {
+			return err
 		}
 	}
 

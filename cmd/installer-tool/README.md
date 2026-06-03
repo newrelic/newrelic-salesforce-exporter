@@ -12,7 +12,7 @@
 - [x] Build New Relic dashboard for Report access.
 - [x] Build New Relic dashboard for Doc content and DB access.
 - [x] Build New Relic dashboard for Wave usage.
-- [ ] Build New Relic dashboard for Errors, Permissions and Violations.
+- [x] Build New Relic dashboard for Errors, Permissions and Violations.
 - [ ] Build New Relic dashboard for Security and Alerts.
 
 ## Run
