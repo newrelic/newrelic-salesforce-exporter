@@ -30,23 +30,18 @@ func buildEventLogConfig(userSelection *UserSelection) error {
 	eventLogConf := EventLogConfigFileModel{
 		Version: "2.0",
 		EventLog: EventLog{
-			IntegrationName: "com.newrelic.labs.sfdc.eventlog",
-			Instances: []Instance{
-				{
-					Name:   "sfdc-instance-1",
-					ApiVer: "64.0", // The minimum SFDC API version that supports all the event types we collect
-					Auth: Auth{
-						TokenUrl: userSelection.Salesforce.TokenUrl,
-						UserPass: UserPass{
-							ClientId:     userSelection.Salesforce.ClientId,
-							ClientSecret: userSelection.Salesforce.ClientSecret,
-							Username:     userSelection.Salesforce.Username,
-							Password:     userSelection.Salesforce.Password,
-						},
-					},
-					EventTypes: buildEventTypes(userSelection.Groups),
+			InstanceName: "sfdc-instance-1",
+			ApiVer:       "64.0", // The minimum SFDC API version that supports all the event types we collect
+			Auth: Auth{
+				TokenUrl: userSelection.Salesforce.TokenUrl,
+				UserPass: UserPass{
+					ClientId:     userSelection.Salesforce.ClientId,
+					ClientSecret: userSelection.Salesforce.ClientSecret,
+					Username:     userSelection.Salesforce.Username,
+					Password:     userSelection.Salesforce.Password,
 				},
 			},
+			EventTypes: buildEventTypes(userSelection.Groups),
 		},
 		RunAsService: userSelection.RunMode == ServiceMode,
 		LicenseKey:   userSelection.NewRelic.ApiKey,
@@ -56,7 +51,7 @@ func buildEventLogConfig(userSelection *UserSelection) error {
 	}
 
 	if userSelection.Redis != nil {
-		eventLogConf.EventLog.Instances[0].Cache = &Cache{
+		eventLogConf.EventLog.Cache = &Cache{
 			Redis: &RedisCache{
 				Host:       userSelection.Redis.Host,
 				Port:       userSelection.Redis.Port,
@@ -189,7 +184,7 @@ func buildEventStreamConfig(userSelection *UserSelection) error {
 	eventStreamConf := EventStreamConfigFileModel{
 		Version: "2.0",
 		EventStream: EventStream{
-			IntegrationName: "com.newrelic.labs.sfdc.eventstream",
+			InstanceName: "sfdc-instance-1",
 			Auth: Auth{
 				TokenUrl: userSelection.Salesforce.TokenUrl,
 				UserPass: UserPass{

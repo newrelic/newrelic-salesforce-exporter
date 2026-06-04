@@ -27,6 +27,7 @@ type NewRelicConf struct {
 	Region    string
 }
 
+// TODO: add auth methods
 type SalesforceConf struct {
 	TokenUrl     string
 	ClientId     string
@@ -50,8 +51,6 @@ type UserSelection struct {
 	Redis      *RedisConf
 }
 
-//TODO: use a single model for config and installer
-
 type UserPass struct {
 	ClientId     string `yaml:"clientId"`
 	ClientSecret string `yaml:"clientSecret"`
@@ -60,7 +59,8 @@ type UserPass struct {
 }
 
 type Auth struct {
-	TokenUrl string   `yaml:"tokenUrl"`
+	TokenUrl string `yaml:"tokenUrl"`
+	//TODO: add jwt and userCred
 	UserPass UserPass `yaml:"userPass"`
 }
 
@@ -76,17 +76,12 @@ type Cache struct {
 	Redis *RedisCache `yaml:"redis,omitempty"`
 }
 
-type Instance struct {
-	Name       string   `yaml:"name"`
-	ApiVer     string   `yaml:"apiVer"`
-	Auth       Auth     `yaml:"auth"`
-	Cache      *Cache   `yaml:"cache,omitempty"`
-	EventTypes []string `yaml:"eventTypes,omitempty"`
-}
-
 type EventLog struct {
-	IntegrationName string     `yaml:"integrationName"`
-	Instances       []Instance `yaml:"instances"`
+	InstanceName string   `yaml:"instanceName"`
+	ApiVer       string   `yaml:"apiVer"`
+	Auth         Auth     `yaml:"auth"`
+	Cache        *Cache   `yaml:"cache,omitempty"`
+	EventTypes   []string `yaml:"eventTypes,omitempty"`
 }
 
 type EventLogConfigFileModel struct {
@@ -100,11 +95,11 @@ type EventLogConfigFileModel struct {
 }
 
 type EventStream struct {
-	IntegrationName string   `yaml:"integrationName"`
-	Auth            Auth     `yaml:"auth"`
-	Cache           *Cache   `yaml:"cache,omitempty"`
-	Appetite        int      `yaml:"appetite"`
-	Topics          []string `yaml:"topics"`
+	InstanceName string   `yaml:"instanceName"`
+	Auth         Auth     `yaml:"auth"`
+	Cache        *Cache   `yaml:"cache,omitempty"`
+	Appetite     int      `yaml:"appetite"`
+	Topics       []string `yaml:"topics"`
 }
 
 type EventStreamConfigFileModel struct {
