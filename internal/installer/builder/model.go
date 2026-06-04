@@ -21,19 +21,22 @@ const (
 	CronLikeMode
 )
 
+type AuthMethod = int
+
+const (
+	UserPass AuthMethod = iota
+	Jwt
+	ClientCred
+)
+
 type NewRelicConf struct {
 	AccountId string
-	ApiKey    string
 	Region    string
 }
 
-// TODO: add auth methods
 type SalesforceConf struct {
-	TokenUrl     string
-	ClientId     string
-	ClientSecret string
-	Username     string
-	Password     string
+	TokenUrl      string
+	AuthSelection AuthMethod
 }
 
 type RedisConf struct {
@@ -51,17 +54,29 @@ type UserSelection struct {
 	Redis      *RedisConf
 }
 
-type UserPass struct {
+type UserPassAuth struct {
 	ClientId     string `yaml:"clientId"`
 	ClientSecret string `yaml:"clientSecret"`
 	Username     string `yaml:"username"`
 	Password     string `yaml:"password"`
 }
 
+type JwtAuth struct {
+	ClientId   string `yaml:"clientId"`
+	PrivateKey string `yaml:"privateKey"`
+	Username   string `yaml:"username"`
+}
+
+type ClientCredAuth struct {
+	ClientId     string `yaml:"clientId"`
+	ClientSecret string `yaml:"clientSecret"`
+}
+
 type Auth struct {
-	TokenUrl string `yaml:"tokenUrl"`
-	//TODO: add jwt and userCred
-	UserPass UserPass `yaml:"userPass"`
+	TokenUrl   string          `yaml:"tokenUrl"`
+	UserPass   *UserPassAuth   `yaml:"userPass,omitempty"`
+	Jwt        *JwtAuth        `yaml:"jwt,omitempty"`
+	ClientCred *ClientCredAuth `yaml:"clientCred,omitempty"`
 }
 
 type RedisCache struct {

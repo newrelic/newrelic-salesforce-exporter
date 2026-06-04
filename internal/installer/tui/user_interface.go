@@ -12,28 +12,28 @@ import (
 )
 
 const (
-	UserAccessDesc = "User Acccess"
-	ApexUsageDesc = "Apex usage and performance"
-	LightningUsageDesc = "Lightning usage and performance"
-	ApiAccessDesc = "API access"
-	ReportAccessDesc = "Report access"
+	UserAccessDesc         = "User Acccess"
+	ApexUsageDesc          = "Apex usage and performance"
+	LightningUsageDesc     = "Lightning usage and performance"
+	ApiAccessDesc          = "API access"
+	ReportAccessDesc       = "Report access"
 	DocContentDbAccessDesc = "Document, Content and Database access"
-	WaveUsageDesc = "CRM Analytics (Wave) usage and performance"
-	ErrPermViolDesc = "Errors, Permissions and Violations"
-	AlertSecurityDesc = "Real-time Alerts and Security Warnings (*)"
+	WaveUsageDesc          = "CRM Analytics (Wave) usage and performance"
+	ErrPermViolDesc        = "Errors, Permissions and Violations"
+	AlertSecurityDesc      = "Real-time Alerts and Security Warnings (*)"
 )
 
 func choiceMap() map[builder.EventGroup]string {
 	return map[builder.EventGroup]string{
-		builder.UserAccess: UserAccessDesc,
-		builder.ApexUsage: ApexUsageDesc,
-		builder.LightningUsage: LightningUsageDesc,
-		builder.ApiAccess: ApiAccessDesc,
-		builder.ReportAccess: ReportAccessDesc,
+		builder.UserAccess:         UserAccessDesc,
+		builder.ApexUsage:          ApexUsageDesc,
+		builder.LightningUsage:     LightningUsageDesc,
+		builder.ApiAccess:          ApiAccessDesc,
+		builder.ReportAccess:       ReportAccessDesc,
 		builder.DocContentDbAccess: DocContentDbAccessDesc,
-		builder.WaveUsage: WaveUsageDesc,
-		builder.ErrPermViol: ErrPermViolDesc,
-		builder.AlertSecurity: AlertSecurityDesc,
+		builder.WaveUsage:          WaveUsageDesc,
+		builder.ErrPermViol:        ErrPermViolDesc,
+		builder.AlertSecurity:      AlertSecurityDesc,
 	}
 }
 
@@ -42,20 +42,34 @@ func selectEventGroups() ([]builder.EventGroup, error) {
 	title := "Select event groups to collect"
 	footer := []string{
 		"(*) This group requires rolling out a separate data collector, the EventStream.",
-		"\nNOTE: If empty selection, the integration will collect everything from Event Logs.",
+		"\nIf empty selection, the integration will collect everything from Event Logs.",
 	}
 	return checkerlist.CheckerList(choices, title, footer)
 }
 
 const (
-	ServiceModeDesc = "Service (runs continuously)"
+	ServiceModeDesc  = "Service (runs continuously)"
 	CronLikeModeDesc = "Cron-like (is executed externally and runs once)"
 )
 
 func runModeMap() map[builder.RunMode]string {
-	return map[builder.EventGroup]string{
-		builder.ServiceMode: ServiceModeDesc,
+	return map[builder.RunMode]string{
+		builder.ServiceMode:  ServiceModeDesc,
 		builder.CronLikeMode: CronLikeModeDesc,
+	}
+}
+
+const (
+	JwtAuth        = "JWT"
+	ClientCredAuth = "Client Credentials"
+	UserPassAuth   = "User-Password"
+)
+
+func authMethodMap() map[builder.AuthMethod]string {
+	return map[builder.AuthMethod]string{
+		builder.ClientCred: ClientCredAuth,
+		builder.Jwt:        JwtAuth,
+		builder.UserPass:   UserPassAuth,
 	}
 }
 
@@ -63,7 +77,7 @@ func selectRunMode() (builder.RunMode, error) {
 	choices := runModeMap()
 	title := "Select the run mode for the integration"
 	footer := []string{
-		"NOTE: this only affects the EventLog integration, the EventStream always runs in service mode.",
+		"This only affects the EventLog integration, the EventStream always runs in service mode.",
 	}
 	return selectoption.SelectList(choices, title, footer)
 }
@@ -77,9 +91,19 @@ func selectCache() (int, error) {
 	return selectoption.SelectList(choices, title, []string{})
 }
 
+func selectAuthMethod() (builder.AuthMethod, error) {
+	choices := authMethodMap()
+	title := "Select the Salesforce auth method"
+	footer := []string{
+		"This will set a placeholder in the config file. Edit it to set the actual credentials.",
+		"The event stream integration only supports the User-Pass auth method.",
+	}
+	return selectoption.SelectList(choices, title, footer)
+}
+
 func Questionnaire() (builder.UserSelection, error) {
 	fmt.Printf("\n")
-	
+
 	selectedEventGroups, err := selectEventGroups()
 	if err != nil {
 		return builder.UserSelection{}, err
@@ -100,10 +124,10 @@ func Questionnaire() (builder.UserSelection, error) {
 	}
 
 	var (
-		cacheHost string
-		cachePort int
-		cacheDbNum int
-		cachePass string
+		cacheHost    string
+		cachePort    int
+		cacheDbNum   int
+		cachePass    string
 		cacheEnabled = (cacheSelection == 0)
 	)
 
@@ -166,10 +190,6 @@ func Questionnaire() (builder.UserSelection, error) {
 	if err != nil {
 		return builder.UserSelection{}, err
 	}
-	nrApiKey, err := textinput.TextInput("API Key", "")
-	if err != nil {
-		return builder.UserSelection{}, err
-	}
 	var nrRegion string
 	for {
 		nrRegion, err = textinput.TextInput("Region (US/EU)", "US")
@@ -186,52 +206,44 @@ func Questionnaire() (builder.UserSelection, error) {
 
 	fmt.Printf("\n")
 
+	fmt.Println(components.BlurredStyle.Render("This will set a placeholder for the License Key in the config file,"))
+	fmt.Println(components.BlurredStyle.Render("edit it to set the actual credentials."))
+
+	fmt.Printf("\n")
+
 	fmt.Print(components.Title("Introduce Salesforce API credentials", nil).String())
 	sfdcTokenUrl, err := textinput.TextInput("Token URL", "")
 	if err != nil {
 		return builder.UserSelection{}, err
 	}
-	sfdcClientId, err := textinput.TextInput("Client ID", "")
-	if err != nil {
-		return builder.UserSelection{}, err
-	}
-	sfdcClientSecret, err := textinput.TextInput("Client Secret", "")
-	if err != nil {
-		return builder.UserSelection{}, err
-	}
-	sfdcUsername, err := textinput.TextInput("Username", "")
-	if err != nil {
-		return builder.UserSelection{}, err
-	}
-	sfdcPass, err := textinput.TextInput("Password", "")
+
+	fmt.Printf("\n")
+
+	authMethod, err := selectAuthMethod()
 	if err != nil {
 		return builder.UserSelection{}, err
 	}
 
 	// Build user selection
-	
+
 	userSelection := builder.UserSelection{
-		Groups: selectedEventGroups,
+		Groups:  selectedEventGroups,
 		RunMode: runMode,
 		NewRelic: builder.NewRelicConf{
 			AccountId: nrAccountId,
-			ApiKey: nrApiKey,
-			Region: nrRegion,
+			Region:    nrRegion,
 		},
 		Salesforce: builder.SalesforceConf{
-			TokenUrl: sfdcTokenUrl,
-			ClientId: sfdcClientId,
-			ClientSecret: sfdcClientSecret,
-			Username: sfdcUsername,
-			Password: sfdcPass,
+			TokenUrl:      sfdcTokenUrl,
+			AuthSelection: authMethod,
 		},
 	}
-	
+
 	if cacheEnabled {
 		userSelection.Redis = &builder.RedisConf{
-			Host: cacheHost,
-			Port: cachePort,
-			DbNum: cacheDbNum,
+			Host:     cacheHost,
+			Port:     cachePort,
+			DbNum:    cacheDbNum,
 			Password: cachePass,
 		}
 	}

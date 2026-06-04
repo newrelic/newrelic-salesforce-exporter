@@ -1,6 +1,7 @@
 package builder
 
 import (
+	"fmt"
 	"os"
 	"slices"
 
@@ -34,20 +35,37 @@ func buildEventLogConfig(userSelection *UserSelection) error {
 			ApiVer:       "64.0", // The minimum SFDC API version that supports all the event types we collect
 			Auth: Auth{
 				TokenUrl: userSelection.Salesforce.TokenUrl,
-				UserPass: UserPass{
-					ClientId:     userSelection.Salesforce.ClientId,
-					ClientSecret: userSelection.Salesforce.ClientSecret,
-					Username:     userSelection.Salesforce.Username,
-					Password:     userSelection.Salesforce.Password,
-				},
 			},
 			EventTypes: buildEventTypes(userSelection.Groups),
 		},
 		RunAsService: userSelection.RunMode == ServiceMode,
-		LicenseKey:   userSelection.NewRelic.ApiKey,
+		LicenseKey:   "SET THE NEW RELIC LICENSE KEY HERE",
 		AccountId:    userSelection.NewRelic.AccountId,
 		Region:       userSelection.NewRelic.Region,
 		Format:       "events",
+	}
+
+	switch userSelection.Salesforce.AuthSelection {
+	case Jwt:
+		eventLogConf.EventLog.Auth.Jwt = &JwtAuth{
+			ClientId:   "SET CLIENT ID HERE",
+			PrivateKey: "SET PRIVATE KEY HERE",
+			Username:   "SET USER NAME HERE",
+		}
+	case ClientCred:
+		eventLogConf.EventLog.Auth.ClientCred = &ClientCredAuth{
+			ClientId:     "SET CLIENT ID HERE",
+			ClientSecret: "SET CLIENT SECRET HERE",
+		}
+	case UserPass:
+		eventLogConf.EventLog.Auth.UserPass = &UserPassAuth{
+			ClientId:     "SET CLIENT ID HERE",
+			ClientSecret: "SET CLIENT SECRET HERE",
+			Username:     "SET USER NAME HERE",
+			Password:     "SET PASSWORD HERE",
+		}
+	default:
+		return fmt.Errorf("Unknown auth method selection")
 	}
 
 	if userSelection.Redis != nil {
@@ -187,11 +205,12 @@ func buildEventStreamConfig(userSelection *UserSelection) error {
 			InstanceName: "sfdc-instance-1",
 			Auth: Auth{
 				TokenUrl: userSelection.Salesforce.TokenUrl,
-				UserPass: UserPass{
-					ClientId:     userSelection.Salesforce.ClientId,
-					ClientSecret: userSelection.Salesforce.ClientSecret,
-					Username:     userSelection.Salesforce.Username,
-					Password:     userSelection.Salesforce.Password,
+				// Ignore auth selection, event stream only supports User-Pass flow
+				UserPass: &UserPassAuth{
+					ClientId:     "SET CLIENT ID HERE",
+					ClientSecret: "SET CLIENT SECRET HERE",
+					Username:     "SET USER NAME HERE",
+					Password:     "SET PASSWORD HERE",
 				},
 			},
 			Appetite: 50,
@@ -201,7 +220,7 @@ func buildEventStreamConfig(userSelection *UserSelection) error {
 				"/event/CredentialStuffingEvent",
 			},
 		},
-		LicenseKey: userSelection.NewRelic.ApiKey,
+		LicenseKey: "SET THE NEW RELIC LICENSE KEY HERE",
 		AccountId:  userSelection.NewRelic.AccountId,
 		Region:     userSelection.NewRelic.Region,
 		Format:     "events",
