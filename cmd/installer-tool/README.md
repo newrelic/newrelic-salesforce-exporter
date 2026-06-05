@@ -1,19 +1,17 @@
 # Installer Tool
 
-**WORK IN PROGRESS**
+The Installer Tool is a small utility to streamline the installation and setup
+process for the Salesforce New Relic Integrations.
 
-- [x] UI and questionnaire.
-- [x] Build dockerfiles for both integrations.
-- [x] Build config files for both integrations.
-- [x] Build New Relic dashboard for Apex usage.
-- [x] Build New Relic dashboard for API access.
-- [x] Build New Relic dashboard for Lightning usage.
-- [x] Build New Relic dashboard for User access.
-- [x] Build New Relic dashboard for Report access.
-- [x] Build New Relic dashboard for Doc content and DB access.
-- [x] Build New Relic dashboard for Wave usage.
-- [x] Build New Relic dashboard for Errors, Permissions and Violations.
-- [x] Build New Relic dashboard for Security and Alerts.
+Starting with a quick questionnaire that users must answer, it generates config
+files to run the integration, Docker files to deploy it, and NROne dashboards
+to visualize the data generated. It's designed as a quickstart mechanism,
+especially for users unfamiliar with the platform who can struggle setting this
+up manually.
+
+<p align="center">
+  <img src="./tui-capture.gif">
+</p>
 
 ## Run
 
@@ -25,9 +23,10 @@ go run cmd/installer-tool/installer-tool.go
 
 Follow the installer instruction.
 
-Once finished, the output fill be under the `installer_output` folder, in the repo
-root. It contains the config files for the integrations and the dockerfiles to
-build the docker images.
+Once finished, the output fill be under the `installer_output` folder, in the
+repo root. It contains the config files for the integrations, the dockerfiles
+to build the docker images, and the dashboards in JSON format, ready to be
+imported from NROne.
 
 ## Docker
 
