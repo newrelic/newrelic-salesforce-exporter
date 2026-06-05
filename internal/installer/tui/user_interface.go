@@ -250,7 +250,7 @@ func Questionnaire() (builder.UserSelection, error) {
 	fmt.Printf("\n")
 
 	fmt.Print(components.Title("Introduce Salesforce API credentials", nil).String())
-	sfdcTokenUrl, err := textinput.TextInput("Token URL", "")
+	sfdcTokenUrl, err := textinput.TextInput("Org base URL", "")
 	if err != nil {
 		return builder.UserSelection{}, err
 	}
