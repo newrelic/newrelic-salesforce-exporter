@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	UserAccessDesc         = "User Acccess"
+	UserAccessDesc         = "User acccess"
 	ApexUsageDesc          = "Apex usage and performance"
 	LightningUsageDesc     = "Lightning usage and performance"
 	ApiAccessDesc          = "API access"
@@ -20,10 +20,10 @@ const (
 	DocContentDbAccessDesc = "Document, Content and Database access"
 	WaveUsageDesc          = "CRM Analytics (Wave) usage and performance"
 	ErrPermViolDesc        = "Errors, Permissions and Violations"
-	AlertSecurityDesc      = "Real-time Alerts and Security Warnings (*)"
+	AlertSecurityDesc      = "Real-time Alerts and Security Warnings"
 )
 
-func choiceMap() map[builder.EventGroup]string {
+func eventLogChoiceMap() map[builder.EventGroup]string {
 	return map[builder.EventGroup]string{
 		builder.UserAccess:         UserAccessDesc,
 		builder.ApexUsage:          ApexUsageDesc,
@@ -33,18 +33,54 @@ func choiceMap() map[builder.EventGroup]string {
 		builder.DocContentDbAccess: DocContentDbAccessDesc,
 		builder.WaveUsage:          WaveUsageDesc,
 		builder.ErrPermViol:        ErrPermViolDesc,
-		builder.AlertSecurity:      AlertSecurityDesc,
 	}
 }
 
-func selectEventGroups() ([]builder.EventGroup, error) {
-	choices := choiceMap()
-	title := "Select event groups to collect"
+func streamMapIndex(index int) int {
+	return index - builder.AlertSecurity
+}
+
+func eventStreamChoiceMap() map[builder.EventGroup]string {
+	return map[builder.EventGroup]string{
+		streamMapIndex(builder.AlertSecurity): AlertSecurityDesc,
+	}
+}
+
+func selectEventLogGroups() ([]builder.EventGroup, error) {
+	choices := eventLogChoiceMap()
+	title := "Select Event Log data to collect"
 	footer := []string{
-		"(*) This group requires rolling out a separate data collector, the EventStream.",
-		"\nIf empty selection, the integration will collect everything from Event Logs.",
+		"If empty selection, the integration will collect everything.",
 	}
 	return checkerlist.CheckerList(choices, title, footer)
+}
+
+func selectStreamGroups() ([]builder.EventGroup, error) {
+	choices := eventStreamChoiceMap()
+	title := "Select Event Stream data to collect"
+	return checkerlist.CheckerList(choices, title, []string{})
+}
+
+func selectEventGroups() ([]builder.EventGroup, error) {
+
+	selectedEventLogGroups, err := selectEventLogGroups()
+	if err != nil {
+		return nil, err
+	}
+
+	fmt.Printf("\n")
+
+	selectedEventStreamGroups, err := selectStreamGroups()
+	if err != nil {
+		return nil, err
+	}
+
+	// Trick to have eventlog and stream represented in the same array without conflicting indexes
+	for index := range selectedEventStreamGroups {
+		selectedEventStreamGroups[index] += builder.AlertSecurity
+	}
+
+	return append(selectedEventLogGroups, selectedEventStreamGroups...), nil
 }
 
 const (
@@ -77,7 +113,8 @@ func selectRunMode() (builder.RunMode, error) {
 	choices := runModeMap()
 	title := "Select the run mode for the integration"
 	footer := []string{
-		"This only affects the EventLog integration, the EventStream always runs in service mode.",
+		"This only affects the EventLog integration,",
+		"the EventStream always runs in service mode.",
 	}
 	return selectoption.SelectList(choices, title, footer)
 }
@@ -95,7 +132,8 @@ func selectAuthMethod() (builder.AuthMethod, error) {
 	choices := authMethodMap()
 	title := "Select the Salesforce auth method"
 	footer := []string{
-		"This will set a placeholder in the config file. Edit it to set the actual credentials.",
+		"This will set a placeholder in the config file.",
+		"Edit it to set the actual credentials.",
 		"The event stream integration only supports the User-Pass auth method.",
 	}
 	return selectoption.SelectList(choices, title, footer)

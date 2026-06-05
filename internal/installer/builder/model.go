@@ -3,6 +3,7 @@ package builder
 type EventGroup = int
 
 const (
+	// Event Log groups
 	UserAccess EventGroup = iota
 	ApexUsage
 	LightningUsage
@@ -11,6 +12,7 @@ const (
 	DocContentDbAccess
 	WaveUsage
 	ErrPermViol
+	// Event Stream groups
 	AlertSecurity
 )
 
