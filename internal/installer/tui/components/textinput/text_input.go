@@ -10,8 +10,8 @@ import (
 )
 
 type InputModel struct {
-	label       string
-	input       textinput.Model
+	label string
+	input textinput.Model
 }
 
 func initialModel(label string, initial string) InputModel {
@@ -45,9 +45,9 @@ func (m InputModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
-        case "ctrl+c":
-            return m, tea.Interrupt
-			
+		case "ctrl+c":
+			return m, tea.Interrupt
+
 		case "enter", "esc":
 			return m, tea.Quit
 		}
@@ -76,8 +76,9 @@ func (m InputModel) View() string {
 }
 
 func TextInput(label string, initial string) (string, error) {
-	m, err := tea.NewProgram(initialModel(label, initial)).Run(); if err != nil {
-		return "", err
+	m, err := tea.NewProgram(initialModel(label, initial)).Run()
+	if err != nil {
+		components.EndProgram()
 	}
 	model := m.(InputModel)
 	return model.input.Value(), nil
