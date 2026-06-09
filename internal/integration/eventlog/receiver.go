@@ -429,13 +429,11 @@ func processLogFilesResponse(s SalesforceReceiverInterface, response *query.Even
 
 		csvContext, err := parseCsvFile(csvFile)
 		if err != nil {
-			log.Errorf("CSV header parsing failed: %s", err)
 			break
 		}
 		for {
 			csvContext, err = readCsvData(csvContext)
 			if err != nil {
-				log.Errorf("CSV parsing failed: %s", err)
 				break
 			}
 

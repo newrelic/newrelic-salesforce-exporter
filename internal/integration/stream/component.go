@@ -83,22 +83,12 @@ func (c *StreamComponent) ExecuteSync(ctx context.Context) error {
 		case ev := <-c.ch:
 			log.Debugf("Received an event from the stream")
 
-			eventType, ok := ev["eventType"].(string)
-			if !ok {
-				eventType = "UNKNOWN"
-				log.Warnf("No 'eventType' property, using 'UNKNOWN'.")
-			}
+			eventType := ev["eventType"].(string)
 			delete(ev, "eventType")
 
 			var timestamp time.Time
 			if ev["EventDate"] != nil {
-				timestampInt, ok := ev["EventDate"].(int64)
-				if !ok {
-					log.Warnf("Event '%s' has an invalid 'EventDate'. Using current time.", eventType)
-					timestamp = time.Now()
-				} else {
-					timestamp = time.UnixMilli(timestampInt)
-				}
+				timestamp = time.UnixMilli(ev["EventDate"].(int64))
 				delete(ev, "EventDate")
 			} else {
 				log.Warnf("Event '%s' has no 'EventDate'. Using current time.", eventType)
@@ -150,7 +140,7 @@ func (c *StreamComponent) Execute(ctx context.Context) error {
 }
 
 func (c *StreamComponent) Shutdown(ctx context.Context) error {
-	return errors.New("StreamComponent should never use Shutdown")
+	return errors.New("StreamComponent should never use Shitdown")
 }
 
 func withRunAsService(runAsService bool) integration.LabsIntegrationOpt {
