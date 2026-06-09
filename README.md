@@ -23,6 +23,8 @@ The Salesforce Exporter is composed of two different integrations:
 
 Please refer to the corresponding readme file for further details.
 
+We also offer an [Installer Tool](cmd/installer-tool/) to simplify the installation and setup process.
+
 ## Support
 
 New Relic has open-sourced this project. This project is provided AS-IS WITHOUT
