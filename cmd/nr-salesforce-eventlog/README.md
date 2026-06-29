@@ -680,16 +680,16 @@ same New Relic account, to avoid visualizing scrambled non-sense data.
 
 ## Docker
 
-> Set up correct configurations for `config.yml` and `event_type_fields.yml`
+> Set up correct configurations for `config.yml` and any other file you need
 > before proceeding.
 
-This repo includes a [Dockerfile](../../Dockerfile.eventlog) for the eventlog
+This repo includes a [Dockerfile](../../docker/Dockerfile.eventlog) for the eventlog
 integration.
 
 To create the image, go to the root of the repo folder, and run:
 
 ```bash
-docker build -f Dockerfile.eventlog --tag newrelic/sfdc-eventlog:VERSION .
+docker build -f docker/Dockerfile.eventlog --tag sfdc-eventlog:VERSION .
 ```
 
 Set `VERSION` accordingly.
@@ -697,7 +697,7 @@ Set `VERSION` accordingly.
 And run it:
 
 ```bash
-docker run newrelic/sfdc-eventlog:VERSION
+docker run sfdc-eventlog:VERSION
 ```
 
 Add `-d` after `docker run` to run in detached mode.
