@@ -238,13 +238,13 @@ FROM Log SELECT * WHERE message = 'SFDCLoginEventStream'
 
 > Set up correct configuration for `config.yml` before proceeding.
 
-This repo includes a [Dockerfile](../../Dockerfile.eventstream) for the eventlog
+This repo includes a [Dockerfile](../../docker/Dockerfile.eventstream) for the eventlog
 integration.
 
 To create the image, go to the root of the repo folder, and run:
 
 ```bash
-docker build -f Dockerfile.eventstream --tag newrelic/sfdc-eventstream:VERSION .
+docker build -f docker/Dockerfile.eventstream --tag sfdc-eventstream:VERSION .
 ```
 
 Set `VERSION` accordingly.
@@ -252,7 +252,7 @@ Set `VERSION` accordingly.
 And run it:
 
 ```bash
-docker run newrelic/sfdc-eventstream:VERSION
+docker run sfdc-eventstream:VERSION
 ```
 
 Add `-d` after `docker run` to run in detached mode.

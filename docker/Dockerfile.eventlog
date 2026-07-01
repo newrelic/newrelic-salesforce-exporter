@@ -1,0 +1,11 @@
+FROM newrelic/newrelic-salesforce-exporter
+
+WORKDIR /app
+
+COPY config.yml ./
+
+# Add any other file you will need for your config:
+#   COPY event_type_fields.yml ./
+#   ...
+
+CMD ["./nr-salesforce-eventlog"]
