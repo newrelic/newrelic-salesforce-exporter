@@ -1,4 +1,4 @@
-FROM newrelic/newrelic-salesforce-exporter
+FROM newrelic/newrelic-salesforce-exporter:v2
 
 #
 # Copy your config file into the base directory.
