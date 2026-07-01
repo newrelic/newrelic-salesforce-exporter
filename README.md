@@ -44,7 +44,7 @@ The New Relic Salesforce Exporter can be run on any host environment with
 Python 3.9, 3.10 or 3.11 installed.
 
 It can also be run inside a Docker container by leveraging
-[the published Docker image](https://hub.docker.com/r/newrelic/newrelic-salesforce-exporter)
+[the published Docker image (v2)](https://hub.docker.com/r/newrelic/newrelic-salesforce-exporter)
 [directly](#run-directly-from-dockerhub), as a base image for
 [building a custom image](#extend-the-base-image), or using
 [the provided `Dockerfile`](./Dockerfile) to [build a custom image](#build-a-custom-image).
@@ -116,7 +116,7 @@ To upgrade the Salesforce Exporter on a host, perform the following steps.
 
 ### Docker
 
-A Docker image for the Salesforce Exporter is available at
+A Docker image for the Salesforce Exporter (v2) is available at
 [https://hub.docker.com/r/newrelic/newrelic-salesforce-exporter](https://hub.docker.com/r/newrelic/newrelic-salesforce-exporter).
 This image can be used in one of two ways.
 
@@ -126,7 +126,7 @@ This image can be used in one of two ways.
 
 #### Run directly from [DockerHub](https://hub.docker.com/)
 
-The Salesforce Exporter [Docker image](https://hub.docker.com/r/newrelic/newrelic-salesforce-exporter)
+The Salesforce Exporter [Docker image (v2)](https://hub.docker.com/r/newrelic/newrelic-salesforce-exporter)
 can be run directly from [DockerHub](https://hub.docker.com/). To do this, the
 [`config.yml`](#configyml) must be mapped into the running container. It can
 be mapped using the default filename or using a custom filename. In the case of
@@ -158,7 +158,7 @@ docker run -t --rm --name salesforce-exporter \
    -e NR_LICENSE_KEY=$NR_LICENSE_KEY \
    -e NEW_RELIC_APP_NAME="New Relic Salesforce Exporter" \
    -e NEW_RELIC_LICENSE_KEY=$NEW_RELIC_LICENSE_KEY \
-   newrelic/newrelic-salesforce-exporter
+   newrelic/newrelic-salesforce-exporter:v2
 ```
 
 **Example 2: Using a custom configuration filename**
@@ -176,7 +176,7 @@ docker run -t --rm --name salesforce-exporter \
    -e NR_LICENSE_KEY=$NR_LICENSE_KEY \
    -e NEW_RELIC_APP_NAME="New Relic Salesforce Exporter" \
    -e NEW_RELIC_LICENSE_KEY=$NEW_RELIC_LICENSE_KEY \
-   newrelic/newrelic-salesforce-exporter \
+   newrelic/newrelic-salesforce-exporter:v2 \
    -f my_custom_config.yml
 ```
 
@@ -196,7 +196,7 @@ docker run -t --rm --name salesforce-exporter \
    -e NR_LICENSE_KEY=$NR_LICENSE_KEY \
    -e NEW_RELIC_APP_NAME="New Relic Salesforce Exporter" \
    -e NEW_RELIC_LICENSE_KEY=$NEW_RELIC_LICENSE_KEY \
-   newrelic/newrelic-salesforce-exporter \
+   newrelic/newrelic-salesforce-exporter:v2 \
    -e my_event_type_fields.yml
 ```
 
@@ -220,7 +220,7 @@ docker run -t --rm --name salesforce-exporter \
    -e NR_LICENSE_KEY=$NR_LICENSE_KEY \
    -e NEW_RELIC_APP_NAME="New Relic Salesforce Exporter" \
    -e NEW_RELIC_LICENSE_KEY=$NEW_RELIC_LICENSE_KEY \
-   newrelic/newrelic-salesforce-exporter
+   newrelic/newrelic-salesforce-exporter:v2
 ```
 
 **NOTE:** In this scenario, the container will need to have access to the Redis
@@ -240,11 +240,11 @@ maintenance of a custom `Dockerfile` and the processes to build and publish the
 image to a registry.
 
 The minimal example of a `Dockerfile` for building a custom image simply extends
-the base image (`newrelic/newrelic-salesforce-exporter`) and copies a
+the base image (`newrelic/newrelic-salesforce-exporter:v2`) and copies a
 configuration file to the default location (`/usr/src/app/config.yml`).
 
 ```dockerfile
-FROM newrelic/newrelic-salesforce-exporter
+FROM newrelic/newrelic-salesforce-exporter:v2
 
 #
 # Copy your config file into the default location.
@@ -317,16 +317,13 @@ instruction should not be changed and will not be supported.
 
 #### Upgrading Docker deployments
 
-New Relic recommends that you update the Salesforce Exporter regularly and at a
-minimum every 3 months.
+New Relic recommends that you update the Salesforce Exporter regularly.
 
 When [running directly from DockerHub](#run-directly-from-dockerhub), ensure
-that you are not referencing a specific tag in the `docker run` command or that
-you are using the tag ['latest'](https://hub.docker.com/r/newrelic/newrelic-salesforce-exporter/tags).
+that you are referencing the `v2` tag in the `docker run` command.
 
 Similarly, if you are [extending the base image](#extend-the-base-image), ensure
-that you are not referencing a specific tag in the `FROM` instruction or that
-you are using the tag ['latest'](https://hub.docker.com/r/newrelic/newrelic-salesforce-exporter/tags).
+that you are referencing the `v2` tag in the `FROM` instruction.
 Additionally, ensure that you rebuild your image and push the new image to your
 custom [Docker registries](https://docs.docker.com/guides/docker-concepts/the-basics/what-is-a-registry/)
 and that all containers running from previous versions of the image are
