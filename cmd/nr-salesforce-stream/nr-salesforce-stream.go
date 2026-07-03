@@ -49,16 +49,18 @@ func main() {
 
 	exporter := stream.NewExporter(i)
 
-	ch := make(chan map[string]any)
+	streamChannel := make(chan map[string]any)
+	watchdogChannel := make(chan struct{})
 
-	streamComponent, err := stream.NewStreamComponent(exporter, ch, integrationConf.Format, integrationConf.EventStream.Name)
+	streamComponent, err := stream.NewStreamComponent(exporter, watchdogChannel, streamChannel, integrationConf.Format, integrationConf.EventStream.Name)
 	if err != nil {
 		log.Errorf("Error creating stream component = %s", err)
 		os.Exit(1)
 	}
 	i.AddComponent(&streamComponent)
 
-	go readEventStreams(ch, integrationConf.EventStream.Topics)
+	go readEventStreams(streamChannel, integrationConf.EventStream.Topics)
+	go connectionWatchdog(ctx, watchdogChannel, streamChannel)
 
 	// Run the integration
 	defer i.Shutdown(ctx)
@@ -169,4 +171,20 @@ func readReplayIdFromCache(db cache.Cache, replayIdKey string) []byte {
 	}
 
 	return curReplayId
+}
+
+func connectionWatchdog(ctx context.Context, watchdogChannel <-chan struct{}, streamChannel chan<- map[string]any) {
+	// if we don't receive a signal for more than 1 minute, we force a harvest by sending an empty event to the stream component
+	for {
+		select {
+		case <-ctx.Done():
+			log.Debugf("Watchdog done.")
+			return
+		case <-time.After(60 * time.Second):
+			log.Debugf("Connection watchdog, force data export")
+			streamChannel <- map[string]any{}
+		case <-watchdogChannel:
+			// Data received, do nothing
+		}
+	}
 }
