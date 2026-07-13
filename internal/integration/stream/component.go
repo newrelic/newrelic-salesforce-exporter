@@ -32,16 +32,17 @@ const (
 )
 
 type StreamComponent struct {
-	exporter      EventLogExporter
-	ch            chan map[string]any
-	eventBuff     []model.Event
-	logBuff       []model.Log
-	format        DataFormat
-	maxBufferSize int
-	instanceName  string
+	exporter        EventLogExporter
+	ch              chan map[string]any
+	watchdogChannel chan<- struct{}
+	eventBuff       []model.Event
+	logBuff         []model.Log
+	format          DataFormat
+	maxBufferSize   int
+	instanceName    string
 }
 
-func NewStreamComponent(exporter EventLogExporter, ch chan map[string]any, formatConf string, instanceName string) (StreamComponent, error) {
+func NewStreamComponent(exporter EventLogExporter, watchdogChannel chan<- struct{}, ch chan map[string]any, formatConf string, instanceName string) (StreamComponent, error) {
 	var format DataFormat
 	var eventBuff []model.Event = nil
 	var logBuff []model.Log = nil
@@ -59,14 +60,35 @@ func NewStreamComponent(exporter EventLogExporter, ch chan map[string]any, forma
 	}
 
 	return StreamComponent{
-		exporter:      exporter,
-		ch:            ch,
-		eventBuff:     eventBuff,
-		logBuff:       logBuff,
-		format:        format,
-		maxBufferSize: MAX_BUFFER_SIZE,
-		instanceName:  instanceName,
+		exporter:        exporter,
+		ch:              ch,
+		watchdogChannel: watchdogChannel,
+		eventBuff:       eventBuff,
+		logBuff:         logBuff,
+		format:          format,
+		maxBufferSize:   MAX_BUFFER_SIZE,
+		instanceName:    instanceName,
 	}, nil
+}
+
+func (c *StreamComponent) exportData(ctx context.Context) {
+	log.Debugf("Exporting data")
+	switch c.format {
+	case Events:
+		err := c.exporter.ExportEvents(ctx, c.eventBuff)
+		if err != nil {
+			log.Debugf("Event export failed: %s", err.Error())
+		}
+		c.eventBuff = make([]model.Event, 0)
+	case Logs:
+		err := c.exporter.ExportLogs(ctx, c.logBuff)
+		if err != nil {
+			log.Debugf("Log export failed: %s", err.Error())
+		}
+		c.logBuff = make([]model.Log, 0)
+	}
+	// Notify the watchdog to reset the timer
+	c.watchdogChannel <- struct{}{}
 }
 
 func (c *StreamComponent) GetId() string {
@@ -82,6 +104,16 @@ func (c *StreamComponent) ExecuteSync(ctx context.Context) error {
 			return nil
 		case ev := <-c.ch:
 			log.Debugf("Received an event from the stream")
+
+			// We use the empty event is a way to force harvesting from other parts
+			// of the application.
+			if len(ev) == 0 {
+				log.Debugf("Received empty event, signal for harvesting")
+				if len(c.eventBuff) > 0 {
+					c.exportData(ctx)
+				}
+				continue
+			}
 
 			eventType, ok := ev["eventType"].(string)
 			if !ok {
@@ -115,12 +147,7 @@ func (c *StreamComponent) ExecuteSync(ctx context.Context) error {
 				log.Debugf("Event buffered")
 
 				if len(c.eventBuff) >= c.maxBufferSize {
-					log.Debugf("Harvest events!")
-					err := c.exporter.ExportEvents(ctx, c.eventBuff)
-					if err != nil {
-						log.Debugf("Event export failed: %s", err.Error())
-					}
-					c.eventBuff = make([]model.Event, 0)
+					c.exportData(ctx)
 				}
 			case Logs:
 				mlog := model.NewLog(eventType, ev, timestamp)
@@ -129,12 +156,7 @@ func (c *StreamComponent) ExecuteSync(ctx context.Context) error {
 				log.Debugf("Log buffered")
 
 				if len(c.logBuff) >= c.maxBufferSize {
-					log.Debugf("Harvest logs!")
-					err := c.exporter.ExportLogs(ctx, c.logBuff)
-					if err != nil {
-						log.Debugf("Log export failed: %s", err.Error())
-					}
-					c.logBuff = make([]model.Log, 0)
+					c.exportData(ctx)
 				}
 			}
 		}
