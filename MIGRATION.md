@@ -8,7 +8,7 @@ new integration, so there is nothing to migrate from.
 
 ## Example
 
-First let's see a simple example of a v2 config file and how it translates to
+First, let's see a simple example of a v2 config file and how it translates to
 v3:
 
 ```yaml
@@ -103,7 +103,7 @@ format: "events"
 
 ## Instances
 
-The biggest difference is the concept of intances present in v2. There is no
+The biggest difference is the concept of instances present in v2. There is no
 such concept in v3, the integration runs for only one SFDC instance, there is
 no way to collect data from multiple instances within one config file. To
 collect multiple instances, we have to create multiple config files and run the
@@ -123,7 +123,7 @@ instances:
 You will have to create three different config files: for my-instance-1,
 my-instance-2, and my-instance-3.
 
-Having separate integrations running for each instance has multiple advantatges
+Having separate integrations running for each instance has multiple advantages
 like namespacing, more configuration flexibility, and resource scaling.
 
 ## General structure
@@ -161,13 +161,13 @@ Check out the [official documentation](https://github.com/newrelic/newrelic-sale
 | `instances -> name` | `eventLog -> instanceName` | Same meaning. |
 | `instances -> arguments -> token_url` | `eventLog -> auth -> tokenUrl` | Now it's only the base URL, without the path. |
 | `instances -> arguments -> auth` | `eventLog -> auth` | Same semantics, only the field names change. [More info](https://github.com/newrelic/newrelic-salesforce-exporter/tree/main/cmd/nr-salesforce-eventlog#--auth). |
-| `instances -> arguments -> cache_enabled` | N/A | Now there is not an explicit flag to enable the cache. The presence of a cache config is enough. |
+| `instances -> arguments -> cache_enabled` | N/A | Now there is no explicit flag to enable the cache. The presence of a cache config is enough. |
 | `instances -> arguments -> redis` | `eventLog -> cache -> redis` | Same semantics, only the field names change. [More info](https://github.com/newrelic/newrelic-salesforce-exporter/tree/main/cmd/nr-salesforce-eventlog#--cache). |
 | `instances -> arguments -> date_field` | N/A | Now always CreatedDate. |
 | `instances -> arguments -> generation_interval` | N/A | Now always Hourly. |
 | `instances -> arguments -> time_lag_minutes` | N/A | Deprecated. |
 | `instances -> arguments -> auth_env_prefix` | N/A | Deprecated. |
-| `instances -> arguments -> logs_enabled` | N/A | Deprecated. The integration does not do autologging now. |
+| `instances -> arguments -> logs_enabled` | N/A | Deprecated. The integration no longer performs autologging. |
 | `instances -> labels` | N/A | Deprecated. |
 | `instances -> arguments -> queries` | `eventLog -> customQueries` | The query format changed. [More info](https://github.com/newrelic/newrelic-salesforce-exporter/tree/main/cmd/nr-salesforce-eventlog#--customqueries). |
 | `queries` | `eventLog -> customQueries` | The query format changed. [More info](https://github.com/newrelic/newrelic-salesforce-exporter/tree/main/cmd/nr-salesforce-eventlog#--customqueries). |
@@ -184,5 +184,5 @@ Instead, it provides a mechanism to select event types, the `eventLog -> eventTy
 
 The old integration uses the `event_type_fields.yml` file for field mapping.
 The new integration provides a more integrated mechanism: the `fieldMapping`
-config [key](https://github.com/newrelic/newrelic-salesforce-exporter/tree/main/cmd/nr-salesforce-eventlog#--fieldmapping).
+config [key](https://github.com/newrelic/newrelic-salesforce-exporter/tree/main/cmd/nr-salesforce-eventlog#--fieldmapping),
 and the `fieldMappingFile` config [key](https://github.com/newrelic/newrelic-salesforce-exporter/tree/main/cmd/nr-salesforce-eventlog#--fieldmappingfile).
