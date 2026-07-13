@@ -184,4 +184,5 @@ Instead, it provides a mechanism to select event types, the `eventLog -> eventTy
 
 The old integration uses the `event_type_fields.yml` file for field mapping.
 The new integration provides a more integrated mechanism: the `fieldMapping`
-config [field](https://github.com/newrelic/newrelic-salesforce-exporter/tree/main/cmd/nr-salesforce-eventlog#--fieldmapping).
+config [key](https://github.com/newrelic/newrelic-salesforce-exporter/tree/main/cmd/nr-salesforce-eventlog#--fieldmapping).
+and the `fieldMappingFile` config [key](https://github.com/newrelic/newrelic-salesforce-exporter/tree/main/cmd/nr-salesforce-eventlog#--fieldmappingfile).
