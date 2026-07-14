@@ -16,6 +16,10 @@
 
 # Salesforce Exporter for New Relic
 
+> [!IMPORTANT]
+> If you are still using the legacy (`v2`) integration written in Python and you're looking to
+> upgrade to the latest version (`v3`), check out our [migration guide](./MIGRATION.md).
+
 The Salesforce Exporter is composed of two different integrations:
 
 - [Event Logs integration](cmd/nr-salesforce-eventlog/)

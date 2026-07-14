@@ -17,10 +17,11 @@ It uses the [Pub/Sub API](https://developer.salesforce.com/docs/platform/pub-sub
 to subscribe to [topics](https://developer.salesforce.com/docs/platform/pub-sub-api/references/methods/gettopic-rpc.html)
 (event types) and listen to the stream of data comming from a gRPC connection.
 
-> NOTE: If for some reason you can't use the newer Pub/Sub API, and instead you
-have to use the [Streaming API](https://developer.salesforce.com/docs/atlas.en-us.api_streaming.meta/api_streaming/intro_stream.htm),
-consider using the [legacy event streaming integration](https://github.com/newrelic/nr-salesforce-event-streaming),
-which is outdated and unmaintained, but should work.
+> [!IMPORTANT]
+> If for some reason you can't use the newer Pub/Sub API, and instead you
+> have to use the [Streaming API](https://developer.salesforce.com/docs/atlas.en-us.api_streaming.meta/api_streaming/intro_stream.htm),
+> consider using the [legacy event streaming integration](https://github.com/newrelic/nr-salesforce-event-streaming),
+> which is outdated and unmaintained, but should work.
 
 ## Build
 
