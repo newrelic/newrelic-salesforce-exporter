@@ -3,7 +3,10 @@ package eventlog
 import (
 	"bufio"
 	"context"
+	"crypto/sha256"
 	"encoding/csv"
+	"encoding/hex"
+	"fmt"
 	"io"
 	"maps"
 	"os"
@@ -469,6 +472,7 @@ func downloadCsvFiles(s SalesforceReceiverInterface, response *query.EventLogfil
 	for _, record := range response.Records {
 		lastLogDateStr = record.CreatedDate
 		log.Debugf("CSV file Id = '%s', CreatedDate = '%s' LogDate = '%s'", record.Id, record.CreatedDate, record.LogDate)
+		// De-duplicate log
 		if notCached(s, record.Id) {
 			filePath, err := query.DownloadCsvFile(s.getConfig(), s.getDB(), &record)
 			if err != nil {
@@ -576,7 +580,12 @@ func processEventResponse(s SalesforceReceiverInterface, response *query.Generic
 
 	for _, record := range response.Records {
 		id, idPresent := record["Id"].(string)
+		if !idPresent {
+			id = buildCustomId(record, customQuery)
+			idPresent = (id != "")
+		}
 		if idPresent {
+			// De-duplicate event
 			if notCached(s, id) {
 				data := sender.buildCustom(record, customQuery.Timestamp)
 				sender.send(data)
@@ -587,7 +596,7 @@ func processEventResponse(s SalesforceReceiverInterface, response *query.Generic
 			}
 		} else {
 			if !dedupWarningWasShown {
-				log.Warnf("Events of type '%s' do not have an 'Id' field, can't de-duplicate. Check the 'select' field for the correspondig 'soql' query in the 'customQueries' config.", customQuery.Soql.From)
+				log.Warnf("Events of type '%s' do not have an 'Id' field nor defines a custom id field, can't de-duplicate. Check the 'select' field for the correspondig 'soql' query in the 'customQueries' config.", customQuery.Soql.From)
 				dedupWarningWasShown = true
 			}
 
@@ -598,6 +607,23 @@ func processEventResponse(s SalesforceReceiverInterface, response *query.Generic
 	}
 
 	log.Debugf("Total events sent = %d", totalEventsSent)
+}
+
+func buildCustomId(record map[string]any, customQuery *config.QueryConfig) string {
+	if len(customQuery.CustomId) > 0 {
+		hashVal := sha256.New()
+		for _, fieldName := range customQuery.CustomId {
+			fieldVal, ok := record[fieldName]
+			if !ok {
+				log.Warnf("Custom ID field '%s' is not present in the event of type '%s'.", fieldName, customQuery.Soql.From)
+				return ""
+			}
+			hashVal.Write([]byte(fmt.Sprintf("%v", fieldVal)))
+		}
+		return hex.EncodeToString(hashVal.Sum(nil))
+	} else {
+		return ""
+	}
 }
 
 func processLimitsResponse(response map[string]query.SingleLimitResponse, sender DataSenderInterface) {
