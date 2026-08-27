@@ -538,9 +538,11 @@ specified using the `NR_ACCOUNT_ID` environment variable.
 
 | Valid Values | Required | Default |
 | --- | --- | --- |
-| "US" or "EU" | No | US |
+| US/EU/JP/GOV | No | US |
 
-The region of your account ID: Either `US` or `EU`.
+The region of your account ID. Must be one of: `US`, `EU`, `JP`, `GOV`.
+
+> NOTE: `GOV` is the same as `fedramp`.
 
 #### - `format`
 
@@ -631,7 +633,7 @@ eventLog:
 
 licenseKey: "<NEW RELIC LICENSE KEY HERE>"
 accountId: "<NEW RELIC ACCOUNT ID HERE>"
-region: "<NEW RELIC REGION HERE>" # either "EU" or "US"
+region: "<NEW RELIC REGION HERE>" # "EU", "US", "JP" or "GOV"
 format: "<NEW RELIC FORMAT HERE>" # either "events" or "logs"
 ```
 

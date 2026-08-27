@@ -202,9 +202,11 @@ format: "<FORMAT HERE>"
 also be specified using the `NR_LICENSE_KEY` environment variable.
 - `accountId`: The account ID where the license key was created. It can also be
 specified using the `NR_ACCOUNT_ID` environment variable.
-- `region`: The region of your account ID: Either `US` or `EU`.
+- `region`: The region of your account ID. Must be one of: `US`, `EU`, `JP`, `GOV`.
 - `format`: The data format we want to inject to New Relic: Either `events` or
 `logs`.
+
+> NOTE: The `GOV` region is the same as `fedramp`.
 
 ## Data
 
