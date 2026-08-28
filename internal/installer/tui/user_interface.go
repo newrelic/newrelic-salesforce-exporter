@@ -230,13 +230,13 @@ func Questionnaire() (builder.UserSelection, error) {
 	}
 	var nrRegion string
 	for {
-		nrRegion, err = textinput.TextInput("Region (US/EU)", "US")
+		nrRegion, err = textinput.TextInput("Region (US/EU/JP/GOV)", "US")
 		if err != nil {
 			return builder.UserSelection{}, err
 		}
-		if nrRegion != "EU" && nrRegion != "US" {
+		if nrRegion != "EU" && nrRegion != "US" && nrRegion != "JP" && nrRegion != "GOV" {
 			//error, bad values
-			components.PrintError("Region must be US or EU.")
+			components.PrintError("Region must be one of: US, EU, JP, GOV.")
 			continue
 		}
 		break

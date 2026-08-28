@@ -82,6 +82,7 @@ type QueryConfig struct {
 	Timestamp    string     `mapstructure:"timestamp"`
 	EndTimestamp string     `mapstructure:"endTimestamp"`
 	ApiName      string     `mapstructure:"apiName"`
+	CustomId     []string   `mapstructure:"customId"`
 }
 
 type SoqlConfig struct {

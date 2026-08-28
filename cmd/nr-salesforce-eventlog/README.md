@@ -260,6 +260,21 @@ Currently we support Redis DB:
 - `password`: Redis password. Or `""` if no password.
 - `expireDays`: Expiration time for keys in days. `0` means no expiration time.
 
+##### De-duplication
+
+The main purpose of the cache is data de-deduplication, necessary to avoid sending the
+same log or event to New Relic multiple times. For `EventLogFile` objects, de-duplication
+is handled automatically. For custom queries we need to have special care. In order to
+dedup an object from a custom query, it must contain a unique identifier. Most Salesforce
+objects contain the `Id` attribute, which is a unique identifier. So if the object you
+are querying contains this attribute, make sure to include it in the `select` field
+of your [custom query](#--customqueries). If your object does not have a unique ID, you
+can still dedup, by building a `customId`, with the combination of multiple attributes.
+Although, **this mechanism is not guaranteed to generate totally unique identifiers**,
+so select the set of attributes accurately and watch your data to identify ID clashes.
+Check out the [custom query](#--customqueries) section and [custom query examples](#examples-of-custom-query)
+for more information.
+
 #### - `skipLogFiles`
 
 | Valid Values | Required | Default |
@@ -383,6 +398,7 @@ Each entry in the list has the following structure:
     apiVer: "API_VER"
     timestamp: TIMESTAMP_ATTRIBUTE
     endTimestamp: END_TIMESTAMP_ATTRIBUTE
+    customId: [ATTRIBUTE_1, ATTRIBUTE_2, ATTRIBUTE_N]
     apiName: REST_OR_TOOLING
 ```
 
@@ -394,20 +410,21 @@ Each entry in the list has the following structure:
 the API version defined in the instance. Optional.
 - `timestamp`: Which attribute from the object represents the timestamp. Required.
 - `endTimestamp`: In case we want different attributes for the start and end of the time range. Optional.
+- `customId`: List of attributes from the object, used to generate a custom ID in case the object does not provide a unique ID. Optional.
 - `apiName`: Which API we want to use, `rest` or `tooling`. Default `rest`. Optional.
 
-Examples:
+##### Examples of custom query
 
 To represent the following SOQL query:
 
 ```SQL
-SELECT Action, CreatedDate FROM SetupAuditTrail WHERE Action = 'changedApexClass' AND CreatedDate >= {SINCE} AND CreatedDate <= {UNTIL} LIMIT 10
+SELECT Id, Action, CreatedDate FROM SetupAuditTrail WHERE Action = 'changedApexClass' AND CreatedDate >= {SINCE} AND CreatedDate <= {UNTIL} LIMIT 10
 ```
 We use:
 
 ```yaml
   - soql:
-      select: [Action, CreatedDate]
+      select: [Id, Action, CreatedDate]
       from: "SetupAuditTrail"
       where: "Action = 'changedApexClass'"
       tail: "limit 10"
@@ -428,6 +445,7 @@ We use:
       where: "TimeSegment = 'FifteenMinutes' AND Client != 'SYSTEM'"
     timestamp: StartDate
     endTimestamp: EndDate
+    customId: [Value, StartDate, EndDate]
 ```
 
 > NOTE: the integration automatically calculates the time range and sets the values for `{SINCE}` and `{UNTIL}`.
@@ -520,9 +538,11 @@ specified using the `NR_ACCOUNT_ID` environment variable.
 
 | Valid Values | Required | Default |
 | --- | --- | --- |
-| "US" or "EU" | No | US |
+| US/EU/JP/GOV | No | US |
 
-The region of your account ID: Either `US` or `EU`.
+The region of your account ID. Must be one of: `US`, `EU`, `JP`, `GOV`.
+
+> NOTE: `GOV` is the same as `fedramp`.
 
 #### - `format`
 
@@ -613,7 +633,7 @@ eventLog:
 
 licenseKey: "<NEW RELIC LICENSE KEY HERE>"
 accountId: "<NEW RELIC ACCOUNT ID HERE>"
-region: "<NEW RELIC REGION HERE>" # either "EU" or "US"
+region: "<NEW RELIC REGION HERE>" # "EU", "US", "JP" or "GOV"
 format: "<NEW RELIC FORMAT HERE>" # either "events" or "logs"
 ```
 
@@ -624,7 +644,7 @@ of the key `format` in the config file.
 
 ### Events
 
-#### Event log files
+#### Querying event log files
 
 The integration will generate a new `eventType` for  each log event type, with the
 format `SFDC{name}`. For example, the log event type `Login` will generate
@@ -636,7 +656,7 @@ To view the data, you can run the following NRQL:
 FROM SFDCLogin SELECT *
 ```
 
-#### Custom queries
+#### Querying custom queries
 
 The integration will generate a new `eventType` for each object event type, with
 the format `SFDC{name}`. For example, the object event type `SetupAuditTrail`
@@ -648,7 +668,7 @@ To view the data, you can run the following NRQL:
 FROM SFDCSetupAuditTrail SELECT *
 ```
 
-#### Limits
+#### Querying limits
 
 The integration will generate a single `eventType` with the value `SFDCLimits`.
 
@@ -658,7 +678,7 @@ To view the data, you can run the following NRQL:
 FROM SFDCLimits SELECT *
 ```
 
-### Logs
+### Querying logs
 
 Just like events, but instead of the `eventType`, it will use the `message` to
 store the corresponding event type.
