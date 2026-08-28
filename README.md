@@ -29,7 +29,24 @@ Please refer to the corresponding readme file for further details.
 
 We also offer an [Installer Tool](cmd/installer-tool/) to simplify the installation and setup process.
 
-## Support
+### Docker
+
+To build the [docker image](./docker/Dockerfile) provided in this repo, run the
+following command:
+
+```bash
+docker buildx build -f ./docker/Dockerfile \
+--tag newrelic/newrelic-salesforce-exporter:3.X.Y \
+--tag newrelic/newrelic-salesforce-exporter:v3 \
+--tag newrelic/newrelic-salesforce-exporter:latest \
+--platform linux/amd64,linux/arm64 .
+```
+
+Setting the appropriate values for `X` and `Y` depending on the version.
+
+This will build the same image published in [DockerHub](https://hub.docker.com/r/newrelic/newrelic-salesforce-exporter).
+
+### Support
 
 New Relic has open-sourced this project. This project is provided AS-IS WITHOUT
 WARRANTY OR DEDICATED SUPPORT. Issues and contributions should be reported to
