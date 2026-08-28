@@ -7,36 +7,14 @@ import (
 )
 
 var eventLogDocker = []string{
-	// Build stage
-	"FROM golang:1.25.3-alpine3.22 AS build-stage",
-	"WORKDIR /build",
-	"COPY go.mod go.sum ./",
-	"RUN go mod download",
-	"COPY cmd ./cmd",
-	"COPY internal ./internal",
-	"RUN CGO_ENABLED=0 go build ./cmd/nr-salesforce-eventlog/nr-salesforce-eventlog.go",
-	// Release stage
-	"FROM alpine:3.22 AS release-stage",
-	"WORKDIR /app",
-	"COPY --from=build-stage /build/nr-salesforce-eventlog ./",
-	"COPY installer_output/config_eventlog.yml ./",
+	"FROM newrelic/newrelic-salesforce-exporter",
+	"COPY installer_output/config_eventlog.yml ./config.yml",
 	"CMD [\"./nr-salesforce-eventlog\"]",
 }
 
 var eventStreamDocker = []string{
-	// Build stage
-	"FROM golang:1.25.3-alpine3.22 AS build-stage",
-	"WORKDIR /build",
-	"COPY go.mod go.sum ./",
-	"RUN go mod download",
-	"COPY cmd ./cmd",
-	"COPY internal ./internal",
-	"RUN CGO_ENABLED=0 go build ./cmd/nr-salesforce-stream/nr-salesforce-stream.go",
-	// Release stage
-	"FROM alpine:3.22 AS release-stage",
-	"WORKDIR /app",
-	"COPY --from=build-stage /build/nr-salesforce-stream ./",
-	"COPY installer_output/config_eventstream.yml ./",
+	"FROM newrelic/newrelic-salesforce-exporter",
+	"COPY installer_output/config_eventstream.yml ./config.yml",
 	"CMD [\"./nr-salesforce-stream\"]",
 }
 
