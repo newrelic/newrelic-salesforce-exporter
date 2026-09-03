@@ -19,7 +19,7 @@ eventLog:
     clientCred:
       clientId: "<CLIENT ID HERE>"
       clientSecret: "<CLIENT SECRET HERE>"
-    userPass:
+    userPass: # WARNING: DO NOT USE. CHECKOUT THE REPO README FOR MORE INFO.
       clientId: "<CLIENT ID HERE>"
       clientSecret: "<CLIENT SECRET HERE>"
       username: "<USER NAME HERE>"
@@ -66,7 +66,7 @@ eventLog:
 
 licenseKey: "<LICENSE KEY HERE>"
 accountId: "<ACCOUNT ID HERE>"
-region: "<REGION HERE>" # either "EU" or "US"
+region: "<REGION HERE>" # One of: "EU" "US" "JP" "GOV"
 format: "<FORMAT HERE>" # either "events" or "logs"
 
 ### Config for the integration lifecycle
