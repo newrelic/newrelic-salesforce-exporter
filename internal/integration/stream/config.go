@@ -14,7 +14,7 @@ func IntegrityCheck(conf *config.Config) error {
 	if conf.EventStream.Name == "" {
 		return errors.New("Config eventStream instanceName must be defined")
 	}
-	if err := CheckAuth(&conf.EventStream.Auth); err != nil {
+	if err := config.CheckAuth(&conf.EventStream.Auth); err != nil {
 		return err
 	}
 	if err := config.CheckCache(conf.EventStream.Cache); err != nil {
@@ -22,30 +22,6 @@ func IntegrityCheck(conf *config.Config) error {
 	}
 	if err := checkTopics(conf.EventStream.Topics); err != nil {
 		return err
-	}
-	return nil
-}
-
-func CheckAuth(auth *config.AuthConfig) error {
-	if auth.TokenUrl == "" {
-		return errors.New("Empty 'auth.tokenUrl'")
-	}
-	if !config.CheckUrl(auth.TokenUrl) {
-		return errors.New("Invalid URL 'auth.tokenUrl'")
-	}
-	if auth.Jwt != nil {
-		return errors.New("Invalid auth method, only userPass is supported")
-	}
-	if auth.ClientCred != nil {
-		return errors.New("Invalid auth method, only userPass is supported")
-	}
-	if auth.UserPass != nil {
-		err := config.CheckUserPassCredentials(auth.UserPass)
-		if err != nil {
-			return err
-		}
-	} else {
-		return errors.New("Authentication credentials undefined")
 	}
 	return nil
 }
