@@ -616,11 +616,9 @@ eventLog:
   auth:
     tokenUrl: "<TOKEN URL HERE>"
     # Salesforce credentials
-    userPass:
+    clientCred:
       clientId: "<CLIENT ID HERE>"
       clientSecret: "<CLIENT SECRET HERE>"
-      username: "<USER NAME HERE>"
-      password: "<PASSWORD HERE>"
   cache:
     # Redis server config and credentials
     redis:

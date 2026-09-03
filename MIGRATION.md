@@ -73,6 +73,7 @@ eventLog:
   instanceName: my-instance
   auth:
     tokenUrl: "https://my-org.salesforce.com"
+    # WARNING: DO NOT USE THIS AUTH METHOD, CHECKOUT THE REPO README FOR MORE INFO.
     userPass:
       clientId: "MY-CLIENT-ID"
       clientSecret: "MY-CLIENT-SECRET"
