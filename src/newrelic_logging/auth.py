@@ -269,6 +269,17 @@ def validate_oauth_config(auth: dict) -> dict:
 
     return auth
 
+def validate_credentials_config(auth: dict) -> dict:
+    if not auth['client_id']:
+        raise ConfigException('client_id', 'missing OAuth client id')
+
+    if not auth['client_secret']:
+        raise ConfigException(
+            'client_secret',
+            'missing OAuth client secret',
+        )
+
+    return auth
 
 def validate_jwt_config(auth: dict) -> dict:
     if not auth['client_id']:
@@ -310,8 +321,16 @@ def make_auth_from_config(auth: Config) -> dict:
             'username': auth.get('username', env_var_name=SF_USERNAME),
             'password': auth.get('password', env_var_name=SF_PASSWORD),
         })
-
-    # TODO: add grant_type == "credentials" case
+    
+    if grant_type == 'credentials':
+        return validate_credentials_config({
+            'grant_type': grant_type,
+            'client_id': auth.get('client_id', env_var_name=SF_CLIENT_ID),
+            'client_secret': auth.get(
+                'client_secret',
+                env_var_name=SF_CLIENT_SECRET
+            )
+        })
 
     if grant_type == 'urn:ietf:params:oauth:grant-type:jwt-bearer':
         exp_offset = auth.get(
@@ -343,8 +362,13 @@ def make_auth_from_env(config: Config) -> dict:
             'username': config.getenv(SF_USERNAME),
             'password': config.getenv(SF_PASSWORD),
         })
-
-    # TODO: add grant_type == "credentials" case
+    
+    if grant_type == 'credentials':
+        return validate_credentials_config({
+            'grant_type': grant_type,
+            'client_id': config.getenv(SF_CLIENT_ID),
+            'client_secret': config.getenv(SF_CLIENT_SECRET)
+        })
 
     if grant_type == 'urn:ietf:params:oauth:grant-type:jwt-bearer':
         exp_offset = config.getenv(SF_EXPIRATION_OFFSET)
