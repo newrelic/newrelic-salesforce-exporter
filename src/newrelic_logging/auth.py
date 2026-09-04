@@ -161,6 +161,8 @@ class Authenticator:
             raise LoginException(f'authentication failed for sfdc instance {self.instance_url}') from e
 
     def authenticate_with_password(self, session: Session) -> None:
+        print_warn('Using the Username-Password auth flow, which is DEPRECATED. Please use an alternative: Client Credentials or JWT.')
+
         client_id = self.auth_data['client_id']
         client_secret = self.auth_data['client_secret']
         username = self.auth_data['username']
@@ -196,6 +198,38 @@ class Authenticator:
         except RequestException as e:
             raise LoginException(f'authentication failed for sfdc instance {self.instance_url}') from e
 
+    def authenticate_with_client_credentials(self, session: Session) -> None:
+        client_id = self.auth_data['client_id']
+        client_secret = self.auth_data['client_secret']
+
+        params = {
+            "grant_type": "client_credentials",
+            "client_id": client_id,
+            "client_secret": client_secret
+        }
+
+        headers = {
+            "Content-Type": "application/x-www-form-urlencoded",
+            "Accept": "application/json"
+        }
+
+        try:
+            print_info(f'retrieving salesforce token at {self.token_url}')
+            resp = session.post(
+                self.token_url,
+                params=params,
+                headers=headers,
+                timeout=self.request_timeout,
+            )
+            if resp.status_code != 200:
+                raise LoginException(f'salesforce token request failed. status-code:{resp.status_code}, reason: {resp.reason}')
+
+            self.store_auth(resp.json())
+        except ConnectionError as e:
+            raise LoginException(f'authentication failed for sfdc instance {self.instance_url}') from e
+        except RequestException as e:
+            raise LoginException(f'authentication failed for sfdc instance {self.instance_url}') from e
+
     def authenticate(self, session: Session) -> None:
         if self.data_cache and self.load_auth_from_cache():
             return
@@ -204,10 +238,14 @@ class Authenticator:
         if oauth_type == 'password':
             self.authenticate_with_password(session)
             print_info('Correctly authenticated with user/pass flow')
-            return
-
-        self.authenticate_with_jwt(session)
-        print_info('Correctly authenticated with JWT flow')
+        elif oauth_type == 'credentials':
+            self.authenticate_with_client_credentials(session)
+            print_info('Correctly authenticated with client credentials flow')
+        elif oauth_type == "jwt" or oauth_type == "urn:ietf:params:oauth:grant-type:jwt-bearer":
+            self.authenticate_with_jwt(session)
+            print_info('Correctly authenticated with JWT flow')
+        else:
+            raise ConfigException(f'invalid auth grant_type "{oauth_type}"')
 
     def reauthenticate(self, session: Session) -> None:
         self.clear_auth()
@@ -273,6 +311,8 @@ def make_auth_from_config(auth: Config) -> dict:
             'password': auth.get('password', env_var_name=SF_PASSWORD),
         })
 
+    # TODO: add grant_type == "credentials" case
+
     if grant_type == 'urn:ietf:params:oauth:grant-type:jwt-bearer':
         exp_offset = auth.get(
             'expiration_offset',
@@ -303,6 +343,8 @@ def make_auth_from_env(config: Config) -> dict:
             'username': config.getenv(SF_USERNAME),
             'password': config.getenv(SF_PASSWORD),
         })
+
+    # TODO: add grant_type == "credentials" case
 
     if grant_type == 'urn:ietf:params:oauth:grant-type:jwt-bearer':
         exp_offset = config.getenv(SF_EXPIRATION_OFFSET)
