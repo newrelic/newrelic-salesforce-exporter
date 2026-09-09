@@ -238,10 +238,10 @@ class Authenticator:
         if oauth_type == 'password':
             self.authenticate_with_password(session)
             print_info('Correctly authenticated with user/pass flow')
-        elif oauth_type == 'credentials':
+        elif oauth_type == 'client_credentials':
             self.authenticate_with_client_credentials(session)
             print_info('Correctly authenticated with client credentials flow')
-        elif oauth_type == "jwt" or oauth_type == "urn:ietf:params:oauth:grant-type:jwt-bearer":
+        elif oauth_type == "urn:ietf:params:oauth:grant-type:jwt-bearer":
             self.authenticate_with_jwt(session)
             print_info('Correctly authenticated with JWT flow')
         else:
@@ -322,7 +322,7 @@ def make_auth_from_config(auth: Config) -> dict:
             'password': auth.get('password', env_var_name=SF_PASSWORD),
         })
     
-    if grant_type == 'credentials':
+    if grant_type == 'client_credentials':
         return validate_credentials_config({
             'grant_type': grant_type,
             'client_id': auth.get('client_id', env_var_name=SF_CLIENT_ID),
@@ -363,7 +363,7 @@ def make_auth_from_env(config: Config) -> dict:
             'password': config.getenv(SF_PASSWORD),
         })
     
-    if grant_type == 'credentials':
+    if grant_type == 'client_credentials':
         return validate_credentials_config({
             'grant_type': grant_type,
             'client_id': config.getenv(SF_CLIENT_ID),

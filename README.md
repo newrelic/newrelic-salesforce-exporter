@@ -1145,7 +1145,7 @@ the following parameters are required.
 ##### `grant_type`
 
 The `grant_type` for the OAuth 2.0 Client Credentials Flow _must_ be set to
-`credentials` (case-sensitive).
+`client_credentials` (case-sensitive).
 
 The grant type can also be specified using the `{auth_env_prefix}SF_GRANT_TYPE`
 environment variable.
@@ -1186,7 +1186,7 @@ attribute of the [instance configuration parameter](#instance-configuration-para
 token_url: https://my.salesforce.test/services/oauth2/token
 # ... other instance arguments ...
 auth:
-  grant_type: credentials
+  grant_type: client_credentials
   client_id: "ABCDEFG1234567"
   client_secret: "1123581321abc=="
 ```
@@ -1196,7 +1196,7 @@ environment variables with _no prefix_ from a `bash` shell.
 
 ```bash
 export SF_TOKEN_URL="https://my.salesforce.test/services/oauth2/token"
-export SF_GRANT_TYPE="credentials"
+export SF_GRANT_TYPE="client_credentials"
 export SF_CLIENT_ID="ABCDEFG1234567"
 export SF_CLIENT_SECRET="1123581321abc=="
 ```
