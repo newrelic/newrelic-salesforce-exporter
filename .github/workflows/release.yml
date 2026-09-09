@@ -1,0 +1,49 @@
+# From the examples here:
+# https://github.com/marketplace/actions/go-release-binaries
+# https://github.com/wangyoucao577/go-release-action/wiki/More-Examples
+
+on:
+  release:
+    types: [created]
+
+permissions:
+    contents: write
+    packages: write
+
+jobs:
+  releases-matrix:
+    name: Release binaries
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        goos: [linux, darwin]
+        goarch: [amd64, arm64]
+    steps:
+    - uses: actions/checkout@v4
+    - name: Event logs
+      uses: wangyoucao577/go-release-action@v1
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        goos: ${{ matrix.goos }}
+        goarch: ${{ matrix.goarch }}
+        project_path: "./cmd/nr-salesforce-eventlog"
+        binary_name: "nr-salesforce-eventlog"
+        extra_files: LICENSE THIRD_PARTY_NOTICES.md
+    - name: Event stream
+      uses: wangyoucao577/go-release-action@v1
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        goos: ${{ matrix.goos }}
+        goarch: ${{ matrix.goarch }}
+        project_path: "./cmd/nr-salesforce-stream"
+        binary_name: "nr-salesforce-stream"
+        extra_files: LICENSE THIRD_PARTY_NOTICES.md
+    - name: Installer tool
+      uses: wangyoucao577/go-release-action@v1
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        goos: ${{ matrix.goos }}
+        goarch: ${{ matrix.goarch }}
+        project_path: "./cmd/installer-tool"
+        binary_name: "installer-tool"
+        extra_files: LICENSE THIRD_PARTY_NOTICES.md
