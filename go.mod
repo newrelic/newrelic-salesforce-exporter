@@ -8,7 +8,7 @@ require (
 	github.com/linkedin/goavro/v2 v2.15.0
 	github.com/redis/go-redis/v9 v9.21.0
 	github.com/spf13/viper v1.21.0
-	google.golang.org/grpc v1.81.1
+	google.golang.org/grpc v1.83.1
 	google.golang.org/protobuf v1.36.11
 	gopkg.in/yaml.v3 v3.0.1
 )
