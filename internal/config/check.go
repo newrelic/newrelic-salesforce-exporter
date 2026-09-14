@@ -47,6 +47,7 @@ func CheckAuth(auth *AuthConfig) error {
 		}
 	}
 	if auth.UserPass != nil {
+		log.Warnf("Using the Username-Password auth flow, which is DEPRECATED. Please use an alternative: Client Credentials or JWT.")
 		err := CheckUserPassCredentials(auth.UserPass)
 		if err != nil {
 			return err

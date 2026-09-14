@@ -209,8 +209,12 @@ It has the following structure:
 
 **Username-Password**:
 
-> NOTE: The Username-Password flow is considered unsafe and we only include it
-> as a legacy feature. We strongly encourage using any of the other two methods.
+> [!WARNING]
+> **DO NOT USE THIS AUTH METHOD.** Use one of the alternatives instead: Client Credentials or JWT.
+>
+> Salesforce [announced the retirement](https://help.salesforce.com/s/articleView?id=release-notes.rn_security_unpw_flow_retirement.htm&release=262&type=5)
+> of the Username-Password auth flow. Any service using this auth method after the retirement
+> date will stop working.
 
 It has the following structure:
 
@@ -612,11 +616,9 @@ eventLog:
   auth:
     tokenUrl: "<TOKEN URL HERE>"
     # Salesforce credentials
-    userPass:
+    clientCred:
       clientId: "<CLIENT ID HERE>"
       clientSecret: "<CLIENT SECRET HERE>"
-      username: "<USER NAME HERE>"
-      password: "<PASSWORD HERE>"
   cache:
     # Redis server config and credentials
     redis:

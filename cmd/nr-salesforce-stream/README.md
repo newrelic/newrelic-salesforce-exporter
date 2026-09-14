@@ -114,10 +114,53 @@ sections.
 | --- | --- | --- |
 | Auth structure | Yes | N/A |
 
-It describes the credentials to connect to the Salesforce API. Currently we only
-support the **Username-Password** auth flow:
+It describes the credentials to connect to the Salesforce API. It supports three
+auth flows: **JWT**, **Client Credentials**, and **Username-Password**.
+
+**JWT**:
+
+It has the following structure:
+
+```yaml
+  auth:
+    tokenUrl: "<TOKEN URL HERE>"
+    jwt:
+      clientId: "<CLIENT ID HERE>"
+      privateKey: "<PRIVATE KEY HERE>"
+      username: "<USER NAME HERE>"
+```
+
+- `tokenUrl`: base url to access the Slaesforce API. Use to be something like
+`https://my-company--staging.sandbox.my.salesforce.com`.
+- `clientId`: Client ID for the OAuth JWT flow.
+- `privateKey`: Path to the private key file for the OAuth User-Password flow.
+- `username`: Username for the OAuth JWT flow.
+
+**Client Credentials**:
+
+It has the following structure:
+
+```yaml
+  auth:
+    tokenUrl: "<TOKEN URL HERE>"
+    clientCred:
+      clientId: "<CLIENT ID HERE>"
+      clientSecret: "<CLIENT SECRET HERE>"
+```
+
+- `tokenUrl`: base url to access the Slaesforce API. Use to be something like
+`https://my-company--staging.sandbox.my.salesforce.com`.
+- `clientId`: Client ID for the OAuth Client Credentials flow.
+- `clientSecret`: Client Secret for the OAuth Client Credentials flow.
 
 **Username-Password**:
+
+> [!WARNING]
+> **DO NOT USE THIS AUTH METHOD.** Use one of the alternatives instead: Client Credentials or JWT.
+>
+> Salesforce [announced the retirement](https://help.salesforce.com/s/articleView?id=release-notes.rn_security_unpw_flow_retirement.htm&release=262&type=5)
+> of the Username-Password auth flow. Any service using this auth method after the retirement
+> date will stop working.
 
 It has the following structure:
 
